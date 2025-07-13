@@ -363,10 +363,10 @@ export default function UserManagementPage() {
     }
   }
 
-  const fixAdminPolicies = async () => {
+  const enableSafeRLS = async () => {
     setEmergencyLoading(true)
     try {
-      const result = await EmergencyAdminService.fixAdminPolicies()
+      const result = await EmergencyAdminService.enableSafeRLS()
       setEmergencyResult({
         success: result.success,
         type: 'policies',
@@ -374,26 +374,26 @@ export default function UserManagementPage() {
         error: result.error
       })
       
-      if (result.success) {
+              if (result.success) {
+          toast({
+            title: "Safe RLS Enabled",
+            description: "RLS policies have been re-enabled with safe admin access",
+            variant: "default"
+          })
+        } else {
+          toast({
+            title: "RLS Enable Failed",
+            description: result.error || "Failed to enable safe RLS",
+            variant: "destructive"
+          })
+        }
+      } catch (error) {
+        console.error('❌ Enable safe RLS error:', error)
         toast({
-          title: "Admin Policies Fixed",
-          description: "RLS policies have been updated for better admin access",
-          variant: "default"
-        })
-      } else {
-        toast({
-          title: "Policy Fix Failed",
-          description: result.error || "Failed to fix admin policies",
+          title: "RLS Enable Error",
+          description: error instanceof Error ? error.message : "Unknown error",
           variant: "destructive"
         })
-      }
-    } catch (error) {
-      console.error('❌ Fix admin policies error:', error)
-      toast({
-        title: "Policy Fix Error",
-        description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive"
-      })
     } finally {
       setEmergencyLoading(false)
     }
@@ -752,11 +752,11 @@ export default function UserManagementPage() {
                      <Button
                        size="sm"
                        variant="outline"
-                       onClick={fixAdminPolicies}
+                       onClick={enableSafeRLS}
                        disabled={emergencyLoading}
                        className="w-full"
                      >
-                       {emergencyLoading ? "Fixing..." : "Fix Admin Policies"}
+                       {emergencyLoading ? "Enabling..." : "Enable Safe RLS"}
                      </Button>
                      
                      <Button
