@@ -374,26 +374,26 @@ export default function UserManagementPage() {
         error: result.error
       })
       
-      if (result.success) {
+              if (result.success) {
+          toast({
+            title: "Safe RLS Enabled",
+            description: "RLS policies have been re-enabled with safe admin access",
+            variant: "default"
+          })
+        } else {
+          toast({
+            title: "RLS Enable Failed",
+            description: result.error || "Failed to enable safe RLS",
+            variant: "destructive"
+          })
+        }
+      } catch (error) {
+        console.error('❌ Enable safe RLS error:', error)
         toast({
-          title: "Safe RLS Enabled",
-          description: "RLS policies have been re-enabled with safe admin access",
-          variant: "default"
-        })
-      } else {
-        toast({
-          title: "RLS Enable Failed",
-          description: result.error || "Failed to enable safe RLS",
+          title: "RLS Enable Error",
+          description: error instanceof Error ? error.message : "Unknown error",
           variant: "destructive"
         })
-      }
-    } catch (error) {
-      console.error('❌ Enable safe RLS error:', error)
-      toast({
-        title: "RLS Enable Error",
-        description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive"
-      })
     } finally {
       setEmergencyLoading(false)
     }
