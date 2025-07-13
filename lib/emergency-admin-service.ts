@@ -49,7 +49,7 @@ export class EmergencyAdminService {
       console.log(`🚨 Creating super admin: ${email} (${userId})`)
       
       const { data, error } = await supabaseAdmin
-        .rpc('emergency_create_super_admin', {
+        .rpc('emergency_create_super_admin_fixed', {
           user_id: userId,
           user_email: email,
           user_name: name
@@ -89,7 +89,7 @@ export class EmergencyAdminService {
       console.log(`🚨 Updating user role: ${targetUserId} -> ${newRole}`)
       
       const { data, error } = await supabaseAdmin
-        .rpc('emergency_update_user_role', {
+        .rpc('emergency_update_user_role_fixed', {
           target_user_id: targetUserId,
           new_role: newRole,
           admin_user_id: adminUserId || null
@@ -125,7 +125,7 @@ export class EmergencyAdminService {
       console.log('🚨 Fetching all users (bypassing RLS)')
       
       const { data, error } = await supabaseAdmin
-        .rpc('emergency_get_all_users')
+        .rpc('emergency_get_all_users_fixed')
       
       if (error) {
         console.error('❌ Get all users failed:', error)
@@ -142,33 +142,33 @@ export class EmergencyAdminService {
   }
 
   /**
-   * Fix RLS policies for better admin access
+   * Enable safe RLS policies (replaces fixAdminPolicies)
    */
-  static async fixAdminPolicies(): Promise<EmergencyAdminResult> {
+  static async enableSafeRLS(): Promise<EmergencyAdminResult> {
     try {
-      console.log('🚨 Fixing admin RLS policies')
+      console.log('🚨 Enabling safe RLS policies')
       
       const { data, error } = await supabaseAdmin
-        .rpc('emergency_fix_admin_policies')
+        .rpc('emergency_enable_safe_rls')
       
       if (error) {
-        console.error('❌ Fix admin policies failed:', error)
+        console.error('❌ Enable safe RLS failed:', error)
         return {
           success: false,
           error: error.message,
-          message: 'Failed to fix admin policies'
+          message: 'Failed to enable safe RLS'
         }
       }
       
-      console.log('✅ Admin policies fixed successfully:', data)
+      console.log('✅ Safe RLS enabled successfully:', data)
       return data as EmergencyAdminResult
       
     } catch (error) {
-      console.error('❌ Fix admin policies error:', error)
+      console.error('❌ Enable safe RLS error:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        message: 'Failed to fix admin policies'
+        message: 'Failed to enable safe RLS'
       }
     }
   }
@@ -181,7 +181,7 @@ export class EmergencyAdminService {
       console.log('🚨 Cleaning up emergency functions')
       
       const { data, error } = await supabaseAdmin
-        .rpc('cleanup_emergency_functions')
+        .rpc('cleanup_emergency_functions_fixed')
       
       if (error) {
         console.error('❌ Cleanup emergency functions failed:', error)
@@ -229,15 +229,15 @@ export class EmergencyAdminService {
         error: createResult.error
       })
       
-      // Step 2: Fix admin policies
-      console.log('🚨 Step 2: Fixing admin policies')
-      const fixResult = await this.fixAdminPolicies()
-      steps.push({
-        step: 'Fix Admin Policies',
-        success: fixResult.success,
-        message: fixResult.message,
-        error: fixResult.error
-      })
+             // Step 2: Enable safe RLS policies
+       console.log('🚨 Step 2: Enabling safe RLS policies')
+       const fixResult = await this.enableSafeRLS()
+       steps.push({
+         step: 'Enable Safe RLS',
+         success: fixResult.success,
+         message: fixResult.message,
+         error: fixResult.error
+       })
       
       // Step 3: Verify admin access
       console.log('🚨 Step 3: Verifying admin access')
