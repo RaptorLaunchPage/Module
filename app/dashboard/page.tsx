@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/hooks/use-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Users, User, BarChart3, Shield, DollarSign, CalendarCheck, Wallet, Trophy } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
@@ -261,9 +262,24 @@ export default function DashboardPage() {
                 <li>You'll receive an email notification once approved (24-48 hours)</li>
                 <li>After approval, you'll have full access to team features</li>
               </ul>
-              <p className="text-sm mt-4">
-                <strong>Questions?</strong> Contact us at admin@raptorofficial.in
-              </p>
+              <div className="mt-4">
+                <p className="text-sm mb-2">
+                  <strong>Questions?</strong> Join our Discord community!
+                </p>
+                <Button 
+                  asChild 
+                  size="sm" 
+                  className="bg-[#5865F2] hover:bg-[#4752C4] text-white"
+                >
+                  <a 
+                    href="https://discord.gg/raptoresports" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    Join Discord Server
+                  </a>
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

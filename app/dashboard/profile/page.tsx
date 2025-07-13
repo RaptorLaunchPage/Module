@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useRef } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabase"
+import { EmergencyAdminService } from "@/lib/emergency-admin-service"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,9 +33,24 @@ export default function ProfilePage() {
 
     setLoading(true)
     try {
-      const { error } = await supabase.from("users").update(formData).eq("id", profile.id)
+      // Try regular update first
+      let { error } = await supabase.from("users").update(formData).eq("id", profile.id)
 
-      if (error) throw error
+      if (error) {
+        console.log("Regular update failed, trying emergency update:", error)
+        // If regular update fails, try using RPC function
+        const { data, error: rpcError } = await supabase.rpc('emergency_update_user_profile', {
+          user_id: profile.id,
+          user_name: formData.name,
+          contact_number: formData.contact_number,
+          in_game_role: formData.in_game_role,
+          device_info: formData.device_info
+        })
+        
+        if (rpcError) {
+          throw rpcError
+        }
+      }
 
       toast({
         title: "Success",
