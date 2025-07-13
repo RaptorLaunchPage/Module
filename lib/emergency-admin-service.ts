@@ -229,15 +229,15 @@ export class EmergencyAdminService {
         error: createResult.error
       })
       
-             // Step 2: Enable safe RLS policies
-       console.log('🚨 Step 2: Enabling safe RLS policies')
-       const fixResult = await this.enableSafeRLS()
-       steps.push({
-         step: 'Enable Safe RLS',
-         success: fixResult.success,
-         message: fixResult.message,
-         error: fixResult.error
-       })
+      // Step 2: Enable safe RLS policies
+      console.log('🚨 Step 2: Enabling safe RLS policies')
+      const fixResult = await this.enableSafeRLS()
+      steps.push({
+        step: 'Enable Safe RLS',
+        success: fixResult.success,
+        message: fixResult.message,
+        error: fixResult.error
+      })
       
       // Step 3: Verify admin access
       console.log('🚨 Step 3: Verifying admin access')
