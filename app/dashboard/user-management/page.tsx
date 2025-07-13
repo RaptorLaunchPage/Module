@@ -333,6 +333,34 @@ export default function UserManagementPage() {
             </Button>
             <Button
               size="sm"
+              variant="secondary"
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/debug/env')
+                  const data = await response.json()
+                  
+                  toast({
+                    title: "Environment Check",
+                    description: data.message || "Environment status checked",
+                    variant: data.success && data.status.hasServiceRoleKey ? "default" : "destructive"
+                  })
+                  
+                  console.log("🔍 Environment Status:", data)
+                } catch (error: any) {
+                  console.error("Environment check failed:", error)
+                  toast({
+                    title: "Environment Check Failed",
+                    description: error.message || "Could not check environment",
+                    variant: "destructive"
+                  })
+                }
+              }}
+              className="mr-2"
+            >
+              Check Environment
+            </Button>
+            <Button
+              size="sm"
               variant="outline"
               onClick={async () => {
                 if (!profile?.id) {
