@@ -17,7 +17,7 @@ If you've "redeployed" and are still facing issues, the problem is that **enviro
 5. **Add this variable**:
    ```
    Name: SUPABASE_SERVICE_ROLE_KEY
-   Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkanJuZ25udXh4c3dtaHh3eHpmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTkxNzEyOCwiZXhwIjoyMDY3NDkzMTI4fQ.5TyAmu2nN4qhhrjfWnqPVtEk3T2Yy5FCzD_-vrE-zjI
+   Value: 
    Environment: Production ✅
    ```
 
