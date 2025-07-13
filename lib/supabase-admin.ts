@@ -1,16 +1,21 @@
 import { createClient } from "@supabase/supabase-js"
 import type { Database } from "./supabase"
 
-// Admin client with elevated permissions
-// In production, this should use a service role key with proper RLS bypass
+// Admin client with elevated permissions - uses service role key to bypass RLS
 const supabaseAdmin = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ydjrngnnuxxswmhxwxzf.supabase.co",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkanJuZ25udXh4c3dtaHh3eHpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5MTcxMjgsImV4cCI6MjA2NzQ5MzEyOH0.XDsxnQRhHDttB8hRCcSADIYJ6D_-_gcoWToJbWjXn-w",
+  // Use service role key for admin operations - this bypasses RLS and allows auth.users access
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkanJuZ25udXh4c3dtaHh3eHpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5MTcxMjgsImV4cCI6MjA2NzQ5MzEyOH0.XDsxnQRhHDttB8hRCcSADIYJ6D_-_gcoWToJbWjXn-w",
   {
     auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    },
+    global: {
+      headers: {
+        'x-application': 'raptor-admin-service'
+      }
     }
   }
 )
@@ -105,20 +110,94 @@ export class SupabaseAdminService {
   }
 
   /**
+   * Get all auth users - requires service role key
+   */
+  static async getAllAuthUsers() {
+    try {
+      console.log("🔍 Fetching all auth users...")
+      
+      // Access auth.users table directly - only works with service role key
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers()
+
+      if (error) {
+        console.error("Auth users fetch failed:", error)
+        return { data: null, error: error }
+      }
+
+      console.log(`✅ Found ${data.users?.length || 0} auth users`)
+      return { data: data.users, error: null }
+    } catch (err: any) {
+      console.error("❌ Auth users fetch failed:", err)
+      return { data: null, error: err }
+    }
+  }
+
+  /**
    * Create missing user profiles for authenticated users
    */
   static async createMissingProfiles() {
     try {
       console.log("🔄 Checking for missing user profiles...")
       
-      // This would typically be done via a server function
-      // For now, we'll return instructions for manual setup
+      // Get all auth users
+      const { data: authUsers, error: authError } = await this.getAllAuthUsers()
+      if (authError || !authUsers) {
+        throw new Error(`Cannot access auth users: ${authError?.message}`)
+      }
+
+      // Get all existing profiles
+      const { data: profiles, error: profileError } = await this.getAllUsers()
+      if (profileError || !profiles) {
+        throw new Error(`Cannot access user profiles: ${profileError?.message}`)
+      }
+
+      // Find missing profiles
+      const existingProfileIds = new Set(profiles.map((p: any) => p.id))
+      const missingUsers = authUsers.filter(user => !existingProfileIds.has(user.id))
+
+      console.log(`Found ${missingUsers.length} users without profiles`)
+
+      if (missingUsers.length === 0) {
+        return {
+          success: true,
+          message: "All auth users have profiles",
+          created: 0,
+          missingUsers: []
+        }
+      }
+
+      // Create missing profiles
+      const newProfiles = missingUsers.map(user => ({
+        id: user.id,
+        email: user.email || '',
+        name: user.user_metadata?.name || user.email?.split('@')[0] || '',
+        role: 'pending' as const,
+        created_at: new Date().toISOString()
+      }))
+
+      const { data: createdProfiles, error: createError } = await supabaseAdmin
+        .from('users')
+        .insert(newProfiles)
+        .select()
+
+      if (createError) {
+        console.error("Profile creation failed:", createError)
+        return {
+          success: false,
+          error: createError.message,
+          attempted: newProfiles.length
+        }
+      }
+
+      console.log(`✅ Created ${createdProfiles.length} missing profiles`)
       return {
         success: true,
-        message: "Profile creation should be handled during signup process"
+        message: `Created ${createdProfiles.length} missing profiles`,
+        created: createdProfiles.length,
+        profiles: createdProfiles
       }
     } catch (err: any) {
-      console.error("❌ Profile creation check failed:", err)
+      console.error("❌ Profile creation failed:", err)
       return {
         success: false,
         error: err.message
