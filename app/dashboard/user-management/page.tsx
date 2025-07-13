@@ -20,6 +20,7 @@ import { ProfileFixer } from "@/lib/profile-fixer"
 import { AuthProfileSync } from "@/lib/auth-profile-sync"
 import { SecureProfileCreation } from "@/lib/secure-profile-creation"
 import { RoleAccess, ROLE_CONFIG } from "@/lib/role-system"
+import { EmergencyAdminService, type EmergencyAdminResult } from "@/lib/emergency-admin-service"
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 type Team = Database["public"]["Tables"]["teams"]["Row"]
@@ -36,6 +37,9 @@ export default function UserManagementPage() {
   const [showManualCreate, setShowManualCreate] = useState(false)
   const [manualEmail, setManualEmail] = useState("")
   const [manualName, setManualName] = useState("")
+  const [emergencyLoading, setEmergencyLoading] = useState(false)
+  const [emergencyResult, setEmergencyResult] = useState<any>(null)
+  const [showEmergencyPanel, setShowEmergencyPanel] = useState(false)
 
   useEffect(() => {
     if (profile?.role?.toLowerCase() !== "admin") {
@@ -278,6 +282,159 @@ export default function UserManagementPage() {
     }
   }
 
+  // Emergency Admin Functions
+  const setupEmergencyAdmin = async () => {
+    if (!profile?.id || !profile?.email) {
+      toast({
+        title: "Error",
+        description: "No user profile found",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setEmergencyLoading(true)
+    setEmergencyResult(null)
+
+    try {
+      console.log('🚨 Starting emergency admin setup...')
+      
+      const result = await EmergencyAdminService.setupAdminAccess(
+        profile.id,
+        profile.email,
+        profile.name || 'Emergency Admin'
+      )
+
+      setEmergencyResult(result)
+
+      if (result.success) {
+        toast({
+          title: "Emergency Admin Setup Complete",
+          description: "Admin access has been restored successfully",
+          variant: "default"
+        })
+        
+        // Refresh users list
+        await fetchUsers()
+      } else {
+        toast({
+          title: "Emergency Admin Setup Failed",
+          description: "Some steps failed. Check the details below.",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('❌ Emergency admin setup error:', error)
+      toast({
+        title: "Emergency Admin Setup Error",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      })
+    } finally {
+      setEmergencyLoading(false)
+    }
+  }
+
+  const getAllUsersEmergency = async () => {
+    setEmergencyLoading(true)
+    try {
+      const emergencyUsers = await EmergencyAdminService.getAllUsers()
+      setEmergencyResult({
+        success: true,
+        type: 'users',
+        users: emergencyUsers,
+        message: `Found ${emergencyUsers.length} users via emergency access`
+      })
+      
+      toast({
+        title: "Emergency Access Successful",
+        description: `Retrieved ${emergencyUsers.length} users bypassing RLS`,
+        variant: "default"
+      })
+    } catch (error) {
+      console.error('❌ Emergency get users error:', error)
+      toast({
+        title: "Emergency Access Failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      })
+    } finally {
+      setEmergencyLoading(false)
+    }
+  }
+
+  const fixAdminPolicies = async () => {
+    setEmergencyLoading(true)
+    try {
+      const result = await EmergencyAdminService.fixAdminPolicies()
+      setEmergencyResult({
+        success: result.success,
+        type: 'policies',
+        message: result.message,
+        error: result.error
+      })
+      
+      if (result.success) {
+        toast({
+          title: "Admin Policies Fixed",
+          description: "RLS policies have been updated for better admin access",
+          variant: "default"
+        })
+      } else {
+        toast({
+          title: "Policy Fix Failed",
+          description: result.error || "Failed to fix admin policies",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('❌ Fix admin policies error:', error)
+      toast({
+        title: "Policy Fix Error",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      })
+    } finally {
+      setEmergencyLoading(false)
+    }
+  }
+
+  const cleanupEmergencyFunctions = async () => {
+    setEmergencyLoading(true)
+    try {
+      const result = await EmergencyAdminService.cleanupEmergencyFunctions()
+      setEmergencyResult({
+        success: result.success,
+        type: 'cleanup',
+        message: result.message,
+        error: result.error
+      })
+      
+      if (result.success) {
+        toast({
+          title: "Emergency Functions Cleaned Up",
+          description: "All emergency bypass functions have been removed",
+          variant: "default"
+        })
+      } else {
+        toast({
+          title: "Cleanup Failed",
+          description: result.error || "Failed to cleanup emergency functions",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('❌ Cleanup emergency functions error:', error)
+      toast({
+        title: "Cleanup Error",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive"
+      })
+    } finally {
+      setEmergencyLoading(false)
+    }
+  }
+
   if (profile?.role?.toLowerCase() !== "admin") {
     return (
       <Alert>
@@ -438,58 +595,10 @@ export default function UserManagementPage() {
             <Button
               size="sm"
               variant="destructive"
-              onClick={async () => {
-                const confirmed = window.confirm(
-                  "EMERGENCY: Create admin profile for current session?\n\n" +
-                  "This will create an admin profile for the currently logged-in user.\n" +
-                  "Only use this if you're locked out due to missing admin profile."
-                )
-                
-                if (!confirmed) return
-                
-                try {
-                  const { data: { user } } = await supabase.auth.getUser()
-                  
-                  if (!user) {
-                    toast({
-                      title: "Error",
-                      description: "No authenticated user found",
-                      variant: "destructive"
-                    })
-                    return
-                  }
-                  
-                  const result = await SecureProfileCreation.createAdminProfile(
-                    user.id,
-                    user.email || '',
-                    user.user_metadata?.name || user.email?.split('@')[0] || 'Admin'
-                  )
-                  
-                  if (result.success) {
-                    toast({
-                      title: "Emergency Admin Created",
-                      description: `Admin profile created for ${user.email}`,
-                    })
-                    // Refresh the page to load the new profile
-                    window.location.reload()
-                  } else {
-                    toast({
-                      title: "Emergency Admin Failed",
-                      description: result.error || "Unknown error",
-                      variant: "destructive"
-                    })
-                  }
-                } catch (error: any) {
-                  toast({
-                    title: "Emergency Admin Error",
-                    description: error.message,
-                    variant: "destructive"
-                  })
-                }
-              }}
+              onClick={() => setShowEmergencyPanel(!showEmergencyPanel)}
               className="mr-2"
             >
-              🚨 Emergency Admin
+              🚨 Emergency Admin Bypass
             </Button>
             <Button
               size="sm"
@@ -602,6 +711,120 @@ export default function UserManagementPage() {
                    >
                      Create Profile
                    </Button>
+                 </div>
+               </div>
+             )}
+             
+             {showEmergencyPanel && (
+               <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                 <div className="flex justify-between items-center mb-3">
+                   <h4 className="font-semibold text-red-800">🚨 Emergency Admin Bypass System</h4>
+                   <Button size="sm" variant="ghost" onClick={() => setShowEmergencyPanel(false)}>
+                     Close
+                   </Button>
+                 </div>
+                 <div className="space-y-3">
+                   <div className="text-sm text-red-700 bg-red-100 p-3 rounded">
+                     <strong>⚠️ WARNING:</strong> This bypasses all RLS policies. Use only when normal admin access is broken.
+                   </div>
+                   
+                   <div className="grid grid-cols-2 gap-3">
+                     <Button
+                       size="sm"
+                       variant="destructive"
+                       onClick={setupEmergencyAdmin}
+                       disabled={emergencyLoading}
+                       className="w-full"
+                     >
+                       {emergencyLoading ? "Setting up..." : "Setup Emergency Admin"}
+                     </Button>
+                     
+                     <Button
+                       size="sm"
+                       variant="outline"
+                       onClick={getAllUsersEmergency}
+                       disabled={emergencyLoading}
+                       className="w-full"
+                     >
+                       {emergencyLoading ? "Loading..." : "Get All Users (Bypass)"}
+                     </Button>
+                     
+                     <Button
+                       size="sm"
+                       variant="outline"
+                       onClick={fixAdminPolicies}
+                       disabled={emergencyLoading}
+                       className="w-full"
+                     >
+                       {emergencyLoading ? "Fixing..." : "Fix Admin Policies"}
+                     </Button>
+                     
+                     <Button
+                       size="sm"
+                       variant="secondary"
+                       onClick={cleanupEmergencyFunctions}
+                       disabled={emergencyLoading}
+                       className="w-full"
+                     >
+                       {emergencyLoading ? "Cleaning..." : "Cleanup Emergency Functions"}
+                     </Button>
+                   </div>
+                   
+                   {emergencyResult && (
+                     <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
+                       <div className="flex justify-between items-center mb-2">
+                         <h5 className="font-semibold">Emergency Operation Result</h5>
+                       </div>
+                       
+                       {emergencyResult.success !== undefined && (
+                         <div className={`text-sm p-2 rounded ${emergencyResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                           {emergencyResult.success ? '✅ Success' : '❌ Failed'}
+                         </div>
+                       )}
+                       
+                       {emergencyResult.message && (
+                         <div className="text-sm text-gray-700 mt-2">
+                           <strong>Message:</strong> {emergencyResult.message}
+                         </div>
+                       )}
+                       
+                       {emergencyResult.error && (
+                         <div className="text-sm text-red-700 mt-2">
+                           <strong>Error:</strong> {emergencyResult.error}
+                         </div>
+                       )}
+                       
+                       {emergencyResult.steps && (
+                         <div className="mt-3">
+                           <strong className="text-sm">Setup Steps:</strong>
+                           <div className="space-y-1 mt-1">
+                             {emergencyResult.steps.map((step: any, index: number) => (
+                               <div key={index} className={`text-xs p-2 rounded ${step.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                                 <span className="font-medium">{step.step}:</span> {step.success ? '✅' : '❌'} {step.message || step.error}
+                               </div>
+                             ))}
+                           </div>
+                         </div>
+                       )}
+                       
+                       {emergencyResult.users && (
+                         <div className="mt-3">
+                           <strong className="text-sm">Users Found ({emergencyResult.users.length}):</strong>
+                           <div className="max-h-32 overflow-y-auto mt-1">
+                             {emergencyResult.users.map((user: any) => (
+                               <div key={user.id} className="text-xs p-1 border-b">
+                                 {user.name || user.email} - {user.role} ({user.role_level})
+                               </div>
+                             ))}
+                           </div>
+                         </div>
+                       )}
+                       
+                       <pre className="text-xs overflow-auto max-h-32 whitespace-pre-wrap mt-2 bg-gray-100 p-2 rounded">
+                         {JSON.stringify(emergencyResult, null, 2)}
+                       </pre>
+                     </div>
+                   )}
                  </div>
                </div>
              )}
