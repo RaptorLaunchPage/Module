@@ -335,27 +335,38 @@ export default function UserManagementPage() {
               size="sm"
               variant="outline"
               onClick={async () => {
+                if (!profile?.id) {
+                  toast({
+                    title: "Error",
+                    description: "No user profile available",
+                    variant: "destructive"
+                  })
+                  return
+                }
+                
                 try {
-                  const result = await AuthProfileSync.createMissingProfiles()
+                  console.log("🔄 Starting profile sync...")
+                  const result = await SupabaseAdminService.createMissingProfiles()
                   
                   if (result.success) {
                     toast({
                       title: "Profile Sync Complete",
-                      description: `Created ${result.created} missing profiles`,
+                      description: result.message || `Created ${result.created || 0} missing profiles`,
                     })
                     // Refresh the user list
                     fetchUsers()
                   } else {
                     toast({
-                      title: "Profile Sync Failed",
+                      title: "Profile Sync Failed", 
                       description: result.error || "Unknown error",
                       variant: "destructive"
                     })
                   }
                 } catch (error: any) {
+                  console.error("Profile sync error:", error)
                   toast({
                     title: "Profile Sync Error",
-                    description: error.message,
+                    description: error.message || "Failed to sync profiles",
                     variant: "destructive"
                   })
                 }
