@@ -21,6 +21,7 @@ import { AuthProfileSync } from "@/lib/auth-profile-sync"
 import { SecureProfileCreation } from "@/lib/secure-profile-creation"
 import { RoleAccess, ROLE_CONFIG } from "@/lib/role-system"
 import { EmergencyAdminService, type EmergencyAdminResult } from "@/lib/emergency-admin-service"
+import { Input } from "@/components/ui/input"
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 type Team = Database["public"]["Tables"]["teams"]["Row"]
@@ -540,391 +541,236 @@ export default function UserManagementPage() {
                 {debugUnlocked && <Unlock className="h-4 w-4 text-green-600 ml-2" />}
               </h3>
               <Button
-              size="sm"
-              variant="outline"
-              onClick={() => UserManagementService.testRLSPolicies()}
-              className="mr-2"
-            >
-              Test RLS Policies
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={async () => {
-                const permissions = await UserManagementService.testDatabasePermissions()
-                console.log("Database permissions test:", permissions)
-                toast({
-                  title: "Database Permissions Test",
-                  description: `Read: ${permissions.canRead}, Update: ${permissions.canUpdate}, Insert: ${permissions.canInsert}, Delete: ${permissions.canDelete}`,
-                })
-              }}
-              className="mr-2"
-            >
-              Test DB Permissions
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={runDiagnostics}
-              className="mr-2"
-            >
-              Run Full Diagnostics
-            </Button>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={async () => {
-                try {
-                  const response = await fetch('/api/debug/env')
-                  const data = await response.json()
-                  
+                size="sm"
+                variant="outline"
+                onClick={() => UserManagementService.testRLSPolicies()}
+                className="mr-2"
+              >
+                Test RLS Policies
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  const permissions = await UserManagementService.testDatabasePermissions()
+                  console.log("Database permissions test:", permissions)
                   toast({
-                    title: "Environment Check",
-                    description: data.message || "Environment status checked",
-                    variant: data.success && data.status.hasServiceRoleKey ? "default" : "destructive"
+                    title: "Database Permissions Test",
+                    description: `Read: ${permissions.canRead}, Update: ${permissions.canUpdate}, Insert: ${permissions.canInsert}, Delete: ${permissions.canDelete}`,
                   })
-                  
-                  console.log("🔍 Environment Status:", data)
-                } catch (error: any) {
-                  console.error("Environment check failed:", error)
-                  toast({
-                    title: "Environment Check Failed",
-                    description: error.message || "Could not check environment",
-                    variant: "destructive"
-                  })
-                }
-              }}
-              className="mr-2"
-            >
-              Check Environment
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={async () => {
-                if (!profile?.id) {
-                  toast({
-                    title: "Error",
-                    description: "No user profile available",
-                    variant: "destructive"
-                  })
-                  return
-                }
-                
-                try {
-                  console.log("🔄 Starting profile sync...")
-                  const result = await SupabaseAdminService.createMissingProfiles()
-                  
-                  if (result.success) {
+                }}
+                className="mr-2"
+              >
+                Test DB Permissions
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={runDiagnostics}
+                className="mr-2"
+              >
+                Run Full Diagnostics
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/debug/env')
+                    const data = await response.json()
                     toast({
-                      title: "Profile Sync Complete",
-                      description: result.message || `Created ${result.created || 0} missing profiles`,
+                      title: "Environment Check",
+                      description: data.message || "Environment status checked",
+                      variant: data.success && data.status.hasServiceRoleKey ? "default" : "destructive"
                     })
-                    // Refresh the user list
-                    fetchUsers()
-                  } else {
+                    console.log("🔍 Environment Status:", data)
+                  } catch (error: any) {
+                    console.error("Environment check failed:", error)
                     toast({
-                      title: "Profile Sync Failed", 
-                      description: result.error || "Unknown error",
+                      title: "Environment Check Failed",
+                      description: error.message || "Could not check environment",
                       variant: "destructive"
                     })
                   }
-                } catch (error: any) {
-                  console.error("Profile sync error:", error)
-                  toast({
-                    title: "Profile Sync Error",
-                    description: error.message || "Failed to sync profiles",
-                    variant: "destructive"
-                  })
-                }
-              }}
-              className="mr-2"
-            >
-              Sync Missing Profiles
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={async () => {
-                try {
-                  const status = await AuthProfileSync.getSyncStatus()
-                  console.log("Sync Status:", status)
-                  
-                  toast({
-                    title: "Sync Status",
-                    description: `Profiles: ${status.profiles?.count || 0}, Auth Users: ${status.authUsers?.accessible ? status.authUsers.count : 'Unknown'}`,
-                  })
-                } catch (error: any) {
-                  toast({
-                    title: "Sync Status Error",
-                    description: error.message,
-                    variant: "destructive"
-                  })
-                }
-              }}
-              className="mr-2"
-            >
-              Check Sync Status
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowManualCreate(true)}
-              className="mr-2"
-            >
-              Manual Create Profile
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => setShowEmergencyPanel(!showEmergencyPanel)}
-              className="mr-2"
-            >
-              🚨 Emergency Admin Bypass
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={async () => {
-                const hasPermission = await UserManagementService.checkUpdatePermission()
-                console.log("Current profile:", profile)
-                console.log("Users:", users)
-                console.log("Has update permission:", hasPermission)
-                toast({
-                  title: "Current State",
-                  description: `Profile: ${profile?.role}, Has Permission: ${hasPermission}`,
-                })
-              }}
-            >
-              Log Current State
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={fetchAuthUsers}
-              className="mr-2"
-              disabled={fetchingAuthUsers}
-            >
-              {fetchingAuthUsers ? "Fetching..." : "Fetch Auth Users"}
-            </Button>
-            {authUsers.length > 0 && (
-              <div className="mt-2 max-h-40 overflow-y-auto bg-white border rounded p-2 text-xs">
-                <div className="font-semibold mb-1">auth.users</div>
-                <pre>{JSON.stringify(authUsers, null, 2)}</pre>
-              </div>
-            )}
-            
-            {showDebug && debugInfo && (
-              <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-semibold">Diagnostic Results</h4>
-                  <Button size="sm" variant="ghost" onClick={() => setShowDebug(false)}>
-                    Close
+                }}
+                className="mr-2"
+              >
+                Check Environment
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  if (!profile?.id) {
+                    toast({
+                      title: "Error",
+                      description: "No user profile available",
+                      variant: "destructive"
+                    })
+                    return
+                  }
+                  try {
+                    console.log("🔄 Starting profile sync...")
+                    const result = await SupabaseAdminService.createMissingProfiles()
+                    if (result.success) {
+                      toast({
+                        title: "Profile Sync Complete",
+                        description: result.message || `Created ${result.created || 0} missing profiles`,
+                      })
+                      fetchUsers()
+                    } else {
+                      toast({
+                        title: "Profile Sync Failed",
+                        description: result.error || "Unknown error",
+                        variant: "destructive"
+                      })
+                    }
+                  } catch (error: any) {
+                    console.error("Profile sync error:", error)
+                    toast({
+                      title: "Profile Sync Error",
+                      description: error.message || "Failed to sync profiles",
+                      variant: "destructive"
+                    })
+                  }
+                }}
+                className="mr-2"
+              >
+                Sync Missing Profiles
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const status = await AuthProfileSync.getSyncStatus()
+                    console.log("Sync Status:", status)
+                    toast({
+                      title: "Sync Status",
+                      description: `Profiles: ${status.profiles?.count || 0}, Auth Users: ${status.authUsers?.accessible ? status.authUsers.count : 'Unknown'}`,
+                    })
+                  } catch (error: any) {
+                    toast({
+                      title: "Sync Status Error",
+                      description: error.message,
+                      variant: "destructive"
+                    })
+                  }
+                }}
+                className="mr-2"
+              >
+                Check Sync Status
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowManualCreate(true)}
+                className="mr-2"
+              >
+                Manual Create Profile
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setShowEmergencyPanel(!showEmergencyPanel)}
+                className="mr-2"
+              >
+                Emergency Admin
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={fetchAuthUsers}
+                className="mr-2"
+                disabled={fetchingAuthUsers}
+              >
+                {fetchingAuthUsers ? "Fetching..." : "Fetch Auth Users"}
+              </Button>
+              {authUsers.length > 0 && (
+                <div className="mt-2 max-h-40 overflow-y-auto bg-white border rounded p-2 text-xs">
+                  <div className="font-semibold mb-1">auth.users</div>
+                  <pre>{JSON.stringify(authUsers, null, 2)}</pre>
+                </div>
+              )}
+              {showDebug && debugInfo && (
+                <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <h5 className="font-semibold">Debug Info</h5>
+                    <Button size="xs" variant="outline" onClick={() => setShowDebug(false)}>Close</Button>
+                  </div>
+                  <pre className="text-xs overflow-auto max-h-32 whitespace-pre-wrap bg-gray-100 p-2 rounded">
+                    {JSON.stringify(debugInfo, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {showManualCreate && (
+                <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <h5 className="font-semibold">Manual Profile Creation</h5>
+                    <Button size="xs" variant="outline" onClick={() => setShowManualCreate(false)}>Close</Button>
+                  </div>
+                  <div className="flex gap-2 mb-2">
+                    <Input
+                      placeholder="Email"
+                      value={manualEmail}
+                      onChange={e => setManualEmail(e.target.value)}
+                    />
+                    <Input
+                      placeholder="Name"
+                      value={manualName}
+                      onChange={e => setManualName(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        await SupabaseAdminService.manualCreateProfile(manualEmail, manualName)
+                        toast({ title: "Profile Created", description: "Manual profile created successfully" })
+                        setShowManualCreate(false)
+                        fetchUsers()
+                      } catch (error: any) {
+                        toast({ title: "Error", description: error.message, variant: "destructive" })
+                      }
+                    }}
+                  >
+                    Create Profile
                   </Button>
                 </div>
-                                 <pre className="text-xs overflow-auto max-h-64 whitespace-pre-wrap">
-                   {JSON.stringify(debugInfo, null, 2)}
-                 </pre>
-               </div>
-             )}
-             
-             {showManualCreate && (
-               <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                 <div className="flex justify-between items-center mb-3">
-                   <h4 className="font-semibold text-blue-800">Manually Create Missing Profile</h4>
-                   <Button size="sm" variant="ghost" onClick={() => setShowManualCreate(false)}>
-                     Close
-                   </Button>
-                 </div>
-                 <div className="space-y-3">
-                   <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                       Email Address
-                     </label>
-                     <input
-                       type="email"
-                       value={manualEmail}
-                       onChange={(e) => setManualEmail(e.target.value)}
-                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                       placeholder="user@example.com"
-                     />
-                   </div>
-                   <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                       Name (Optional)
-                     </label>
-                     <input
-                       type="text"
-                       value={manualName}
-                       onChange={(e) => setManualName(e.target.value)}
-                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                       placeholder="User Name"
-                     />
-                   </div>
-                   <Button
-                     size="sm"
-                     onClick={async () => {
-                       if (!manualEmail) {
-                         toast({
-                           title: "Error",
-                           description: "Email is required",
-                           variant: "destructive"
-                         })
-                         return
-                       }
-                       
-                       try {
-                         const result = await AuthProfileSync.createProfileManually(
-                           manualEmail,
-                           manualName || undefined,
-                           'pending_player'
-                         )
-                         
-                         if (result.success) {
-                           toast({
-                             title: "Profile Created",
-                             description: `Profile created for ${manualEmail}`,
-                           })
-                           setManualEmail("")
-                           setManualName("")
-                           setShowManualCreate(false)
-                           fetchUsers()
-                         } else {
-                           toast({
-                             title: "Profile Creation Failed",
-                             description: result.error || "Unknown error",
-                             variant: "destructive"
-                           })
-                         }
-                       } catch (error: any) {
-                         toast({
-                           title: "Profile Creation Error",
-                           description: error.message,
-                           variant: "destructive"
-                         })
-                       }
-                     }}
-                     className="mr-2"
-                   >
-                     Create Profile
-                   </Button>
-                 </div>
-               </div>
-             )}
-             
-             {showEmergencyPanel && (
-               <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                 <div className="flex justify-between items-center mb-3">
-                   <h4 className="font-semibold text-red-800">🚨 Emergency Admin Bypass System</h4>
-                   <Button size="sm" variant="ghost" onClick={() => setShowEmergencyPanel(false)}>
-                     Close
-                   </Button>
-                 </div>
-                 <div className="space-y-3">
-                   <div className="text-sm text-red-700 bg-red-100 p-3 rounded">
-                     <strong>⚠️ WARNING:</strong> This bypasses all RLS policies. Use only when normal admin access is broken.
-                   </div>
-                   
-                   <div className="grid grid-cols-2 gap-3">
-                     <Button
-                       size="sm"
-                       variant="destructive"
-                       onClick={setupEmergencyAdmin}
-                       disabled={emergencyLoading}
-                       className="w-full"
-                     >
-                       {emergencyLoading ? "Setting up..." : "Setup Emergency Admin"}
-                     </Button>
-                     
-                     <Button
-                       size="sm"
-                       variant="outline"
-                       onClick={getAllUsersEmergency}
-                       disabled={emergencyLoading}
-                       className="w-full"
-                     >
-                       {emergencyLoading ? "Loading..." : "Get All Users (Bypass)"}
-                     </Button>
-                     
-                     <Button
-                       size="sm"
-                       variant="outline"
-                       onClick={enableSafeRLS}
-                       disabled={emergencyLoading}
-                       className="w-full"
-                     >
-                       {emergencyLoading ? "Enabling..." : "Enable Safe RLS"}
-                     </Button>
-                     
-                     <Button
-                       size="sm"
-                       variant="secondary"
-                       onClick={cleanupEmergencyFunctions}
-                       disabled={emergencyLoading}
-                       className="w-full"
-                     >
-                       {emergencyLoading ? "Cleaning..." : "Cleanup Emergency Functions"}
-                     </Button>
-                   </div>
-                   
-                   {emergencyResult && (
-                     <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
-                       <div className="flex justify-between items-center mb-2">
-                         <h5 className="font-semibold">Emergency Operation Result</h5>
-                       </div>
-                       
-                       {emergencyResult.success !== undefined && (
-                         <div className={`text-sm p-2 rounded ${emergencyResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                           {emergencyResult.success ? '✅ Success' : '❌ Failed'}
-                         </div>
-                       )}
-                       
-                       {emergencyResult.message && (
-                         <div className="text-sm text-gray-700 mt-2">
-                           <strong>Message:</strong> {emergencyResult.message}
-                         </div>
-                       )}
-                       
-                       {emergencyResult.error && (
-                         <div className="text-sm text-red-700 mt-2">
-                           <strong>Error:</strong> {emergencyResult.error}
-                         </div>
-                       )}
-                       
-                       {emergencyResult.steps && (
-                         <div className="mt-3">
-                           <strong className="text-sm">Setup Steps:</strong>
-                           <div className="space-y-1 mt-1">
-                             {emergencyResult.steps.map((step: any, index: number) => (
-                               <div key={index} className={`text-xs p-2 rounded ${step.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                                 <span className="font-medium">{step.step}:</span> {step.success ? '✅' : '❌'} {step.message || step.error}
-                               </div>
-                             ))}
-                           </div>
-                         </div>
-                       )}
-                       
-                       {emergencyResult.users && (
-                         <div className="mt-3">
-                           <strong className="text-sm">Users Found ({emergencyResult.users.length}):</strong>
-                           <div className="max-h-32 overflow-y-auto mt-1">
-                             {emergencyResult.users.map((user: any) => (
-                               <div key={user.id} className="text-xs p-1 border-b">
-                                 {user.name || user.email} - {user.role} ({user.role_level})
-                               </div>
-                             ))}
-                           </div>
-                         </div>
-                       )}
-                       
-                       <pre className="text-xs overflow-auto max-h-32 whitespace-pre-wrap mt-2 bg-gray-100 p-2 rounded">
-                         {JSON.stringify(emergencyResult, null, 2)}
-                       </pre>
-                     </div>
-                   )}
-                 </div>
-               </div>
-             )}
+              )}
+              {showEmergencyPanel && (
+                <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <h5 className="font-semibold">Emergency Admin Panel</h5>
+                    <Button size="xs" variant="outline" onClick={() => setShowEmergencyPanel(false)}>Close</Button>
+                  </div>
+                  <Button size="sm" onClick={setupEmergencyAdmin} disabled={emergencyLoading} className="mr-2">
+                    {emergencyLoading ? "Setting Up..." : "Setup Emergency Admin"}
+                  </Button>
+                  <Button size="sm" onClick={getAllUsersEmergency} disabled={emergencyLoading} className="mr-2">
+                    {emergencyLoading ? "Loading..." : "Get All Users (Bypass)"}
+                  </Button>
+                  <Button size="sm" onClick={enableSafeRLS} disabled={emergencyLoading} className="mr-2">
+                    {emergencyLoading ? "Enabling..." : "Enable Safe RLS"}
+                  </Button>
+                  <Button size="sm" onClick={cleanupEmergencyFunctions} disabled={emergencyLoading} className="mr-2">
+                    {emergencyLoading ? "Cleaning..." : "Cleanup Emergency Functions"}
+                  </Button>
+                  {emergencyResult && (
+                    <div className="mt-4 p-3 bg-gray-100 border rounded">
+                      <pre className="text-xs overflow-auto max-h-32 whitespace-pre-wrap">
+                        {JSON.stringify(emergencyResult, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            {debugUnlocked && (
+              <div className="absolute top-2 right-2 text-xs text-yellow-700">
+                <span>Unlocked • Auto-locks in 1 hour</span>
+              </div>
+            )}
           </div>
         )}
       </div>
