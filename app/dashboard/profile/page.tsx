@@ -27,12 +27,15 @@ export default function ProfilePage() {
     in_game_role: profile?.in_game_role || "",
     device_info: profile?.device_info || "",
   })
+  // Add state for debug logs
+  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   const updateProfile = async () => {
     if (!profile) return
 
     setLoading(true)
     try {
+      setDebugInfo(null)
       // Try using the RPC function first
       const { data, error } = await supabase.rpc('update_user_profile', {
         user_id: profile.id,
@@ -43,13 +46,27 @@ export default function ProfilePage() {
       })
 
       if (error) {
-        console.log("RPC update failed, trying direct update:", error)
+        setDebugInfo({
+          method: 'rpc',
+          error,
+          formData: { ...formData }
+        })
         // Fallback to direct update
         const { error: directError } = await supabase.from("users").update(formData).eq("id", profile.id)
         if (directError) {
+          setDebugInfo({
+            method: 'direct',
+            error: directError,
+            formData: { ...formData }
+          })
           throw directError
         }
       } else if (data && !data.success) {
+        setDebugInfo({
+          method: 'rpc',
+          error: data.error,
+          formData: { ...formData }
+        })
         throw new Error(data.error || "Failed to update profile")
       }
 
@@ -57,14 +74,13 @@ export default function ProfilePage() {
         title: "Success",
         description: "Profile updated successfully",
       })
-      
-      // Refresh the profile data
       window.location.reload()
     } catch (error) {
+      setDebugInfo((prev) => ({ ...prev, thrown: error }))
       console.error("Error updating profile:", error)
       toast({
         title: "Error",
-        description: "Failed to update profile",
+        description: error.message || JSON.stringify(error),
         variant: "destructive",
       })
     } finally {
@@ -122,6 +138,14 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      {profile?.role === 'admin' && debugInfo && (
+        <div style={{ background: '#fffbe6', padding: 8, marginBottom: 16, borderRadius: 4, border: '1px solid #ffe58f' }}>
+          <strong>Profile Debug Panel (Admins Only):</strong>
+          <div style={{ fontSize: 12, color: '#333', background: '#fff', marginTop: 4, padding: 4, borderRadius: 4, maxHeight: 200, overflow: 'auto' }}>
+            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugInfo, null, 2)}</pre>
+          </div>
+        </div>
+      )}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
         <p className="text-muted-foreground">Manage your personal information and settings</p>
