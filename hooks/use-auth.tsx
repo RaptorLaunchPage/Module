@@ -6,6 +6,7 @@ import { useState, useEffect, createContext, useContext } from "react"
 import { supabase } from "@/lib/supabase"
 import { SessionManager } from "@/lib/session-manager"
 import { SecureProfileCreation } from "@/lib/secure-profile-creation"
+import { EmergencyAdminService } from "@/lib/emergency-admin-service"
 import type { Session } from "@supabase/supabase-js"
 
 type AuthContextType = {
@@ -122,9 +123,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return
       }
 
-      // 2 – Profile doesn't exist, create it using secure profile creation
+      // 2 – Profile doesn't exist, create it using emergency admin service
       console.log("🔧 Creating profile for user:", userId, user?.email)
       
+      // Try emergency profile creation function first
+      const { data: emergencyData, error: emergencyError } = await supabase.rpc('emergency_create_profile', {
+        user_id: userId,
+        user_email: user?.email!,
+        user_name: user?.user_metadata?.name || user?.user_metadata?.full_name || 'User'
+      })
+
+      if (!emergencyError && emergencyData?.success) {
+        setProfile(emergencyData.profile)
+        return
+      }
+
+      // Fallback to emergency admin service
+      const emergencyResult = await EmergencyAdminService.createSuperAdmin(
+        userId,
+        user?.email!,
+        user?.user_metadata?.name || user?.user_metadata?.full_name || 'User'
+      )
+
+      if (emergencyResult.success) {
+        // Profile created successfully, fetch it
+        const { data: newProfile, error: fetchError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", userId)
+          .single()
+
+        if (fetchError) {
+          throw new Error("Profile created but could not fetch: " + fetchError.message)
+        }
+
+        setProfile(newProfile)
+        return
+      }
+
+      // Fallback to secure profile creation
       const profileResult = await SecureProfileCreation.createProfile(
         userId,
         user?.email!,
