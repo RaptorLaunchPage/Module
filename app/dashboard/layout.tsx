@@ -5,7 +5,9 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
-import { AppTopbar } from "@/components/app-topbar"
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar"
+import { AppSidebar } from "@/components/app-sidebar"
+import { MobileNav } from "@/components/mobile-nav"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Shield } from "lucide-react"
@@ -99,13 +101,31 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <AppTopbar />
-      <main className="flex-1 flex flex-col gap-4 p-2 sm:p-4">
-        <div className="flex-1 rounded-xl bg-muted/50 p-2 sm:p-4 min-h-[calc(100vh-6rem)]">
-          {children}
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="-ml-1 hidden md:flex" />
+            <MobileNav />
+            <span className="font-semibold hidden sm:inline">Raptor CRM</span>
+            <span className="font-semibold sm:hidden">Raptor</span>
+          </div>
+          <div className="ml-auto flex items-center space-x-4">
+            <span className="text-sm text-muted-foreground hidden md:inline">
+              Welcome, {profile.name || profile.email}
+            </span>
+            <span className="text-sm text-muted-foreground md:hidden">
+              {profile.name || profile.email?.split('@')[0]}
+            </span>
+          </div>
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-2 sm:p-4 pt-0">
+          <div className="flex-1 rounded-xl bg-muted/50 p-2 sm:p-4 min-h-[calc(100vh-6rem)]">
+            {children}
+          </div>
         </div>
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
