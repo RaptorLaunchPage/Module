@@ -519,9 +519,9 @@ export default function UserManagementPage() {
           <strong>Debug Log Panel (Visible only to Admins):</strong>
           <div style={{ fontSize: 12, color: '#333', background: '#fff', marginTop: 4, padding: 4, borderRadius: 4, maxHeight: 200, overflow: 'auto' }}>
             <div><b>Admin Service:</b></div>
-            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugLogs.adminService, null, 2)}</pre>
+            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugLogs.adminService, null, 2) || 'No data'}</pre>
             <div><b>Direct Query:</b></div>
-            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugLogs.directQuery, null, 2)}</pre>
+            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugLogs.directQuery, null, 2) || 'No data'}</pre>
           </div>
         </div>
       )}
