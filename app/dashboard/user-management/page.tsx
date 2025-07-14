@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Edit } from "lucide-react"
+import { Trash2, Edit, EyeOff, Lock, Unlock } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Database } from "@/lib/supabase"
 import { UserManagementService } from "@/lib/user-management"
@@ -40,6 +40,67 @@ export default function UserManagementPage() {
   const [emergencyLoading, setEmergencyLoading] = useState(false)
   const [emergencyResult, setEmergencyResult] = useState<any>(null)
   const [showEmergencyPanel, setShowEmergencyPanel] = useState(false)
+  const [debugUnlocked, setDebugUnlocked] = useState(false)
+  const [debugPassword, setDebugPassword] = useState("")
+  const [unlockError, setUnlockError] = useState("")
+  const [authUsers, setAuthUsers] = useState<any[]>([])
+  const [fetchingAuthUsers, setFetchingAuthUsers] = useState(false)
+
+  // Check unlock state on mount
+  useEffect(() => {
+    const unlockData = localStorage.getItem("admin_debug_unlock")
+    if (unlockData) {
+      const { timestamp } = JSON.parse(unlockData)
+      if (Date.now() - timestamp < 60 * 60 * 1000) {
+        setDebugUnlocked(true)
+      } else {
+        localStorage.removeItem("admin_debug_unlock")
+      }
+    }
+  }, [])
+
+  // Auto-lock after 1 hour
+  useEffect(() => {
+    if (debugUnlocked) {
+      const timeout = setTimeout(() => {
+        setDebugUnlocked(false)
+        localStorage.removeItem("admin_debug_unlock")
+      }, 60 * 60 * 1000)
+      return () => clearTimeout(timeout)
+    }
+  }, [debugUnlocked])
+
+  const handleUnlock = () => {
+    // Use env variable for password
+    const envPassword = process.env.NEXT_PUBLIC_ADMIN_DEBUG_PASSWORD
+    if (debugPassword === envPassword) {
+      setDebugUnlocked(true)
+      setUnlockError("")
+      localStorage.setItem("admin_debug_unlock", JSON.stringify({ timestamp: Date.now() }))
+    } else {
+      setUnlockError("Incorrect password.")
+    }
+  }
+
+  const fetchAuthUsers = async () => {
+    setFetchingAuthUsers(true)
+    setUnlockError("")
+    try {
+      // Prompt for password again for extra security
+      const envPassword = process.env.NEXT_PUBLIC_ADMIN_DEBUG_PASSWORD
+      const password = debugPassword || envPassword
+      const { data, error } = await supabase.rpc("admin_get_auth_users", {
+        admin_id: profile.id,
+        admin_password: password
+      })
+      if (error) throw error
+      setAuthUsers(data || [])
+    } catch (err: any) {
+      setUnlockError(err.message || "Failed to fetch auth users")
+    } finally {
+      setFetchingAuthUsers(false)
+    }
+  }
 
   useEffect(() => {
     if (profile?.role?.toLowerCase() !== "admin") {
@@ -452,12 +513,33 @@ export default function UserManagementPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
         <p className="text-muted-foreground">Manage users, roles, and team assignments</p>
-        
-        {/* Debug section - remove in production */}
+        {/* Blurred, password-protected debug section */}
         {profile?.role === "admin" && (
-          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <h3 className="font-semibold text-yellow-800 mb-2">Debug Tools</h3>
-            <Button
+          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg relative overflow-hidden">
+            {!debugUnlocked && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm z-10">
+                <Lock className="h-8 w-8 text-yellow-700 mb-2" />
+                <p className="mb-2 text-yellow-800 font-semibold">Admin Debug Tools Locked</p>
+                <input
+                  type="password"
+                  className="border rounded px-2 py-1 mb-2"
+                  placeholder="Enter password"
+                  value={debugPassword}
+                  onChange={e => setDebugPassword(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleUnlock() }}
+                />
+                <Button size="sm" onClick={handleUnlock}>
+                  Unlock
+                </Button>
+                {unlockError && <div className="text-xs text-red-600 mt-2">{unlockError}</div>}
+              </div>
+            )}
+            <div className={debugUnlocked ? "opacity-100" : "blur-sm pointer-events-none select-none opacity-60"}>
+              <h3 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+                <EyeOff className="h-4 w-4" /> Debug Tools
+                {debugUnlocked && <Unlock className="h-4 w-4 text-green-600 ml-2" />}
+              </h3>
+              <Button
               size="sm"
               variant="outline"
               onClick={() => UserManagementService.testRLSPolicies()}
@@ -616,6 +698,21 @@ export default function UserManagementPage() {
             >
               Log Current State
             </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={fetchAuthUsers}
+              className="mr-2"
+              disabled={fetchingAuthUsers}
+            >
+              {fetchingAuthUsers ? "Fetching..." : "Fetch Auth Users"}
+            </Button>
+            {authUsers.length > 0 && (
+              <div className="mt-2 max-h-40 overflow-y-auto bg-white border rounded p-2 text-xs">
+                <div className="font-semibold mb-1">auth.users</div>
+                <pre>{JSON.stringify(authUsers, null, 2)}</pre>
+              </div>
+            )}
             
             {showDebug && debugInfo && (
               <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
