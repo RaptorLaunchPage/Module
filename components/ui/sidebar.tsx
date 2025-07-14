@@ -89,6 +89,30 @@ const SidebarProvider = React.forwardRef<
       [setOpenProp, open]
     )
 
+    // --- Auto-hide/collapse logic ---
+    React.useEffect(() => {
+      let inactivityTimer: NodeJS.Timeout | null = null
+      const resetTimer = () => {
+        if (inactivityTimer) clearTimeout(inactivityTimer)
+        inactivityTimer = setTimeout(() => {
+          if (isMobile) {
+            setOpenMobile(false)
+          } else {
+            setOpen(false)
+          }
+        }, 30000) // 30 seconds
+      }
+      // Listen for user activity
+      const events = ["mousedown", "mousemove", "keypress", "scroll", "touchstart", "click"]
+      events.forEach(event => document.addEventListener(event, resetTimer, true))
+      resetTimer()
+      return () => {
+        if (inactivityTimer) clearTimeout(inactivityTimer)
+        events.forEach(event => document.removeEventListener(event, resetTimer, true))
+      }
+    }, [isMobile, setOpen, setOpenMobile])
+    // --- End auto-hide/collapse logic ---
+
     // Helper to toggle the sidebar.
     const toggleSidebar = React.useCallback(() => {
       return isMobile
