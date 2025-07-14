@@ -159,9 +159,8 @@ export default function DashboardPage() {
       case "analyst":
         return "Performance analysis and reporting"
       case "pending_player":
-        return "Profile under review - waiting for approval"
       case "awaiting_approval":
-        return "Application being processed - please wait"
+        return "Profile under review - awaiting approval"
       default:
         return "Standard user access"
     }
@@ -227,7 +226,7 @@ export default function DashboardPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Your Role: {profile?.role?.toUpperCase()}
+            Your Role: {["pending_player", "awaiting_approval"].includes(profile?.role?.toLowerCase()) ? "AWAITING APPROVAL" : profile?.role?.toUpperCase()}
           </CardTitle>
           <CardDescription>{getRoleDescription(profile?.role || "")}</CardDescription>
         </CardHeader>
@@ -272,7 +271,7 @@ export default function DashboardPage() {
                   className="bg-[#5865F2] hover:bg-[#4752C4] text-white"
                 >
                   <a 
-                    href="https://discord.gg/raptoresports" 
+                    href="https://discord.gg/6986Kf3eG4" 
                     target="_blank" 
                     rel="noopener noreferrer"
                   >

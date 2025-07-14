@@ -97,6 +97,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [user])
 
+  // Ensure loading is false when session is null (after sign out)
+  useEffect(() => {
+    if (!session && !user) {
+      setLoading(false)
+    }
+  }, [session, user])
+
   const fetchProfile = async (userId: string) => {
     try {
       setError(null)
