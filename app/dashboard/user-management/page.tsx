@@ -725,7 +725,7 @@ export default function UserManagementPage() {
                     size="sm"
                     onClick={async () => {
                       try {
-                        await UserManagementService.createUser({ email: manualEmail, name: manualName })
+                        await AuthProfileSync.createProfileManually(manualEmail, manualName)
                         toast({ title: "Profile Created", description: "Manual profile created successfully" })
                         setShowManualCreate(false)
                         fetchUsers()
