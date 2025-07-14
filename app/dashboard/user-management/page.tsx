@@ -47,6 +47,8 @@ export default function UserManagementPage() {
   const [authUsers, setAuthUsers] = useState<any[]>([])
   const [fetchingAuthUsers, setFetchingAuthUsers] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Add state for debug logs
+  const [debugLogs, setDebugLogs] = useState<any>({})
 
   // Check unlock state on mount
   useEffect(() => {
@@ -141,6 +143,7 @@ export default function UserManagementPage() {
       
       // Try admin service first
       const { data: adminData, error: adminError } = await SupabaseAdminService.getAllUsers()
+      setDebugLogs((prev: any) => ({ ...prev, adminService: { data: adminData, error: adminError } }))
       console.log("[AdminService] getAllUsers response:", { adminData, adminError })
       
       if (adminData && !adminError) {
@@ -157,6 +160,7 @@ export default function UserManagementPage() {
       
       // Fallback to direct query
       const { data, error } = await supabase.from("users").select("*").order("created_at", { ascending: false })
+      setDebugLogs((prev: any) => ({ ...prev, directQuery: { data, error } }))
       console.log("[Supabase] direct query response:", { data, error })
 
       if (error) {
@@ -520,6 +524,17 @@ export default function UserManagementPage() {
 
   return (
     <div className="space-y-6">
+      {profile && profile.role === "admin" && (
+        <div style={{ background: "#fffbe6", padding: 8, marginBottom: 16, borderRadius: 4, border: '1px solid #ffe58f' }}>
+          <strong>Debug Log Panel (Visible only to Admins):</strong>
+          <div style={{ fontSize: 12, color: '#333', background: '#fff', marginTop: 4, padding: 4, borderRadius: 4, maxHeight: 200, overflow: 'auto' }}>
+            <div><b>Admin Service:</b></div>
+            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugLogs.adminService, null, 2)}</pre>
+            <div><b>Direct Query:</b></div>
+            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugLogs.directQuery, null, 2)}</pre>
+          </div>
+        </div>
+      )}
       {profile && (
         <div style={{ background: "#f5f5f5", padding: 8, marginBottom: 16, borderRadius: 4 }}>
           <strong>Debug Info:</strong>
