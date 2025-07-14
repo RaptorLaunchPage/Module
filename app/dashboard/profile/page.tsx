@@ -80,7 +80,7 @@ export default function ProfilePage() {
       console.error("Error updating profile:", error)
       toast({
         title: "Error",
-        description: error.message || JSON.stringify(error),
+        description: (error instanceof Error ? error.message : JSON.stringify(error)),
         variant: "destructive",
       })
     } finally {
