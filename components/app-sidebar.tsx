@@ -37,37 +37,37 @@ const menuItems = [
     title: "Team Management",
     url: "/dashboard/team-management/teams", // Base route for team management
     icon: Shield,
-    roles: ["admin", "manager", "coach", "player"],
+    roles: ["admin", "manager", "coach"],
     subItems: [
       {
         title: "Teams",
         url: "/dashboard/team-management/teams",
         icon: Shield,
-        roles: ["admin", "manager", "coach", "player"],
+        roles: ["admin", "manager", "coach"],
       },
       {
         title: "Roster",
         url: "/dashboard/team-management/roster",
         icon: Users,
-        roles: ["admin", "manager", "coach", "player"],
+        roles: ["admin", "manager", "coach"],
       },
       {
         title: "Slot Booking",
         url: "/dashboard/team-management/slots",
         icon: CalendarCheck,
-        roles: ["admin", "manager", "coach", "player"],
+        roles: ["admin", "manager", "coach"],
       },
       {
         title: "Slot Expenses",
         url: "/dashboard/team-management/expenses",
         icon: DollarSign,
-        roles: ["admin", "manager", "coach", "player"],
+        roles: ["admin", "manager", "coach"],
       },
       {
         title: "Prize Pool",
         url: "/dashboard/team-management/prize-pool",
         icon: Trophy,
-        roles: ["admin", "manager", "coach", "player"],
+        roles: ["admin", "manager", "coach"],
       },
     ],
   },
