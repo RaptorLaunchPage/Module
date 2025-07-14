@@ -47,8 +47,6 @@ export default function UserManagementPage() {
   const [authUsers, setAuthUsers] = useState<any[]>([])
   const [fetchingAuthUsers, setFetchingAuthUsers] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // Add state for debug logs
-  const [debugLogs, setDebugLogs] = useState<any>({})
 
   // Check unlock state on mount
   useEffect(() => {
@@ -145,10 +143,6 @@ export default function UserManagementPage() {
       const adminPromise = SupabaseAdminService.getAllUsers()
       const directPromise = supabase.from("users").select("*").order("created_at", { ascending: false })
       const [{ data: adminData, error: adminError }, { data, error }] = await Promise.all([adminPromise, directPromise])
-      setDebugLogs({
-        adminService: { data: adminData, error: adminError },
-        directQuery: { data, error }
-      })
       // Prefer admin data if available, else fallback to direct query
       if (adminData && adminData.length > 0 && !adminError) {
         setUsers(adminData)
@@ -514,29 +508,6 @@ export default function UserManagementPage() {
 
   return (
     <div className="space-y-6">
-      {profile && profile.role === "admin" && (
-        <div style={{ background: "#fffbe6", padding: 8, marginBottom: 16, borderRadius: 4, border: '1px solid #ffe58f' }}>
-          <strong>Debug Log Panel (Visible only to Admins):</strong>
-          <div style={{ fontSize: 12, color: '#333', background: '#fff', marginTop: 4, padding: 4, borderRadius: 4, maxHeight: 200, overflow: 'auto' }}>
-            <div><b>Admin Service:</b></div>
-            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugLogs.adminService, null, 2) || 'No data'}</pre>
-            <div><b>Direct Query:</b></div>
-            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugLogs.directQuery, null, 2) || 'No data'}</pre>
-          </div>
-        </div>
-      )}
-      {profile && (
-        <div style={{ background: "#f5f5f5", padding: 8, marginBottom: 16, borderRadius: 4 }}>
-          <strong>Debug Info:</strong>
-          <div>User ID: {profile.id}</div>
-          <div>Email: {profile.email}</div>
-          <div>Role: {profile.role}</div>
-          <div>Users fetched: {users.length}</div>
-          <div style={{ maxHeight: 120, overflow: 'auto', fontSize: 12, color: '#888', background: '#fff', marginTop: 4, padding: 4, borderRadius: 4 }}>
-            Users: {JSON.stringify(users, null, 2)}
-          </div>
-        </div>
-      )}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
         <p className="text-muted-foreground">Manage users, roles, and team assignments</p>
