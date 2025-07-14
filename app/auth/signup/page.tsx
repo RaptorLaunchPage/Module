@@ -176,7 +176,18 @@ export default function SignUpPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-purple-900/80 to-slate-900/80"></div>
         </div>
 
-        <Card className="w-full max-w-md backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl relative z-10">
+        <Card className="w-full max-w-md backdrop-blur-xl bg-black/20 border-white/10 shadow-2xl relative z-10 overflow-hidden">
+          {/* Shining Particles Background */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute top-4 left-4 w-2 h-2 bg-white rounded-full animate-pulse opacity-80 shadow-lg shadow-white/50"></div>
+            <div className="absolute top-8 right-6 w-1.5 h-1.5 bg-white rounded-full animate-pulse opacity-90 shadow-lg shadow-white/50" style={{ animationDelay: '0.5s' }}></div>
+            <div className="absolute bottom-6 left-8 w-1 h-1 bg-white rounded-full animate-pulse opacity-70 shadow-lg shadow-white/50" style={{ animationDelay: '1s' }}></div>
+            <div className="absolute bottom-12 right-4 w-2.5 h-2.5 bg-white rounded-full animate-pulse opacity-60 shadow-lg shadow-white/50" style={{ animationDelay: '1.5s' }}></div>
+            <div className="absolute top-1/2 left-2 w-1 h-1 bg-white rounded-full animate-pulse opacity-80 shadow-lg shadow-white/50" style={{ animationDelay: '2s' }}></div>
+            <div className="absolute top-1/3 right-2 w-1.5 h-1.5 bg-white rounded-full animate-pulse opacity-70 shadow-lg shadow-white/50" style={{ animationDelay: '2.5s' }}></div>
+            <div className="absolute top-1/4 left-1/2 w-1 h-1 bg-white rounded-full animate-pulse opacity-90 shadow-lg shadow-white/50" style={{ animationDelay: '3s' }}></div>
+            <div className="absolute bottom-1/4 right-1/3 w-1.5 h-1.5 bg-white rounded-full animate-pulse opacity-60 shadow-lg shadow-white/50" style={{ animationDelay: '3.5s' }}></div>
+          </div>
           <CardHeader className="text-center space-y-2">
             <div className="mx-auto w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="w-6 h-6 text-white" />
@@ -241,10 +252,22 @@ export default function SignUpPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-purple-900/80 to-slate-900/80"></div>
       </div>
 
-      {/* Glassmorphic Form Container */}
-      <Card className="w-full max-w-md backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl relative z-10 transform transition-all duration-300 hover:scale-105">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mb-4">
+      {/* Transparent Glowsy Black Form Container with Shining Particles */}
+      <Card className="w-full max-w-md backdrop-blur-xl bg-black/20 border-white/10 shadow-2xl relative z-10 transform transition-all duration-300 hover:scale-105 overflow-hidden">
+        {/* Shining Particles Background */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-4 left-4 w-2 h-2 bg-white rounded-full animate-pulse opacity-80 shadow-lg shadow-white/50"></div>
+          <div className="absolute top-8 right-6 w-1.5 h-1.5 bg-white rounded-full animate-pulse opacity-90 shadow-lg shadow-white/50" style={{ animationDelay: '0.5s' }}></div>
+          <div className="absolute bottom-6 left-8 w-1 h-1 bg-white rounded-full animate-pulse opacity-70 shadow-lg shadow-white/50" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute bottom-12 right-4 w-2.5 h-2.5 bg-white rounded-full animate-pulse opacity-60 shadow-lg shadow-white/50" style={{ animationDelay: '1.5s' }}></div>
+          <div className="absolute top-1/2 left-2 w-1 h-1 bg-white rounded-full animate-pulse opacity-80 shadow-lg shadow-white/50" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-1/3 right-2 w-1.5 h-1.5 bg-white rounded-full animate-pulse opacity-70 shadow-lg shadow-white/50" style={{ animationDelay: '2.5s' }}></div>
+          <div className="absolute top-1/4 left-1/2 w-1 h-1 bg-white rounded-full animate-pulse opacity-90 shadow-lg shadow-white/50" style={{ animationDelay: '3s' }}></div>
+          <div className="absolute bottom-1/4 right-1/3 w-1.5 h-1.5 bg-white rounded-full animate-pulse opacity-60 shadow-lg shadow-white/50" style={{ animationDelay: '3.5s' }}></div>
+        </div>
+        
+        <CardHeader className="text-center space-y-2 relative z-10">
+          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-purple-500/25">
             <Shield className="w-6 h-6 text-white" />
           </div>
           <CardTitle className="text-3xl font-bold text-white bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
@@ -255,7 +278,7 @@ export default function SignUpPage() {
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 relative z-10">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
               <Alert variant="destructive" className="border-red-500/50 bg-red-500/10">
@@ -274,7 +297,7 @@ export default function SignUpPage() {
                   type="text"
                   {...register("name")}
                   placeholder="Enter your full name"
-                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-200"
+                  className="pl-10 bg-black/20 border-white/30 text-white placeholder:text-slate-300 focus:border-white/50 focus:ring-white/20 transition-all duration-200 backdrop-blur-sm"
                 />
               </div>
               {errors.name && (
@@ -293,7 +316,7 @@ export default function SignUpPage() {
                   type="email"
                   {...register("email")}
                   placeholder="Enter your email"
-                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-200"
+                  className="pl-10 bg-black/20 border-white/30 text-white placeholder:text-slate-300 focus:border-white/50 focus:ring-white/20 transition-all duration-200 backdrop-blur-sm"
                 />
               </div>
               {errors.email && (
@@ -312,7 +335,7 @@ export default function SignUpPage() {
                   type={showPassword ? "text" : "password"}
                   {...register("password")}
                   placeholder="Create a strong password"
-                  className="pl-10 pr-10 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-200"
+                  className="pl-10 pr-10 bg-black/20 border-white/30 text-white placeholder:text-slate-300 focus:border-white/50 focus:ring-white/20 transition-all duration-200 backdrop-blur-sm"
                 />
                 <button
                   type="button"
@@ -383,7 +406,7 @@ export default function SignUpPage() {
                   type={showConfirmPassword ? "text" : "password"}
                   {...register("confirmPassword")}
                   placeholder="Confirm your password"
-                  className="pl-10 pr-10 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-200"
+                  className="pl-10 pr-10 bg-black/20 border-white/30 text-white placeholder:text-slate-300 focus:border-white/50 focus:ring-white/20 transition-all duration-200 backdrop-blur-sm"
                 />
                 <button
                   type="button"
@@ -402,7 +425,7 @@ export default function SignUpPage() {
               <Checkbox
                 id="terms"
                 {...register("terms")}
-                className="mt-1 border-white/20 bg-white/10 data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
+                className="mt-1 border-white/30 bg-black/20 data-[state=checked]:bg-white/30 data-[state=checked]:border-white/50"
               />
               <Label htmlFor="terms" className="text-slate-300 text-sm leading-relaxed">
                 I agree to the{" "}
@@ -454,7 +477,7 @@ export default function SignUpPage() {
             
             <Button
               variant="outline"
-              className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-black/20 border-white/30 text-white hover:bg-black/30 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm"
               disabled
             >
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
@@ -468,7 +491,7 @@ export default function SignUpPage() {
             
             <Button
               variant="outline"
-              className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-black/20 border-white/30 text-white hover:bg-black/30 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm"
               disabled
             >
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">

@@ -139,16 +139,18 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-purple-900/80 to-slate-900/80"></div>
       </div>
 
-      {/* Black Glassy Form Container with Glowing Dots */}
-      <Card className="w-full max-w-md backdrop-blur-xl bg-black/40 border-white/10 shadow-2xl relative z-10 transform transition-all duration-300 hover:scale-105 overflow-hidden">
-        {/* Glowing Dots Background */}
+      {/* Transparent Glowsy Black Form Container with Shining Particles */}
+      <Card className="w-full max-w-md backdrop-blur-xl bg-black/20 border-white/10 shadow-2xl relative z-10 transform transition-all duration-300 hover:scale-105 overflow-hidden">
+        {/* Shining Particles Background */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-4 left-4 w-2 h-2 bg-purple-400 rounded-full animate-pulse opacity-60"></div>
-          <div className="absolute top-8 right-6 w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse opacity-80" style={{ animationDelay: '0.5s' }}></div>
-          <div className="absolute bottom-6 left-8 w-1 h-1 bg-cyan-400 rounded-full animate-pulse opacity-70" style={{ animationDelay: '1s' }}></div>
-          <div className="absolute bottom-12 right-4 w-2.5 h-2.5 bg-purple-300 rounded-full animate-pulse opacity-50" style={{ animationDelay: '1.5s' }}></div>
-          <div className="absolute top-1/2 left-2 w-1 h-1 bg-blue-300 rounded-full animate-pulse opacity-60" style={{ animationDelay: '2s' }}></div>
-          <div className="absolute top-1/3 right-2 w-1.5 h-1.5 bg-cyan-300 rounded-full animate-pulse opacity-70" style={{ animationDelay: '2.5s' }}></div>
+          <div className="absolute top-4 left-4 w-2 h-2 bg-white rounded-full animate-pulse opacity-80 shadow-lg shadow-white/50"></div>
+          <div className="absolute top-8 right-6 w-1.5 h-1.5 bg-white rounded-full animate-pulse opacity-90 shadow-lg shadow-white/50" style={{ animationDelay: '0.5s' }}></div>
+          <div className="absolute bottom-6 left-8 w-1 h-1 bg-white rounded-full animate-pulse opacity-70 shadow-lg shadow-white/50" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute bottom-12 right-4 w-2.5 h-2.5 bg-white rounded-full animate-pulse opacity-60 shadow-lg shadow-white/50" style={{ animationDelay: '1.5s' }}></div>
+          <div className="absolute top-1/2 left-2 w-1 h-1 bg-white rounded-full animate-pulse opacity-80 shadow-lg shadow-white/50" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-1/3 right-2 w-1.5 h-1.5 bg-white rounded-full animate-pulse opacity-70 shadow-lg shadow-white/50" style={{ animationDelay: '2.5s' }}></div>
+          <div className="absolute top-1/4 left-1/2 w-1 h-1 bg-white rounded-full animate-pulse opacity-90 shadow-lg shadow-white/50" style={{ animationDelay: '3s' }}></div>
+          <div className="absolute bottom-1/4 right-1/3 w-1.5 h-1.5 bg-white rounded-full animate-pulse opacity-60 shadow-lg shadow-white/50" style={{ animationDelay: '3.5s' }}></div>
         </div>
         
         <CardHeader className="text-center space-y-2 relative z-10">
@@ -182,7 +184,7 @@ export default function LoginPage() {
                   type="email"
                   {...register("email")}
                   placeholder="admin@raptoresports.gg"
-                  className="pl-10 bg-black/30 border-white/20 text-white placeholder:text-slate-400 focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-200"
+                  className="pl-10 bg-black/20 border-white/30 text-white placeholder:text-slate-300 focus:border-white/50 focus:ring-white/20 transition-all duration-200 backdrop-blur-sm"
                 />
               </div>
               {errors.email && (
@@ -201,7 +203,7 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   {...register("password")}
                   placeholder="Enter your password"
-                  className="pl-10 pr-10 bg-black/30 border-white/20 text-white placeholder:text-slate-400 focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-200"
+                  className="pl-10 pr-10 bg-black/20 border-white/30 text-white placeholder:text-slate-300 focus:border-white/50 focus:ring-white/20 transition-all duration-200 backdrop-blur-sm"
                 />
                 <button
                   type="button"
@@ -221,7 +223,7 @@ export default function LoginPage() {
                 <Checkbox
                   id="rememberMe"
                   {...register("rememberMe")}
-                  className="border-white/20 bg-black/30 data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
+                  className="border-white/30 bg-black/20 data-[state=checked]:bg-white/30 data-[state=checked]:border-white/50"
                 />
                 <Label htmlFor="rememberMe" className="text-slate-300 text-sm">
                   Remember me
@@ -270,7 +272,7 @@ export default function LoginPage() {
             
             <Button
               variant="outline"
-              className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-black/20 border-white/30 text-white hover:bg-black/30 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm"
               disabled
             >
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
@@ -284,7 +286,7 @@ export default function LoginPage() {
             
             <Button
               variant="outline"
-              className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-black/20 border-white/30 text-white hover:bg-black/30 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm"
               disabled
             >
               <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
