@@ -7,6 +7,8 @@ import { usePathname } from "next/navigation"
 import { LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
+import { RefreshCw } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 const menuItems = [
   {
@@ -77,6 +79,7 @@ export function AppTopbar() {
   const { profile, signOut } = useAuth()
   const pathname = usePathname()
   const [permissions, setPermissions] = useState<{ [key: string]: boolean }>({})
+  const router = useRouter()
 
   useEffect(() => {
     async function fetchPermissions() {
@@ -135,6 +138,13 @@ export function AppTopbar() {
         ))}
       </div>
       <div className="flex items-center gap-4">
+        <button
+          className="p-1 rounded hover:bg-gray-100 text-gray-500"
+          title="Refresh Dashboard"
+          onClick={() => router.refresh()}
+        >
+          <RefreshCw className="h-4 w-4" />
+        </button>
         <span className="text-sm font-medium">{profile?.name || profile?.email}</span>
         <Button variant="outline" size="sm" onClick={signOut}>
           <LogOut className="h-4 w-4 mr-1" /> Sign Out
