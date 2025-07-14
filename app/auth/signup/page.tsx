@@ -28,7 +28,6 @@ const signupSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
   confirmPassword: z.string(),
-  role: z.enum(["admin", "manager", "coach", "player", "analyst"]),
   terms: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -36,14 +35,6 @@ const signupSchema = z.object({
 })
 
 type SignupFormData = z.infer<typeof signupSchema>
-
-const ROLES = [
-  { value: "admin", label: "Admin", description: "Full system access" },
-  { value: "manager", label: "Manager", description: "Team and user management" },
-  { value: "coach", label: "Coach", description: "Team coaching and training" },
-  { value: "player", label: "Player", description: "Team member" },
-  { value: "analyst", label: "Analyst", description: "Performance analysis" },
-]
 
 export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -65,7 +56,6 @@ export default function SignUpPage() {
   } = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
-      role: "player",
       terms: false,
     },
   })
@@ -308,30 +298,6 @@ export default function SignUpPage() {
               </div>
               {errors.email && (
                 <p className="text-red-400 text-sm">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role" className="text-white font-medium">
-                Role
-              </Label>
-              <Select onValueChange={(value) => setValue("role", value as any)} defaultValue="player">
-                <SelectTrigger className="bg-white/10 border-white/20 text-white focus:border-purple-400 focus:ring-purple-400/20">
-                  <SelectValue placeholder="Select your role" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  {ROLES.map((role) => (
-                    <SelectItem key={role.value} value={role.value} className="text-white hover:bg-slate-700">
-                      <div>
-                        <div className="font-medium">{role.label}</div>
-                        <div className="text-sm text-slate-400">{role.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.role && (
-                <p className="text-red-400 text-sm">{errors.role.message}</p>
               )}
             </div>
 
