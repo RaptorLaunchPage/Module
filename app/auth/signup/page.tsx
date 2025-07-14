@@ -167,7 +167,7 @@ export default function SignUpPage() {
           playsInline
           className="w-full h-full object-cover opacity-30"
         >
-          <source src="/videos/space-particles.mp4" type="video/mp4" />
+          <source src="/space-particles.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-purple-900/80 to-slate-900/80"></div>
       </div>
