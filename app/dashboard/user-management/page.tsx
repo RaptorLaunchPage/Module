@@ -46,6 +46,7 @@ export default function UserManagementPage() {
   const [unlockError, setUnlockError] = useState("")
   const [authUsers, setAuthUsers] = useState<any[]>([])
   const [fetchingAuthUsers, setFetchingAuthUsers] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Check unlock state on mount
   useEffect(() => {
@@ -154,6 +155,7 @@ export default function UserManagementPage() {
 
       if (error) {
         console.error("❌ Direct query also failed:", error)
+        setError(error.message)
         throw error
       }
       
@@ -161,6 +163,7 @@ export default function UserManagementPage() {
       setUsers(data || [])
     } catch (error: any) {
       console.error("❌ Error fetching users:", error)
+      setError(error.message || String(error))
       toast({
         title: "Error",
         description: `Failed to fetch users: ${error.message}`,
@@ -890,6 +893,7 @@ export default function UserManagementPage() {
           </CardContent>
         </Card>
       )}
+      {error && <div className="text-red-500">{error}</div>}
     </div>
   )
 }

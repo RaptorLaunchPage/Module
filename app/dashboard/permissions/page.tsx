@@ -17,18 +17,29 @@ export default function PermissionsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [exception, setException] = useState<any>(null)
 
   useEffect(() => {
-    fetch('/api/permissions')
-      .then(res => res.json())
-      .then(data => {
-        setPermissions(data.permissions)
-        setLoading(false)
-      })
-      .catch(err => {
-        setError('Failed to load permissions')
-        setLoading(false)
-      })
+    try {
+      fetch('/api/permissions')
+        .then(res => res.json())
+        .then(data => {
+          if (!data.permissions) {
+            setError('API did not return permissions array. Raw response: ' + JSON.stringify(data))
+            setLoading(false)
+            return
+          }
+          setPermissions(data.permissions)
+          setLoading(false)
+        })
+        .catch(err => {
+          setError('Failed to load permissions: ' + err.message)
+          setLoading(false)
+        })
+    } catch (e) {
+      setException(e)
+      setLoading(false)
+    }
   }, [])
 
   const handleToggle = (role: string, module: string) => {
@@ -53,7 +64,11 @@ export default function PermissionsPage() {
         })
       }
     } catch (e) {
-      setError('Failed to save changes')
+      if (e instanceof Error) {
+        setError('Failed to save changes: ' + e.message)
+      } else {
+        setError('Failed to save changes: ' + String(e))
+      }
     } finally {
       setSaving(false)
     }
@@ -61,6 +76,7 @@ export default function PermissionsPage() {
 
   if (loading) return <div>Loading permissions...</div>
   if (error) return <div className="text-red-500">{error}</div>
+  if (exception) return <div className="text-red-500">Exception: {exception?.message || JSON.stringify(exception)}</div>
 
   return (
     <div className="p-4">
@@ -102,6 +118,7 @@ export default function PermissionsPage() {
         {saving ? 'Saving...' : 'Save Changes'}
       </button>
       {error && <div className="text-red-500 mt-2">{error}</div>}
+      {exception && <div className="text-red-500 mt-2">Exception: {exception?.message || JSON.stringify(exception)}</div>}
     </div>
   )
 }
