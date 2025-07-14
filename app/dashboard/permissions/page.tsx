@@ -18,6 +18,7 @@ export default function PermissionsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [exception, setException] = useState<any>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     try {
@@ -55,6 +56,7 @@ export default function PermissionsPage() {
   const handleSave = async () => {
     setSaving(true)
     setError(null)
+    setSuccess(null)
     try {
       for (const perm of permissions) {
         await fetch('/api/permissions', {
@@ -63,6 +65,8 @@ export default function PermissionsPage() {
           body: JSON.stringify({ role: perm.role, module: perm.module, can_access: perm.can_access })
         })
       }
+      setSuccess('Permissions saved!')
+      setTimeout(() => setSuccess(null), 2000)
     } catch (e) {
       if (e instanceof Error) {
         setError('Failed to save changes: ' + e.message)
@@ -81,6 +85,7 @@ export default function PermissionsPage() {
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Module Permissions Management</h1>
+      {success && <div className="text-green-600 mb-2">{success}</div>}
       <table className="min-w-full border">
         <thead>
           <tr>
