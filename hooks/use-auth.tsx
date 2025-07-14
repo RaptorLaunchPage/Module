@@ -185,21 +185,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }
 
   const signOut = async () => {
-    setLoading(true)
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-      
-      // Clear all auth state immediately
+      // Clear all auth state immediately first
       setSession(null)
       setUser(null)
       setProfile(null)
       setError(null)
+      setLoading(false)
+      
+      // Then sign out from Supabase
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
     } catch (err: any) {
       console.error("Sign out error:", err)
       setError(err.message)
-    } finally {
-      setLoading(false)
     }
   }
 
