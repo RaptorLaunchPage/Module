@@ -725,7 +725,7 @@ export default function UserManagementPage() {
                     size="sm"
                     onClick={async () => {
                       try {
-                        await SupabaseAdminService.manualCreateProfile(manualEmail, manualName)
+                        await UserManagementService.createUser({ email: manualEmail, name: manualName })
                         toast({ title: "Profile Created", description: "Manual profile created successfully" })
                         setShowManualCreate(false)
                         fetchUsers()
