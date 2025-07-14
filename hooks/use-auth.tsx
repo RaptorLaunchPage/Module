@@ -8,6 +8,7 @@ import { SessionManager } from "@/lib/session-manager"
 import { SecureProfileCreation } from "@/lib/secure-profile-creation"
 import { EmergencyAdminService } from "@/lib/emergency-admin-service"
 import type { Session } from "@supabase/supabase-js"
+import { useRouter } from "next/navigation"
 
 type AuthContextType = {
   session: Session | null
@@ -29,6 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -104,6 +106,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false)
     }
   }, [session, user])
+
+  useEffect(() => {
+    if (!loading && !user) {
+      const timeout = setTimeout(() => {
+        router.push("/auth/login")
+      }, 1500)
+      return () => clearTimeout(timeout)
+    }
+  }, [user, loading, router])
 
   const fetchProfile = async (userId: string) => {
     try {
