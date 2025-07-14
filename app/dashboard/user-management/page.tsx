@@ -696,7 +696,7 @@ export default function UserManagementPage() {
                 <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
                   <div className="flex justify-between items-center mb-2">
                     <h5 className="font-semibold">Debug Info</h5>
-                    <Button size="xs" variant="outline" onClick={() => setShowDebug(false)}>Close</Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowDebug(false)}>Close</Button>
                   </div>
                   <pre className="text-xs overflow-auto max-h-32 whitespace-pre-wrap bg-gray-100 p-2 rounded">
                     {JSON.stringify(debugInfo, null, 2)}
@@ -707,7 +707,7 @@ export default function UserManagementPage() {
                 <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
                   <div className="flex justify-between items-center mb-2">
                     <h5 className="font-semibold">Manual Profile Creation</h5>
-                    <Button size="xs" variant="outline" onClick={() => setShowManualCreate(false)}>Close</Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowManualCreate(false)}>Close</Button>
                   </div>
                   <div className="flex gap-2 mb-2">
                     <Input
@@ -742,7 +742,7 @@ export default function UserManagementPage() {
                 <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
                   <div className="flex justify-between items-center mb-2">
                     <h5 className="font-semibold">Emergency Admin Panel</h5>
-                    <Button size="xs" variant="outline" onClick={() => setShowEmergencyPanel(false)}>Close</Button>
+                    <Button size="sm" variant="outline" onClick={() => setShowEmergencyPanel(false)}>Close</Button>
                   </div>
                   <Button size="sm" onClick={setupEmergencyAdmin} disabled={emergencyLoading} className="mr-2">
                     {emergencyLoading ? "Setting Up..." : "Setup Emergency Admin"}
