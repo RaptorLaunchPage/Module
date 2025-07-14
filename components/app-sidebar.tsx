@@ -91,6 +91,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
 
   const filteredMenuItems = menuItems.filter((item) => profile?.role && item.roles.includes(profile.role.toLowerCase()))
+  // Add Permissions link for admins
+  const showPermissions = profile?.role && profile.role.toLowerCase() === 'admin'
 
   const getRoleDisplay = (role: string) => {
     switch (role?.toLowerCase()) {
@@ -158,6 +160,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   )}
                 </SidebarMenuItem>
               ))}
+            {showPermissions && (
+              <SidebarMenuItem key="Permissions">
+                <SidebarMenuButton asChild isActive={pathname === "/dashboard/permissions"}>
+                  <Link href="/dashboard/permissions">
+                    <Shield className="h-4 w-4" />
+                    <span>Permissions</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
