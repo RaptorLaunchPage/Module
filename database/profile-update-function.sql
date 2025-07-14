@@ -18,11 +18,11 @@ BEGIN
   -- Update user profile with provided fields
   UPDATE users 
   SET 
-    name = COALESCE(user_name, users.name),
-    contact_number = COALESCE(contact_number, users.contact_number),
-    in_game_role = COALESCE(in_game_role, users.in_game_role),
-    device_info = COALESCE(device_info, users.device_info)
-  WHERE id = user_id;
+    name = COALESCE(update_user_profile.user_name, users.name),
+    contact_number = COALESCE(update_user_profile.contact_number, users.contact_number),
+    in_game_role = COALESCE(update_user_profile.in_game_role, users.in_game_role),
+    device_info = COALESCE(update_user_profile.device_info, users.device_info)
+  WHERE id = update_user_profile.user_id;
   
   IF NOT FOUND THEN
     RETURN json_build_object(
