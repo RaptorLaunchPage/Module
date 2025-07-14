@@ -514,6 +514,18 @@ export default function UserManagementPage() {
 
   return (
     <div className="space-y-6">
+      {profile && (
+        <div style={{ background: "#f5f5f5", padding: 8, marginBottom: 16, borderRadius: 4 }}>
+          <strong>Debug Info:</strong>
+          <div>User ID: {profile.id}</div>
+          <div>Email: {profile.email}</div>
+          <div>Role: {profile.role}</div>
+          <div>Users fetched: {users.length}</div>
+          <div style={{ maxHeight: 120, overflow: 'auto', fontSize: 12, color: '#888', background: '#fff', marginTop: 4, padding: 4, borderRadius: 4 }}>
+            Users: {JSON.stringify(users, null, 2)}
+          </div>
+        </div>
+      )}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
         <p className="text-muted-foreground">Manage users, roles, and team assignments</p>
