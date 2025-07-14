@@ -64,7 +64,11 @@ export default function PermissionsPage() {
         })
       }
     } catch (e) {
-      setError('Failed to save changes: ' + (e.message || e))
+      if (e instanceof Error) {
+        setError('Failed to save changes: ' + e.message)
+      } else {
+        setError('Failed to save changes: ' + String(e))
+      }
     } finally {
       setSaving(false)
     }
