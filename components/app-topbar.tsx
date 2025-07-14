@@ -6,6 +6,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
 
 const menuItems = [
   {
@@ -75,9 +76,26 @@ const menuItems = [
 export function AppTopbar() {
   const { profile, signOut } = useAuth()
   const pathname = usePathname()
+  const [permissions, setPermissions] = useState<{ [key: string]: boolean }>({})
+
+  useEffect(() => {
+    async function fetchPermissions() {
+      if (!profile?.role) return
+      const res = await fetch("/api/permissions")
+      const data = await res.json()
+      const perms: { [key: string]: boolean } = {}
+      data.permissions.forEach((p: any) => {
+        if (p.role === profile.role.toLowerCase()) {
+          perms[p.module] = p.can_access
+        }
+      })
+      setPermissions(perms)
+    }
+    fetchPermissions()
+  }, [profile?.role])
 
   const filteredMenuItems = menuItems.filter(
-    (item) => profile?.role && item.roles.includes(profile.role.toLowerCase())
+    (item) => permissions[item.url.split("/")[2]?.replace("-management", "_management")] !== false
   )
 
   return (
@@ -98,7 +116,7 @@ export function AppTopbar() {
             {item.subItems && (
               <div className="absolute left-0 top-full mt-1 hidden group-hover:block bg-white border rounded shadow z-10 min-w-max">
                 {item.subItems
-                  .filter((sub) => profile?.role && sub.roles.includes(profile.role.toLowerCase()))
+                  .filter((sub) => permissions[sub.url.split("/")[2]?.replace("-management", "_management")] !== false)
                   .map((sub) => (
                     <Link
                       key={sub.title}
