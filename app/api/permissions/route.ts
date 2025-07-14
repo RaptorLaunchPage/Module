@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     }
     const { error } = await supabase
       .from('module_permissions')
-      .upsert({ role, module, can_access }, { onConflict: ['role', 'module'] })
+      .upsert({ role, module, can_access }, { onConflict: 'role,module' })
     if (error) throw error
     return NextResponse.json({ success: true })
   } catch (error: any) {
