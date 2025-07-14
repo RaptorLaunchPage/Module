@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, XCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { VideoBackground } from "@/components/video-background"
 
 function AuthConfirmContent() {
   const router = useRouter()
@@ -59,16 +60,17 @@ function AuthConfirmContent() {
   }, [searchParams, router])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md">
+    <VideoBackground>
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <Card className="w-full max-w-md backdrop-blur-sm bg-white/10 border-white/20">
         <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2">
+          <CardTitle className="flex items-center justify-center gap-2 text-white">
             {status === 'loading' && <Loader2 className="h-5 w-5 animate-spin" />}
             {status === 'success' && <CheckCircle className="h-5 w-5 text-green-500" />}
             {status === 'error' && <XCircle className="h-5 w-5 text-red-500" />}
             Email Confirmation
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-slate-300">
             {status === 'loading' && 'Verifying your email...'}
             {status === 'success' && 'Your email has been confirmed!'}
             {status === 'error' && 'Confirmation failed'}
@@ -77,7 +79,7 @@ function AuthConfirmContent() {
         <CardContent className="space-y-4">
           {status === 'loading' && (
             <div className="text-center">
-              <p className="text-muted-foreground">Please wait while we verify your email address.</p>
+              <p className="text-slate-300">Please wait while we verify your email address.</p>
             </div>
           )}
 
@@ -88,7 +90,7 @@ function AuthConfirmContent() {
                 <AlertDescription>{message}</AlertDescription>
               </Alert>
               <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-4">
+                <p className="text-sm text-slate-300 mb-4">
                   Redirecting to login page in 3 seconds...
                 </p>
                 <Button asChild className="w-full">
@@ -116,23 +118,26 @@ function AuthConfirmContent() {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </VideoBackground>
   )
 }
 
 export default function AuthConfirmPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2">
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Loading...
-            </CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
+      <VideoBackground>
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <Card className="w-full max-w-md backdrop-blur-sm bg-white/10 border-white/20">
+            <CardHeader className="text-center">
+              <CardTitle className="flex items-center justify-center gap-2 text-white">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Loading...
+              </CardTitle>
+            </CardHeader>
+          </Card>
+        </div>
+      </VideoBackground>
     }>
       <AuthConfirmContent />
     </Suspense>

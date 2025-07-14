@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
+import { VideoBackground } from "@/components/video-background"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -44,8 +45,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md backdrop-blur-sm bg-white/10 border-white/20">
+    <VideoBackground>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-md backdrop-blur-sm bg-white/10 border-white/20">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl text-white">Welcome Back</CardTitle>
           <CardDescription className="text-slate-300">Sign in to your Raptor Esports account</CardDescription>
@@ -109,6 +111,7 @@ export default function LoginPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </VideoBackground>
   )
 }
