@@ -141,6 +141,7 @@ export default function UserManagementPage() {
       
       // Try admin service first
       const { data: adminData, error: adminError } = await SupabaseAdminService.getAllUsers()
+      console.log("[AdminService] getAllUsers response:", { adminData, adminError })
       
       if (adminData && !adminError) {
         console.log(`✅ Admin service found ${adminData.length} users`)
@@ -148,10 +149,15 @@ export default function UserManagementPage() {
         return
       }
       
+      if (adminError) {
+        console.error("[AdminService] Error:", adminError)
+      }
+      
       console.log("⚠️ Admin service failed, trying direct query...")
       
       // Fallback to direct query
       const { data, error } = await supabase.from("users").select("*").order("created_at", { ascending: false })
+      console.log("[Supabase] direct query response:", { data, error })
 
       if (error) {
         console.error("❌ Direct query also failed:", error)
