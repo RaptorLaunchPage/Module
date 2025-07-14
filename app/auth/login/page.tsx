@@ -139,10 +139,20 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-purple-900/80 to-slate-900/80"></div>
       </div>
 
-      {/* Glassmorphic Form Container */}
-      <Card className="w-full max-w-md backdrop-blur-xl bg-white/10 border-white/20 shadow-2xl relative z-10 transform transition-all duration-300 hover:scale-105">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mb-4">
+      {/* Black Glassy Form Container with Glowing Dots */}
+      <Card className="w-full max-w-md backdrop-blur-xl bg-black/40 border-white/10 shadow-2xl relative z-10 transform transition-all duration-300 hover:scale-105 overflow-hidden">
+        {/* Glowing Dots Background */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-4 left-4 w-2 h-2 bg-purple-400 rounded-full animate-pulse opacity-60"></div>
+          <div className="absolute top-8 right-6 w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse opacity-80" style={{ animationDelay: '0.5s' }}></div>
+          <div className="absolute bottom-6 left-8 w-1 h-1 bg-cyan-400 rounded-full animate-pulse opacity-70" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute bottom-12 right-4 w-2.5 h-2.5 bg-purple-300 rounded-full animate-pulse opacity-50" style={{ animationDelay: '1.5s' }}></div>
+          <div className="absolute top-1/2 left-2 w-1 h-1 bg-blue-300 rounded-full animate-pulse opacity-60" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-1/3 right-2 w-1.5 h-1.5 bg-cyan-300 rounded-full animate-pulse opacity-70" style={{ animationDelay: '2.5s' }}></div>
+        </div>
+        
+        <CardHeader className="text-center space-y-2 relative z-10">
+          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-purple-500/25">
             <ArrowRight className="w-6 h-6 text-white" />
           </div>
           <CardTitle className="text-3xl font-bold text-white bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
@@ -153,7 +163,7 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 relative z-10">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {error && (
               <Alert variant="destructive" className="border-red-500/50 bg-red-500/10">
@@ -172,7 +182,7 @@ export default function LoginPage() {
                   type="email"
                   {...register("email")}
                   placeholder="admin@raptoresports.gg"
-                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-200"
+                  className="pl-10 bg-black/30 border-white/20 text-white placeholder:text-slate-400 focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-200"
                 />
               </div>
               {errors.email && (
@@ -191,7 +201,7 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   {...register("password")}
                   placeholder="Enter your password"
-                  className="pl-10 pr-10 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-200"
+                  className="pl-10 pr-10 bg-black/30 border-white/20 text-white placeholder:text-slate-400 focus:border-purple-400 focus:ring-purple-400/20 transition-all duration-200"
                 />
                 <button
                   type="button"
@@ -211,7 +221,7 @@ export default function LoginPage() {
                 <Checkbox
                   id="rememberMe"
                   {...register("rememberMe")}
-                  className="border-white/20 bg-white/10 data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
+                  className="border-white/20 bg-black/30 data-[state=checked]:bg-purple-500 data-[state=checked]:border-purple-500"
                 />
                 <Label htmlFor="rememberMe" className="text-slate-300 text-sm">
                   Remember me
