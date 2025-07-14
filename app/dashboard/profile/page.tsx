@@ -76,7 +76,7 @@ export default function ProfilePage() {
       })
       window.location.reload()
     } catch (error) {
-      setDebugInfo((prev) => ({ ...prev, thrown: error }))
+      setDebugInfo({ thrown: error })
       console.error("Error updating profile:", error)
       toast({
         title: "Error",
