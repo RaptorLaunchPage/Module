@@ -33,29 +33,33 @@ export default function ProfilePage() {
 
     setLoading(true)
     try {
-      // Try regular update first
-      let { error } = await supabase.from("users").update(formData).eq("id", profile.id)
+      // Try using the RPC function first
+      const { data, error } = await supabase.rpc('update_user_profile', {
+        user_id: profile.id,
+        user_name: formData.name,
+        contact_number: formData.contact_number,
+        in_game_role: formData.in_game_role,
+        device_info: formData.device_info
+      })
 
       if (error) {
-        console.log("Regular update failed, trying emergency update:", error)
-        // If regular update fails, try using RPC function
-        const { data, error: rpcError } = await supabase.rpc('emergency_update_user_profile', {
-          user_id: profile.id,
-          user_name: formData.name,
-          contact_number: formData.contact_number,
-          in_game_role: formData.in_game_role,
-          device_info: formData.device_info
-        })
-        
-        if (rpcError) {
-          throw rpcError
+        console.log("RPC update failed, trying direct update:", error)
+        // Fallback to direct update
+        const { error: directError } = await supabase.from("users").update(formData).eq("id", profile.id)
+        if (directError) {
+          throw directError
         }
+      } else if (data && !data.success) {
+        throw new Error(data.error || "Failed to update profile")
       }
 
       toast({
         title: "Success",
         description: "Profile updated successfully",
       })
+      
+      // Refresh the profile data
+      window.location.reload()
     } catch (error) {
       console.error("Error updating profile:", error)
       toast({
