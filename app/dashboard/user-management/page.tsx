@@ -139,40 +139,30 @@ export default function UserManagementPage() {
 
   const fetchUsers = async () => {
     try {
-      console.log("🔍 Fetching users for admin panel...")
-      
-      // Try admin service first
-      const { data: adminData, error: adminError } = await SupabaseAdminService.getAllUsers()
-      setDebugLogs((prev: any) => ({ ...prev, adminService: { data: adminData, error: adminError } }))
-      console.log("[AdminService] getAllUsers response:", { adminData, adminError })
-      
-      if (adminData && !adminError) {
-        console.log(`✅ Admin service found ${adminData.length} users`)
+      setLoading(true)
+      setError(null)
+      // Always run both admin service and direct query
+      const adminPromise = SupabaseAdminService.getAllUsers()
+      const directPromise = supabase.from("users").select("*").order("created_at", { ascending: false })
+      const [{ data: adminData, error: adminError }, { data, error }] = await Promise.all([adminPromise, directPromise])
+      setDebugLogs({
+        adminService: { data: adminData, error: adminError },
+        directQuery: { data, error }
+      })
+      // Prefer admin data if available, else fallback to direct query
+      if (adminData && adminData.length > 0 && !adminError) {
         setUsers(adminData)
-        return
+      } else if (data && data.length > 0 && !error) {
+        setUsers(data)
+      } else {
+        setUsers([])
       }
-      
       if (adminError) {
-        console.error("[AdminService] Error:", adminError)
+        setError(adminError.message || String(adminError))
+      } else if (error) {
+        setError(error.message || String(error))
       }
-      
-      console.log("⚠️ Admin service failed, trying direct query...")
-      
-      // Fallback to direct query
-      const { data, error } = await supabase.from("users").select("*").order("created_at", { ascending: false })
-      setDebugLogs((prev: any) => ({ ...prev, directQuery: { data, error } }))
-      console.log("[Supabase] direct query response:", { data, error })
-
-      if (error) {
-        console.error("❌ Direct query also failed:", error)
-        setError(error.message)
-        throw error
-      }
-      
-      console.log(`✅ Direct query found ${data?.length || 0} users`)
-      setUsers(data || [])
     } catch (error: any) {
-      console.error("❌ Error fetching users:", error)
       setError(error.message || String(error))
       toast({
         title: "Error",
@@ -529,9 +519,9 @@ export default function UserManagementPage() {
           <strong>Debug Log Panel (Visible only to Admins):</strong>
           <div style={{ fontSize: 12, color: '#333', background: '#fff', marginTop: 4, padding: 4, borderRadius: 4, maxHeight: 200, overflow: 'auto' }}>
             <div><b>Admin Service:</b></div>
-            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugLogs.adminService, null, 2)}</pre>
+            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugLogs.adminService, null, 2) || 'No data'}</pre>
             <div><b>Direct Query:</b></div>
-            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugLogs.directQuery, null, 2)}</pre>
+            <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{JSON.stringify(debugLogs.directQuery, null, 2) || 'No data'}</pre>
           </div>
         </div>
       )}
