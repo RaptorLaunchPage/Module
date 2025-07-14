@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -28,6 +28,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [videoPlaying, setVideoPlaying] = useState(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const { signIn } = useAuth()
   const router = useRouter()
 
@@ -38,6 +40,42 @@ export default function LoginPage() {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   })
+
+  // Ensure video plays
+  useEffect(() => {
+    const video = videoRef.current
+    if (video) {
+      const playVideo = async () => {
+        try {
+          await video.play()
+          console.log("Video started playing successfully")
+          setVideoPlaying(true)
+        } catch (error) {
+          console.error("Failed to play video:", error)
+          setVideoPlaying(false)
+        }
+      }
+      
+      if (video.readyState >= 2) {
+        playVideo()
+      } else {
+        video.addEventListener('canplay', playVideo)
+        return () => video.removeEventListener('canplay', playVideo)
+      }
+    }
+  }, [])
+
+  const handleManualPlay = async () => {
+    const video = videoRef.current
+    if (video) {
+      try {
+        await video.play()
+        setVideoPlaying(true)
+      } catch (error) {
+        console.error("Manual play failed:", error)
+      }
+    }
+  }
 
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true)
@@ -66,15 +104,38 @@ export default function LoginPage() {
       {/* Space Particles Video Background */}
       <div className="absolute inset-0 z-0">
         <video
+          ref={videoRef}
           autoPlay
           loop
           muted
           playsInline
+          preload="auto"
           className="w-full h-full object-cover opacity-30"
+          onError={(e) => console.error("Video failed to load:", e)}
+          onLoadStart={() => console.log("Video loading started")}
+          onCanPlay={() => console.log("Video can play")}
+          onPlay={() => {
+            console.log("Video is playing")
+            setVideoPlaying(true)
+          }}
+          onPause={() => setVideoPlaying(false)}
         >
           <source src="/space-particles.mp4" type="video/mp4" />
-          {/* Fallback gradient if video doesn't load */}
+          Your browser does not support the video tag.
         </video>
+        
+        {/* Manual play button if video doesn't autoplay */}
+        {!videoPlaying && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+            <Button
+              onClick={handleManualPlay}
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+            >
+              ▶ Play Background Video
+            </Button>
+          </div>
+        )}
+        
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-purple-900/80 to-slate-900/80"></div>
       </div>
 
