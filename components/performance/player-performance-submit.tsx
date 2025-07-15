@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -31,6 +31,27 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: PlayerPerformanc
     damage: "",
     survival_time: "",
   })
+  const [teamName, setTeamName] = useState<string>("")
+  const [teamSlots, setTeamSlots] = useState<any[]>([])
+
+  useEffect(() => {
+    const fetchTeamNameAndSlots = async () => {
+      if (profile?.team_id) {
+        // Fetch team name
+        const { data: teamData, error: teamError } = await supabase.from("teams").select("name").eq("id", profile.team_id).single()
+        if (!teamError && teamData?.name) setTeamName(teamData.name)
+        else setTeamName("")
+        // Fetch slots for this team
+        const { data: slotsData, error: slotsError } = await supabase.from("slots").select("id, time_range, date").eq("team_id", profile.team_id)
+        if (!slotsError && slotsData) setTeamSlots(slotsData)
+        else setTeamSlots([])
+      } else {
+        setTeamName("")
+        setTeamSlots([])
+      }
+    }
+    fetchTeamNameAndSlots()
+  }, [profile?.team_id])
 
   // Only show this component for players
   if (profile?.role !== "player") {
@@ -110,7 +131,7 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: PlayerPerformanc
             </div>
             <div className="text-sm text-muted-foreground">
               <p><strong>Name:</strong> {profile.name || profile.email}</p>
-              <p><strong>Team:</strong> {profile.team_id || "Not assigned"}</p>
+              <p><strong>Team:</strong> {teamName || profile.team_id || "Not assigned"}</p>
             </div>
           </div>
 
@@ -136,14 +157,25 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: PlayerPerformanc
 
               <div className="space-y-2">
                 <Label htmlFor="slot">Slot</Label>
-                <Input
-                  id="slot"
-                  type="number"
+                <Select
                   value={formData.slot}
-                  onChange={(e) => setFormData({ ...formData, slot: e.target.value })}
-                  placeholder="Enter slot number"
+                  onValueChange={(value) => setFormData({ ...formData, slot: value })}
                   required
-                />
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={teamSlots.length ? "Select slot" : "No slots assigned"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teamSlots.length === 0 && (
+                      <SelectItem value="" disabled>No slots assigned</SelectItem>
+                    )}
+                    {teamSlots.map((slot) => (
+                      <SelectItem key={slot.id} value={slot.id}>
+                        {slot.time_range} ({slot.date})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

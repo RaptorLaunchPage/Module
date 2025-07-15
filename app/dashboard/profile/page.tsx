@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabase"
 import { EmergencyAdminService } from "@/lib/emergency-admin-service"
@@ -29,6 +29,20 @@ export default function ProfilePage() {
   })
   // Add state for debug logs
   const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [teamName, setTeamName] = useState<string>("")
+
+  useEffect(() => {
+    const fetchTeamName = async () => {
+      if (profile?.team_id) {
+        const { data, error } = await supabase.from("teams").select("name").eq("id", profile.team_id).single()
+        if (!error && data?.name) setTeamName(data.name)
+        else setTeamName("")
+      } else {
+        setTeamName("")
+      }
+    }
+    fetchTeamName()
+  }, [profile?.team_id])
 
   const updateProfile = async () => {
     if (!profile) return
@@ -193,7 +207,7 @@ export default function ProfilePage() {
             </div>
             <div className="space-y-2">
               <Label>Team</Label>
-              <Input value={profile.team_id || "No team assigned"} disabled />
+              <Input value={teamName || profile.team_id || "No team assigned"} disabled />
             </div>
           </CardContent>
         </Card>
