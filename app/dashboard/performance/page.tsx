@@ -63,8 +63,11 @@ export default function PerformancePage() {
   const canEdit = profile?.role && ["admin", "manager", "coach"].includes(profile.role.toLowerCase())
   const canViewDashboard = profile?.role && ["admin", "manager"].includes(profile.role.toLowerCase())
 
-  if (!profile || !users || users.length === 0) {
+  if (!profile || !users) {
     return <div className="text-center py-8 text-muted-foreground">Loading user data...</div>;
+  }
+  if (users.length === 0) {
+    return <div className="text-center py-8 text-red-500">No user records found. Please contact support or ensure your player profile is set up.</div>;
   }
 
   return (
@@ -99,7 +102,13 @@ export default function PerformancePage() {
         {profile?.role === "player" && (
           <TabsContent value="submit">
             {/* Robust null check for profile and team/slots */}
-            {profile && <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />}
+            {profile && (() => {
+              try {
+                return <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />
+              } catch (err) {
+                return <div className="text-center py-8 text-red-500">An error occurred while loading the performance form. Please contact support.</div>;
+              }
+            })()}
           </TabsContent>
         )}
 
