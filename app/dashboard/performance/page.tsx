@@ -80,7 +80,15 @@ export default function PerformancePage() {
 
         {canViewDashboard && (
           <TabsContent value="dashboard">
-            <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading performance data...</div>
+            ) : (!performances || performances.length === 0) ? (
+              <div className="text-center py-8 text-muted-foreground">No performance data found.</div>
+            ) : (!users || users.length === 0) ? (
+              <div className="text-center py-8 text-muted-foreground">No user data found.</div>
+            ) : (
+              <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
+            )}
           </TabsContent>
         )}
 
