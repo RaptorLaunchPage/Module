@@ -61,6 +61,7 @@ export default function PerformancePage() {
   }
 
   const canEdit = profile?.role && ["admin", "manager", "coach"].includes(profile.role.toLowerCase())
+  const canViewDashboard = profile?.role && ["admin", "manager"].includes(profile.role.toLowerCase())
 
   return (
     <div className="space-y-6">
@@ -69,16 +70,24 @@ export default function PerformancePage() {
         <p className="text-muted-foreground">Track and analyze match performance data</p>
       </div>
 
-      <Tabs defaultValue={profile?.role === "player" ? "submit" : canEdit ? "add" : undefined} className="space-y-4">
+      <Tabs defaultValue={canViewDashboard ? "dashboard" : profile?.role === "player" ? "submit" : canEdit ? "add" : undefined} className="space-y-4">
         <TabsList>
+          {canViewDashboard && <TabsTrigger value="dashboard">📈 Dashboard</TabsTrigger>}
           {profile?.role === "player" && <TabsTrigger value="submit">🎮 Submit Performance</TabsTrigger>}
           {canEdit && <TabsTrigger value="add">➕ Add Performance</TabsTrigger>}
           {canEdit && <TabsTrigger value="ocr">📷 OCR Extract</TabsTrigger>}
         </TabsList>
 
+        {canViewDashboard && (
+          <TabsContent value="dashboard">
+            <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
+          </TabsContent>
+        )}
+
         {profile?.role === "player" && (
           <TabsContent value="submit">
-            <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />
+            {/* Robust null check for profile and team/slots */}
+            {profile && <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />}
           </TabsContent>
         )}
 
