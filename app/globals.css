@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
 
 body {
   font-family: Arial, Helvetica, sans-serif;
@@ -91,4 +92,27 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+h1, h2, h3, h4, h5, h6, .esports-heading {
+  font-family: 'Orbitron', Arial, Helvetica, sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@keyframes fade-loop {
+  0% { opacity: 0; }
+  5% { opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  95% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+.fade-loop-overlay {
+  background: black;
+  opacity: 0;
+  animation: fade-loop linear infinite;
+  pointer-events: none;
 }

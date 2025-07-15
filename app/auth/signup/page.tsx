@@ -69,7 +69,7 @@ export default function SignUpPage() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-black/60 backdrop-blur-md border border-white/20 shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-white font-semibold">Create Account</CardTitle>
+            <CardTitle className="esports-heading text-2xl text-white font-semibold">Create Account</CardTitle>
             <CardDescription className="text-slate-200">Join the Raptor Esports team</CardDescription>
           </CardHeader>
           <CardContent>

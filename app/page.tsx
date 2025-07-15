@@ -29,7 +29,7 @@ export default function HomePage() {
       <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-4 w-4 rounded-full bg-white opacity-40 blur-md animate-pulse" />
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <div className="text-center mb-16">
-          <h1 className="text-6xl font-bold text-white mb-4">Raptor Esports Hub</h1>
+          <h1 className="esports-heading text-6xl font-bold text-white mb-4">Raptor Esports Hub</h1>
           <p className="text-xl text-slate-200 max-w-2xl mx-auto">
             Professional esports team management system for performance tracking, user management, and team analytics.
           </p>
