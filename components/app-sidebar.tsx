@@ -112,6 +112,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Add props to AppSidebar
   const { profile, signOut } = useAuth()
   const pathname = usePathname()
+  const { state } = useSidebar();
 
   const filteredMenuItems = menuItems.filter((item) => profile?.role && item.roles.includes(profile.role.toLowerCase()))
   // Add Permissions link for admins
@@ -127,6 +128,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* Sidebar Branding */}
         <div className="flex items-center justify-center py-1">
           <Image src="/RLogo.ico" alt="Raptor Hub Logo" width={48} height={48} priority className="rounded-full" />
+          {state !== "collapsed" && (
+            <span className="ml-3 esports-heading text-xl font-bold text-black tracking-widest">Raptor Hub</span>
+          )}
         </div>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
