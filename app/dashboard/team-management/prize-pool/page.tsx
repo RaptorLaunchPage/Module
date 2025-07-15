@@ -361,10 +361,10 @@ export default function PrizePoolPage() {
                     {pool.slot?.organizer} ({new Date(pool.slot?.date || "").toLocaleDateString()})
                   </TableCell>
                   <TableCell>₹{pool.total_amount}</TableCell>
-                  <TableCell>₹{(pool.breakdown as any)?.["1st"] || 0}</TableCell>
-                  <TableCell>₹{(pool.breakdown as any)?.["2nd"] || 0}</TableCell>
-                  <TableCell>₹{(pool.breakdown as any)?.["3rd"] || 0}</TableCell>
-                  <TableCell>₹{(pool.breakdown as any)?.["4th"] || 0}</TableCell>
+                  <TableCell>₹{(pool.breakdown as any)?.["1st"] ?? 0}</TableCell>
+                  <TableCell>₹{(pool.breakdown as any)?.["2nd"] ?? 0}</TableCell>
+                  <TableCell>₹{(pool.breakdown as any)?.["3rd"] ?? 0}</TableCell>
+                  <TableCell>₹{(pool.breakdown as any)?.["4th"] ?? 0}</TableCell>
                   {canManage && (
                     <TableCell>
                       <Button size="sm" variant="destructive" onClick={() => handleDeletePrizePool(pool.id)}>
