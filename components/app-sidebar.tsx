@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge"
 import { Home, Users, User, BarChart3, LogOut, Shield, CalendarCheck, DollarSign, Trophy, Crown, UserCheck, Clock } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import Image from "next/image"
 
 const menuItems = [
   {
@@ -125,7 +126,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         {/* Sidebar Branding */}
         <div className="flex items-center justify-center py-1">
-          <span className="esports-heading text-xl font-bold text-black tracking-widest">Raptor Hub</span>
+          <Image src="/RLogo.ico" alt="Raptor Hub Logo" width={48} height={48} priority className="rounded-full" />
         </div>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
