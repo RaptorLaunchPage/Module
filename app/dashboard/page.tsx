@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase"
 import type { Database } from "@/lib/supabase"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { PerformanceDashboard } from "@/components/performance/performance-dashboard"
+import { ErrorBoundary } from "react-error-boundary"
 
 type Team = Database["public"]["Tables"]["teams"]["Row"]
 type SlotExpense = Database["public"]["Tables"]["slot_expenses"]["Row"]
@@ -38,13 +39,13 @@ export default function DashboardPage() {
     }
     return null
   })
+  const [team, setTeam] = useState<any>(null)
+  const [slots, setSlots] = useState<any[]>([])
 
   useEffect(() => {
-    if (profile?.role === "player") {
-      fetchPerformances()
-      fetchUsers()
-    } else if (profile) {
-      fetchTeams()
+    if (profile?.role === "player" && profile.team_id) {
+      fetchTeam()
+      fetchSlots()
     }
   }, [profile])
 
@@ -168,6 +169,25 @@ export default function DashboardPage() {
     }
   }
 
+  const fetchTeam = async () => {
+    try {
+      const { data, error } = await supabase.from("teams").select("*").eq("id", profile.team_id).single()
+      if (!error) setTeam(data)
+      else setTeam(null)
+    } catch {
+      setTeam(null)
+    }
+  }
+  const fetchSlots = async () => {
+    try {
+      const { data, error } = await supabase.from("slots").select("*").eq("team_id", profile.team_id)
+      if (!error) setSlots(data || [])
+      else setSlots([])
+    } catch {
+      setSlots([])
+    }
+  }
+
   const handleDebugError = (error: any) => {
     setLastError(error)
     if (typeof window !== 'undefined') {
@@ -201,7 +221,9 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">Performance Overview</h1>
-        <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
+        <ErrorBoundary FallbackComponent={({error}) => { handleDebugError(error); return <div className="text-red-600">Error: {error.message}</div> }}>
+          <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
+        </ErrorBoundary>
         {/* Debug Panel */}
         <div className="mt-6">
           <Button size="sm" variant="outline" onClick={() => setDebugOpen((v) => !v)}>
@@ -211,6 +233,10 @@ export default function DashboardPage() {
             <div className="mt-2 p-3 bg-gray-100 border rounded text-xs overflow-auto">
               <div className="mb-2 font-semibold">Profile</div>
               <pre>{JSON.stringify(profile, null, 2)}</pre>
+              <div className="mb-2 font-semibold mt-2">Team</div>
+              <pre>{JSON.stringify(team, null, 2)}</pre>
+              <div className="mb-2 font-semibold mt-2">Slots</div>
+              <pre>{JSON.stringify(slots, null, 2)}</pre>
               <div className="mb-2 font-semibold mt-2">Performances</div>
               <pre>{JSON.stringify(performances, null, 2)}</pre>
               <div className="mb-2 font-semibold mt-2">Users</div>
