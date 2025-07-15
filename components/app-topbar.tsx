@@ -104,7 +104,7 @@ export function AppTopbar() {
   return (
     <nav className="w-full flex items-center justify-between px-4 py-2 border-b bg-white">
       <div className="flex items-center gap-6">
-        <span className="font-bold text-lg">Raptor CRM</span>
+        <span className="font-bold text-lg">Raptor Hub</span>
         {filteredMenuItems.map((item) => (
           <div key={item.title} className="relative group">
             <Link

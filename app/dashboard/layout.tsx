@@ -106,11 +106,11 @@ export default function DashboardLayout({
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
             <div className="flex items-center gap-2">
               <SidebarTrigger className="-ml-1 hidden md:flex" />
               <MobileNav />
-              <span className="font-semibold hidden sm:inline">Raptor CRM</span>
+              <span className="font-semibold hidden sm:inline">Raptor Hub</span>
               <span className="font-semibold sm:hidden">Raptor</span>
             </div>
             <div className="ml-auto flex items-center space-x-4">

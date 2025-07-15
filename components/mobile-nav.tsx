@@ -82,7 +82,7 @@ export function MobileNav() {
         <div className="flex flex-col h-full">
           <div className="flex items-center gap-2 mb-6">
             <Shield className="h-5 w-5 text-primary" />
-            <span className="font-semibold">Raptor CRM</span>
+            <span className="font-semibold">Raptor Hub</span>
           </div>
           
           <nav className="flex-1 space-y-2">
