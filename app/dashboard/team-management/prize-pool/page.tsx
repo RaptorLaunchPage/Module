@@ -296,33 +296,35 @@ export default function PrizePoolPage() {
                 />
               </div>
               <div className="col-span-2 grid gap-4 md:grid-cols-4">
-                {[1, 2, 3, 4].map((pos) => (
-                  <div className="space-y-2" key={pos}>
-                    <Label htmlFor={`pos${pos}`}>
-                      {pos}
-                      {pos === 1 && "st"}
-                      {pos === 2 && "nd"}
-                      {pos === 3 && "rd"}
-                      {pos === 4 && "th"} Place (₹)
-                    </Label>
-                    <Input
-                      id={`pos${pos}`}
-                      type="number"
-                      value={
-                        (newPrizePoolData.breakdown as any)[`${pos}st` || `${pos}nd` || `${pos}rd` || `${pos}th`] || 0
-                      }
-                      onChange={(e) =>
-                        setNewPrizePoolData((prev) => ({
-                          ...prev,
-                          breakdown: {
-                            ...prev.breakdown,
-                            [`${pos}st` || `${pos}nd` || `${pos}rd` || `${pos}th`]: Number.parseInt(e.target.value),
-                          },
-                        }))
-                      }
-                    />
-                  </div>
-                ))}
+                {[1, 2, 3, 4].map((pos) => {
+                  let suffix = "th";
+                  if (pos === 1) suffix = "st";
+                  else if (pos === 2) suffix = "nd";
+                  else if (pos === 3) suffix = "rd";
+                  const key = `${pos}${suffix}`;
+                  return (
+                    <div className="space-y-2" key={pos}>
+                      <Label htmlFor={`pos${pos}`}>
+                        {pos}
+                        {suffix} Place (₹)
+                      </Label>
+                      <Input
+                        id={`pos${pos}`}
+                        type="number"
+                        value={(newPrizePoolData.breakdown as any)[key] || 0}
+                        onChange={(e) =>
+                          setNewPrizePoolData((prev) => ({
+                            ...prev,
+                            breakdown: {
+                              ...prev.breakdown,
+                              [key]: Number.parseInt(e.target.value),
+                            },
+                          }))
+                        }
+                      />
+                    </div>
+                  );
+                })}
               </div>
               <div className="col-span-2">
                 <Button type="submit" disabled={formLoading}>
