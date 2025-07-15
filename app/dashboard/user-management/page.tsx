@@ -48,17 +48,15 @@ export default function UserManagementPage() {
   const [fetchingAuthUsers, setFetchingAuthUsers] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [roleFilter, setRoleFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  // Remove statusFilter and uniqueStatuses
 
-  // Get unique roles and statuses from users
+  // Get unique roles from users
   const uniqueRoles = Array.from(new Set(users.map(u => u.role).filter(Boolean)));
-  const uniqueStatuses = Array.from(new Set(users.map(u => u.status).filter(Boolean)));
 
-  // Filter users based on selected filters
+  // Filter users based on selected role
   const filteredUsers = users.filter(user => {
     const roleMatch = roleFilter ? user.role === roleFilter : true;
-    const statusMatch = statusFilter ? user.status === statusFilter : true;
-    return roleMatch && statusMatch;
+    return roleMatch;
   });
 
   // Check unlock state on mount
@@ -805,20 +803,6 @@ export default function UserManagementPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="status-filter">Status</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter} id="status-filter">
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
-                  {uniqueStatuses.map(status => (
-                    <SelectItem key={status} value={status}>{status}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -828,7 +812,6 @@ export default function UserManagementPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Team</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -841,7 +824,6 @@ export default function UserManagementPage() {
                   <TableCell>
                     <Badge variant={getRoleBadgeVariant(user.role)}>{user.role}</Badge>
                   </TableCell>
-                  <TableCell>{user.status || "-"}</TableCell>
                   <TableCell>{teams.find((t) => t.id === user.team_id)?.name || "No team"}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
