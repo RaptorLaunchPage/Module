@@ -53,6 +53,17 @@ export default function UserManagementPage() {
   // Get unique roles from users
   const uniqueRoles = Array.from(new Set(users.map(u => u.role).filter(Boolean)));
 
+  // List all possible roles for the filter
+  const ALL_ROLES = [
+    "admin",
+    "manager",
+    "coach",
+    "player",
+    "analyst",
+    "pending_player",
+    "awaiting_approval"
+  ];
+
   // Filter users based on selected role
   const filteredUsers = users.filter(user => {
     const roleMatch = roleFilter ? user.role === roleFilter : true;
@@ -797,8 +808,8 @@ export default function UserManagementPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Roles</SelectItem>
-                  {uniqueRoles.map(role => (
-                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                  {ALL_ROLES.map(role => (
+                    <SelectItem key={role} value={role}>{role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
