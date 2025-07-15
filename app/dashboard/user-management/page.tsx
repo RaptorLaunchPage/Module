@@ -53,26 +53,9 @@ export default function UserManagementPage() {
   // Get unique roles from users
   const uniqueRoles = Array.from(new Set(users.map(u => u.role).filter(Boolean)));
 
-  // List all possible roles for the filter
-  const ALL_ROLES = [
-    "admin",
-    "manager",
-    "coach",
-    "player",
-    "analyst",
-    "pending_player",
-    "awaiting_approval"
-  ];
-
   // Ensure users and teams are always arrays
   const safeUsers = Array.isArray(users) ? users : [];
   const safeTeams = Array.isArray(teams) ? teams : [];
-
-  // Filter users based on selected role
-  const filteredUsers = safeUsers.filter(user => {
-    const roleMatch = roleFilter ? user.role === roleFilter : true;
-    return roleMatch;
-  });
 
   // Check unlock state on mount
   useEffect(() => {
@@ -802,23 +785,6 @@ export default function UserManagementPage() {
         <CardHeader>
           <CardTitle>All Users</CardTitle>
           <CardDescription>Manage user roles and team assignments</CardDescription>
-          {/* Filters */}
-          <div className="flex gap-4 mt-4">
-            <div>
-              <Label>Role</Label>
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="All Roles" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Roles</SelectItem>
-                  {ALL_ROLES.map(role => (
-                    <SelectItem key={role} value={role}>{role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -832,14 +798,14 @@ export default function UserManagementPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredUsers.length === 0 ? (
+              {safeUsers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    No users found for this filter.
+                    No users found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredUsers.map((user) => (
+                safeUsers.map((user) => (
                   <TableRow key={user.id || Math.random()}>
                     <TableCell>{user?.name || "Not set"}</TableCell>
                     <TableCell>{user?.email || "-"}</TableCell>
