@@ -154,12 +154,13 @@ export default function PrizePoolPage() {
         return
       }
 
-      const amountKey =
-        `${newWinningData.position}st` ||
-        `${newWinningData.position}nd` ||
-        `${newWinningData.position}rd` ||
-        `${newWinningData.position}th`
-      const amount = (selectedPool.breakdown as any)[amountKey]
+      // Fix: Use correct suffix for position
+      let suffix = "th";
+      if (newWinningData.position === 1) suffix = "st";
+      else if (newWinningData.position === 2) suffix = "nd";
+      else if (newWinningData.position === 3) suffix = "rd";
+      const amountKey = `${newWinningData.position}${suffix}`;
+      const amount = (selectedPool.breakdown as any)[amountKey];
 
       if (amount === undefined) {
         toast({
