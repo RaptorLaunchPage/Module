@@ -106,24 +106,24 @@ export default function DashboardLayout({
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 border-white/20">
+          <header className="flex flex-wrap h-16 min-h-16 items-center gap-2 border-b px-2 sm:px-4 border-white/20 w-full">
             <div className="flex items-center gap-2">
               <SidebarTrigger className="-ml-1 hidden md:flex" />
               <MobileNav />
               <span className="font-semibold hidden sm:inline">Raptor Hub</span>
               <span className="font-semibold sm:hidden">Raptor</span>
             </div>
-            <div className="ml-auto flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground hidden md:inline">
+            <div className="ml-auto flex items-center flex-wrap gap-2 sm:gap-4 min-w-0">
+              <span className="truncate text-sm text-muted-foreground hidden md:inline max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
                 Welcome, {profile.name || profile.email}
               </span>
-              <span className="text-sm text-muted-foreground md:hidden">
+              <span className="truncate text-sm text-muted-foreground md:hidden max-w-[120px]">
                 {profile.name || profile.email?.split('@')[0]}
               </span>
             </div>
           </header>
-          <div className="flex flex-1 flex-col gap-4 p-2 sm:p-4 pt-0">
-            <div className="flex-1 rounded-xl p-2 sm:p-4 border border-white/20 shadow-xl">
+          <div className="flex flex-1 flex-col gap-4 p-2 sm:p-4 pt-0 w-full">
+            <div className="flex-1 rounded-xl p-2 sm:p-4 border border-white/20 shadow-xl w-full min-w-0">
               {children}
             </div>
           </div>

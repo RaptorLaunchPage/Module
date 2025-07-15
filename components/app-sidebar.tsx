@@ -127,7 +127,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         {/* Sidebar Branding */}
         <div className="flex items-center justify-center py-1">
-          <Image src="/RLogo.ico" alt="Raptor Hub Logo" width={48} height={48} priority className="rounded-full" />
+          <img src="/RLogo.ico" alt="Raptor Hub Logo" width={48} height={48} className="rounded-full" style={{ minWidth: 32, minHeight: 32 }} />
           {state !== "collapsed" && (
             <span className="ml-3 esports-heading text-xl font-bold text-black tracking-widest">Raptor Hub</span>
           )}
