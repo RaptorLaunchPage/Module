@@ -99,7 +99,7 @@ export default function PerformancePage() {
         {profile?.role === "player" && (
           <TabsContent value="submit">
             {/* Robust null check for profile and team/slots */}
-            {profile && <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} users={users} />}
+            {profile && <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />}
           </TabsContent>
         )}
 
