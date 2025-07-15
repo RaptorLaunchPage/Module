@@ -46,6 +46,10 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded, users }: { onPerfo
     ? users.filter(u => u.role === "player" && (profile?.role === "admin" || profile?.role === "manager" || u.team_id === profile?.team_id))
     : users.filter(u => u.id === profile?.id)
 
+  if (!eligiblePlayers.length) {
+    return <div className="text-center py-8 text-red-500">No eligible player profile found. Please contact support.</div>;
+  }
+
   useEffect(() => {
     // For staff, update teamId and slots when player changes
     if (isStaff && formData.player_id) {
