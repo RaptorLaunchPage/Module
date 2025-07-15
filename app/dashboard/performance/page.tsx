@@ -69,17 +69,12 @@ export default function PerformancePage() {
         <p className="text-muted-foreground">Track and analyze match performance data</p>
       </div>
 
-      <Tabs defaultValue="dashboard" className="space-y-4">
+      <Tabs defaultValue={profile?.role === "player" ? "submit" : canEdit ? "add" : undefined} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="dashboard">📈 Dashboard</TabsTrigger>
           {profile?.role === "player" && <TabsTrigger value="submit">🎮 Submit Performance</TabsTrigger>}
           {canEdit && <TabsTrigger value="add">➕ Add Performance</TabsTrigger>}
           {canEdit && <TabsTrigger value="ocr">📷 OCR Extract</TabsTrigger>}
         </TabsList>
-
-        <TabsContent value="dashboard">
-          <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
-        </TabsContent>
 
         {profile?.role === "player" && (
           <TabsContent value="submit">

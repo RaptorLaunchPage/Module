@@ -33,6 +33,8 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: PlayerPerformanc
   })
   const [teamName, setTeamName] = useState<string>("")
   const [teamSlots, setTeamSlots] = useState<any[]>([])
+  const [debugOpen, setDebugOpen] = useState(false)
+  const [lastError, setLastError] = useState<any>(null)
 
   useEffect(() => {
     const fetchTeamNameAndSlots = async () => {
@@ -100,6 +102,7 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: PlayerPerformanc
       onPerformanceAdded()
     } catch (error: any) {
       console.error("Error submitting performance:", error)
+      setLastError(error)
       toast({
         title: "Error",
         description: error.message || "Failed to submit performance data",
@@ -280,6 +283,30 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: PlayerPerformanc
             {loading ? "Submitting..." : "Submit Performance Data"}
           </Button>
         </form>
+        {/* Debug Panel */}
+        <div className="mt-6">
+          <Button size="sm" variant="outline" onClick={() => setDebugOpen((v) => !v)}>
+            {debugOpen ? "Hide Debug Panel" : "Show Debug Panel"}
+          </Button>
+          {debugOpen && (
+            <div className="mt-2 p-3 bg-gray-100 border rounded text-xs overflow-auto">
+              <div className="mb-2 font-semibold">Form Data</div>
+              <pre>{JSON.stringify(formData, null, 2)}</pre>
+              <div className="mb-2 font-semibold mt-2">Profile</div>
+              <pre>{JSON.stringify(profile, null, 2)}</pre>
+              {lastError && (
+                <>
+                  <div className="mb-2 font-semibold mt-2 text-red-600">Last Error</div>
+                  <pre className="text-red-600">{JSON.stringify(lastError, null, 2)}</pre>
+                </>
+              )}
+              <div className="mb-2 font-semibold mt-2">Team Name</div>
+              <pre>{JSON.stringify(teamName, null, 2)}</pre>
+              <div className="mb-2 font-semibold mt-2">Team Slots</div>
+              <pre>{JSON.stringify(teamSlots, null, 2)}</pre>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   )
