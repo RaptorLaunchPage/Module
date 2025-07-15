@@ -790,8 +790,8 @@ export default function UserManagementPage() {
           {/* Filters */}
           <div className="flex gap-4 mt-4">
             <div>
-              <Label htmlFor="role-filter">Role</Label>
-              <Select value={roleFilter} onValueChange={setRoleFilter} id="role-filter">
+              <Label>Role</Label>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
                 <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="All Roles" />
                 </SelectTrigger>
