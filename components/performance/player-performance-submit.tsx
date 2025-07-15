@@ -17,11 +17,12 @@ interface PlayerPerformanceSubmitProps {
 
 const MAPS = ["Ascent", "Bind", "Breeze", "Fracture", "Haven", "Icebox", "Lotus", "Pearl", "Split", "Sunset"]
 
-export function PlayerPerformanceSubmit({ onPerformanceAdded }: PlayerPerformanceSubmitProps) {
+export function PlayerPerformanceSubmit({ onPerformanceAdded, users }: { onPerformanceAdded: () => void, users: any[] }) {
   const { profile } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
+    player_id: profile?.id || "",
     match_number: "",
     slot: "",
     map: "",
@@ -31,83 +32,67 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: PlayerPerformanc
     damage: "",
     survival_time: "",
   })
-  const [teamName, setTeamName] = useState<string>("")
+  const [teamName, setTeamName] = useState("")
+  const [teamId, setTeamId] = useState(profile?.team_id || "")
   const [teamSlots, setTeamSlots] = useState<any[]>([])
-  const [debugOpen, setDebugOpen] = useState(false)
   const [lastError, setLastError] = useState<any>(null)
 
-  useEffect(() => {
-    const fetchTeamNameAndSlots = async () => {
-      if (profile?.team_id) {
-        // Fetch team name
-        const { data: teamData, error: teamError } = await supabase.from("teams").select("name").eq("id", profile.team_id).single()
-        if (!teamError && teamData?.name) setTeamName(teamData.name)
-        else setTeamName("")
-        // Fetch slots for this team
-        const { data: slotsData, error: slotsError } = await supabase.from("slots").select("id, time_range, date").eq("team_id", profile.team_id)
-        if (!slotsError && slotsData) setTeamSlots(slotsData)
-        else setTeamSlots([])
-      } else {
-        setTeamName("")
-        setTeamSlots([])
-      }
-    }
-    fetchTeamNameAndSlots()
-  }, [profile?.team_id])
+  // Hide for analysts
+  if (profile?.role === "analyst") return null
 
-  // Only show this component for players
-  if (profile?.role !== "player") {
-    return null
+  // For staff, allow selecting player
+  const isStaff = ["admin", "manager", "coach"].includes(profile?.role || "")
+  const eligiblePlayers = isStaff
+    ? users.filter(u => u.role === "player" && (profile?.role === "admin" || profile?.role === "manager" || u.team_id === profile?.team_id))
+    : users.filter(u => u.id === profile?.id)
+
+  useEffect(() => {
+    // For staff, update teamId and slots when player changes
+    if (isStaff && formData.player_id) {
+      const selected = users.find(u => u.id === formData.player_id)
+      setTeamId(selected?.team_id || "")
+      setTeamName(selected?.team_id || "")
+      fetchSlots(selected?.team_id)
+    } else if (!isStaff && profile?.team_id) {
+      setTeamId(profile.team_id)
+      setTeamName(profile.team_id)
+      fetchSlots(profile.team_id)
+    }
+    // eslint-disable-next-line
+  }, [formData.player_id, profile?.team_id])
+
+  const fetchSlots = async (teamId: string | undefined) => {
+    if (!teamId) return setTeamSlots([])
+    const { data, error } = await supabase.from("slots").select("id, time_range, date").eq("team_id", teamId)
+    setTeamSlots(error ? [] : data || [])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!profile) return
-
     setLoading(true)
+    setLastError(null)
     try {
-      const { error } = await supabase.from("performances").insert({
-        player_id: profile.id, // Always use current player's ID
-        team_id: profile.team_id,
-        match_number: Number.parseInt(formData.match_number),
-        slot: Number.parseInt(formData.slot),
+      const payload = {
+        player_id: formData.player_id,
+        team_id: teamId,
+        match_number: Number(formData.match_number),
+        slot: Number(formData.slot),
         map: formData.map,
-        placement: formData.placement ? Number.parseInt(formData.placement) : null,
-        kills: Number.parseInt(formData.kills) || 0,
-        assists: Number.parseInt(formData.assists) || 0,
-        damage: Number.parseFloat(formData.damage) || 0,
-        survival_time: Number.parseFloat(formData.survival_time) || 0,
-        added_by: profile.id,
-      })
-
+        placement: formData.placement ? Number(formData.placement) : null,
+        kills: Number(formData.kills) || 0,
+        assists: Number(formData.assists) || 0,
+        damage: Number(formData.damage) || 0,
+        survival_time: Number(formData.survival_time) || 0,
+        added_by: profile?.id,
+      }
+      const { error } = await supabase.from("performances").insert(payload)
       if (error) throw error
-
-      toast({
-        title: "Performance Submitted!",
-        description: "Your match performance has been recorded successfully",
-      })
-
-      // Reset form
-      setFormData({
-        match_number: "",
-        slot: "",
-        map: "",
-        placement: "",
-        kills: "",
-        assists: "",
-        damage: "",
-        survival_time: "",
-      })
-
+      toast({ title: "Performance Submitted!", description: "Performance recorded successfully" })
+      setFormData({ ...formData, match_number: "", slot: "", map: "", placement: "", kills: "", assists: "", damage: "", survival_time: "" })
       onPerformanceAdded()
     } catch (error: any) {
-      console.error("Error submitting performance:", error)
       setLastError(error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to submit performance data",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: error.message || "Failed to submit performance data", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -116,197 +101,78 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: PlayerPerformanc
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <GamepadIcon className="h-5 w-5" />
-          Submit Your Performance
-        </CardTitle>
-        <CardDescription>
-          Record your match statistics - only you can submit your own performance data
-        </CardDescription>
+        <CardTitle>Submit Performance</CardTitle>
+        <CardDescription>Record match statistics</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Player Info (Read-only) */}
-          <div className="p-4 bg-muted rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <Target className="h-4 w-4" />
-              <span className="font-medium">Player Info</span>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              <p><strong>Name:</strong> {profile.name || profile.email}</p>
-              <p><strong>Team:</strong> {teamName || profile.team_id || "Not assigned"}</p>
-            </div>
-          </div>
-
-          {/* Match Information */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Trophy className="h-4 w-4" />
-              <span className="font-medium">Match Information</span>
-            </div>
-            
-            <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-3">
+            {isStaff && (
               <div className="space-y-2">
-                <Label htmlFor="match_number">Match Number</Label>
-                <Input
-                  id="match_number"
-                  type="number"
-                  value={formData.match_number}
-                  onChange={(e) => setFormData({ ...formData, match_number: e.target.value })}
-                  placeholder="Enter match number"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="slot">Slot</Label>
+                <Label htmlFor="player_id">Player</Label>
                 <Select
-                  value={formData.slot}
-                  onValueChange={(value) => setFormData({ ...formData, slot: value })}
+                  value={formData.player_id}
+                  onValueChange={val => setFormData({ ...formData, player_id: val })}
                   required
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder={teamSlots.length ? "Select slot" : "No slots assigned"} />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select player" /></SelectTrigger>
                   <SelectContent>
-                    {teamSlots.length === 0 && (
-                      <SelectItem value="" disabled>No slots assigned</SelectItem>
-                    )}
-                    {teamSlots.map((slot) => (
-                      <SelectItem key={slot.id} value={slot.id}>
-                        {slot.time_range} ({slot.date})
-                      </SelectItem>
+                    {eligiblePlayers.map(u => (
+                      <SelectItem key={u.id} value={u.id}>{u.name || u.email}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="map">Map</Label>
-                <Select
-                  value={formData.map}
-                  onValueChange={(value) => setFormData({ ...formData, map: value })}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select map" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {MAPS.map((map) => (
-                      <SelectItem key={map} value={map}>
-                        {map}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* Performance Stats */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Timer className="h-4 w-4" />
-              <span className="font-medium">Your Performance</span>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <div className="space-y-2">
-                <Label htmlFor="placement">Placement</Label>
-                <Input
-                  id="placement"
-                  type="number"
-                  value={formData.placement}
-                  onChange={(e) => setFormData({ ...formData, placement: e.target.value })}
-                  placeholder="Final placement"
-                  min="1"
-                  max="20"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="kills">Kills</Label>
-                <Input
-                  id="kills"
-                  type="number"
-                  value={formData.kills}
-                  onChange={(e) => setFormData({ ...formData, kills: e.target.value })}
-                  placeholder="Total kills"
-                  min="0"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="assists">Assists</Label>
-                <Input
-                  id="assists"
-                  type="number"
-                  value={formData.assists}
-                  onChange={(e) => setFormData({ ...formData, assists: e.target.value })}
-                  placeholder="Total assists"
-                  min="0"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="damage">Damage</Label>
-                <Input
-                  id="damage"
-                  type="number"
-                  value={formData.damage}
-                  onChange={(e) => setFormData({ ...formData, damage: e.target.value })}
-                  placeholder="Total damage"
-                  min="0"
-                  required
-                />
-              </div>
-            </div>
-
+            )}
             <div className="space-y-2">
-              <Label htmlFor="survival_time">Survival Time (minutes)</Label>
-              <Input
-                id="survival_time"
-                type="number"
-                step="0.1"
-                value={formData.survival_time}
-                onChange={(e) => setFormData({ ...formData, survival_time: e.target.value })}
-                placeholder="Survival time in minutes"
-                min="0"
-                required
-              />
+              <Label htmlFor="match_number">Match Number</Label>
+              <Input id="match_number" type="number" value={formData.match_number} onChange={e => setFormData({ ...formData, match_number: e.target.value })} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="slot">Slot</Label>
+              <Select value={formData.slot} onValueChange={val => setFormData({ ...formData, slot: val })} required>
+                <SelectTrigger><SelectValue placeholder={teamSlots.length ? "Select slot" : "No slots assigned"} /></SelectTrigger>
+                <SelectContent>
+                  {teamSlots.length === 0 && <SelectItem value="" disabled>No slots assigned</SelectItem>}
+                  {teamSlots.map(slot => (
+                    <SelectItem key={slot.id} value={slot.id}>{slot.time_range} ({slot.date})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="map">Map</Label>
+              <Select value={formData.map} onValueChange={val => setFormData({ ...formData, map: val })} required>
+                <SelectTrigger><SelectValue placeholder="Select map" /></SelectTrigger>
+                <SelectContent>
+                  {MAPS.map(map => <SelectItem key={map} value={map}>{map}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="placement">Placement</Label>
+              <Input id="placement" type="number" value={formData.placement} onChange={e => setFormData({ ...formData, placement: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="kills">Kills</Label>
+              <Input id="kills" type="number" value={formData.kills} onChange={e => setFormData({ ...formData, kills: e.target.value })} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="assists">Assists</Label>
+              <Input id="assists" type="number" value={formData.assists} onChange={e => setFormData({ ...formData, assists: e.target.value })} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="damage">Damage</Label>
+              <Input id="damage" type="number" value={formData.damage} onChange={e => setFormData({ ...formData, damage: e.target.value })} required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="survival_time">Survival Time (min)</Label>
+              <Input id="survival_time" type="number" value={formData.survival_time} onChange={e => setFormData({ ...formData, survival_time: e.target.value })} required />
             </div>
           </div>
-
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "Submitting..." : "Submit Performance Data"}
-          </Button>
+          <Button type="submit" disabled={loading}>{loading ? "Submitting..." : "Submit Performance"}</Button>
+          {lastError && <div className="text-red-500 text-sm mt-2">{lastError.message || "Submission failed."}</div>}
         </form>
-        {/* Debug Panel */}
-        <div className="mt-6">
-          <Button size="sm" variant="outline" onClick={() => setDebugOpen((v) => !v)}>
-            {debugOpen ? "Hide Debug Panel" : "Show Debug Panel"}
-          </Button>
-          {debugOpen && (
-            <div className="mt-2 p-3 bg-gray-100 border rounded text-xs overflow-auto">
-              <div className="mb-2 font-semibold">Form Data</div>
-              <pre>{JSON.stringify(formData, null, 2)}</pre>
-              <div className="mb-2 font-semibold mt-2">Profile</div>
-              <pre>{JSON.stringify(profile, null, 2)}</pre>
-              {lastError && (
-                <>
-                  <div className="mb-2 font-semibold mt-2 text-red-600">Last Error</div>
-                  <pre className="text-red-600">{JSON.stringify(lastError, null, 2)}</pre>
-                </>
-              )}
-              <div className="mb-2 font-semibold mt-2">Team Name</div>
-              <pre>{JSON.stringify(teamName, null, 2)}</pre>
-              <div className="mb-2 font-semibold mt-2">Team Slots</div>
-              <pre>{JSON.stringify(teamSlots, null, 2)}</pre>
-            </div>
-          )}
-        </div>
       </CardContent>
     </Card>
   )
