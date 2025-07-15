@@ -9,20 +9,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
-import { GamepadIcon, Trophy, Target, Timer } from "lucide-react"
-
-interface PlayerPerformanceSubmitProps {
-  onPerformanceAdded: () => void
-}
 
 const MAPS = ["Ascent", "Bind", "Breeze", "Fracture", "Haven", "Icebox", "Lotus", "Pearl", "Split", "Sunset"]
 
-export function PlayerPerformanceSubmit({ onPerformanceAdded, users }: { onPerformanceAdded: () => void, users: any[] }) {
+export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceAdded: () => void }) {
   const { profile } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
-    player_id: profile?.id || "",
     match_number: "",
     slot: "",
     map: "",
@@ -32,53 +26,38 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded, users }: { onPerfo
     damage: "",
     survival_time: "",
   })
-  const [teamName, setTeamName] = useState("")
-  const [teamId, setTeamId] = useState(profile?.team_id || "")
   const [teamSlots, setTeamSlots] = useState<any[]>([])
-  const [lastError, setLastError] = useState<any>(null)
+  const [lastError, setLastError] = useState<string | null>(null)
+  const [slotsLoading, setSlotsLoading] = useState(false)
 
-  // Hide for analysts
-  if (profile?.role === "analyst") return null
+  // Only allow players with valid profile
+  if (!profile || profile.role !== "player") return null
 
-  // For staff, allow selecting player
-  const isStaff = ["admin", "manager", "coach"].includes(profile?.role || "")
-  const eligiblePlayers = isStaff
-    ? users.filter(u => u.role === "player" && (profile?.role === "admin" || profile?.role === "manager" || u.team_id === profile?.team_id))
-    : users.filter(u => u.id === profile?.id)
-
-  if (!eligiblePlayers.length) {
-    return <div className="text-center py-8 text-red-500">No eligible player profile found. Please contact support.</div>;
-  }
-
+  // Fetch slots for player's team
   useEffect(() => {
-    // For staff, update teamId and slots when player changes
-    if (isStaff && formData.player_id) {
-      const selected = users.find(u => u.id === formData.player_id)
-      setTeamId(selected?.team_id || "")
-      setTeamName(selected?.team_id || "")
-      fetchSlots(selected?.team_id)
-    } else if (!isStaff && profile?.team_id) {
-      setTeamId(profile.team_id)
-      setTeamName(profile.team_id)
-      fetchSlots(profile.team_id)
+    const fetchSlots = async () => {
+      setSlotsLoading(true)
+      setTeamSlots([])
+      if (!profile.team_id) {
+        setSlotsLoading(false)
+        return
+      }
+      const { data, error } = await supabase.from("slots").select("id, time_range, date").eq("team_id", profile.team_id)
+      setTeamSlots(error ? [] : data || [])
+      setSlotsLoading(false)
     }
-    // eslint-disable-next-line
-  }, [formData.player_id, profile?.team_id])
-
-  const fetchSlots = async (teamId: string | undefined) => {
-    if (!teamId) return setTeamSlots([])
-    const { data, error } = await supabase.from("slots").select("id, time_range, date").eq("team_id", teamId)
-    setTeamSlots(error ? [] : data || [])
-  }
+    fetchSlots()
+  }, [profile.team_id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setLastError(null)
     try {
+      if (!profile.id || !profile.team_id) throw new Error("Missing player or team information.")
       const payload = {
-        player_id: formData.player_id,
-        team_id: teamId,
+        player_id: profile.id,
+        team_id: profile.team_id,
         match_number: Number(formData.match_number),
         slot: Number(formData.slot),
         map: formData.map,
@@ -87,15 +66,15 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded, users }: { onPerfo
         assists: Number(formData.assists) || 0,
         damage: Number(formData.damage) || 0,
         survival_time: Number(formData.survival_time) || 0,
-        added_by: profile?.id,
+        added_by: profile.id,
       }
       const { error } = await supabase.from("performances").insert(payload)
       if (error) throw error
       toast({ title: "Performance Submitted!", description: "Performance recorded successfully" })
-      setFormData({ ...formData, match_number: "", slot: "", map: "", placement: "", kills: "", assists: "", damage: "", survival_time: "" })
+      setFormData({ match_number: "", slot: "", map: "", placement: "", kills: "", assists: "", damage: "", survival_time: "" })
       onPerformanceAdded()
     } catch (error: any) {
-      setLastError(error)
+      setLastError(error.message || "Failed to submit performance data")
       toast({ title: "Error", description: error.message || "Failed to submit performance data", variant: "destructive" })
     } finally {
       setLoading(false)
@@ -106,28 +85,11 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded, users }: { onPerfo
     <Card>
       <CardHeader>
         <CardTitle>Submit Performance</CardTitle>
-        <CardDescription>Record match statistics</CardDescription>
+        <CardDescription>Record your match statistics</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
-            {isStaff && (
-              <div className="space-y-2">
-                <Label htmlFor="player_id">Player</Label>
-                <Select
-                  value={formData.player_id}
-                  onValueChange={val => setFormData({ ...formData, player_id: val })}
-                  required
-                >
-                  <SelectTrigger><SelectValue placeholder="Select player" /></SelectTrigger>
-                  <SelectContent>
-                    {eligiblePlayers.map(u => (
-                      <SelectItem key={u.id} value={u.id}>{u.name || u.email}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="match_number">Match Number</Label>
               <Input id="match_number" type="number" value={formData.match_number} onChange={e => setFormData({ ...formData, match_number: e.target.value })} required />
@@ -135,10 +97,11 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded, users }: { onPerfo
             <div className="space-y-2">
               <Label htmlFor="slot">Slot</Label>
               <Select value={formData.slot} onValueChange={val => setFormData({ ...formData, slot: val })} required>
-                <SelectTrigger><SelectValue placeholder={teamSlots.length ? "Select slot" : "No slots assigned"} /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={slotsLoading ? "Loading slots..." : teamSlots.length ? "Select slot" : "No slots assigned"} /></SelectTrigger>
                 <SelectContent>
-                  {teamSlots.length === 0 && <SelectItem value="" disabled>No slots assigned</SelectItem>}
-                  {teamSlots.map(slot => (
+                  {slotsLoading && <SelectItem value="" disabled>Loading...</SelectItem>}
+                  {!slotsLoading && teamSlots.length === 0 && <SelectItem value="" disabled>No slots assigned</SelectItem>}
+                  {!slotsLoading && teamSlots.map(slot => (
                     <SelectItem key={slot.id} value={slot.id}>{slot.time_range} ({slot.date})</SelectItem>
                   ))}
                 </SelectContent>
@@ -174,8 +137,8 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded, users }: { onPerfo
               <Input id="survival_time" type="number" value={formData.survival_time} onChange={e => setFormData({ ...formData, survival_time: e.target.value })} required />
             </div>
           </div>
-          <Button type="submit" disabled={loading}>{loading ? "Submitting..." : "Submit Performance"}</Button>
-          {lastError && <div className="text-red-500 text-sm mt-2">{lastError.message || "Submission failed."}</div>}
+          <Button type="submit" disabled={loading || slotsLoading}>{loading ? "Submitting..." : "Submit Performance"}</Button>
+          {lastError && <div className="text-red-500 text-sm mt-2">{lastError}</div>}
         </form>
       </CardContent>
     </Card>
