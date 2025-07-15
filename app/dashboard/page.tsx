@@ -9,6 +9,7 @@ import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import type { Database } from "@/lib/supabase"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { PerformanceDashboard } from "@/components/performance/performance-dashboard"
 
 type Team = Database["public"]["Tables"]["teams"]["Row"]
 type SlotExpense = Database["public"]["Tables"]["slot_expenses"]["Row"]
@@ -24,9 +25,14 @@ export default function DashboardPage() {
   })
   const [teams, setTeams] = useState<Team[]>([])
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
+  const [performances, setPerformances] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
 
   useEffect(() => {
-    if (profile) {
+    if (profile?.role === "player") {
+      fetchPerformances()
+      fetchUsers()
+    } else if (profile) {
       fetchTeams()
     }
   }, [profile])
@@ -124,6 +130,33 @@ export default function DashboardPage() {
     }
   }
 
+  const fetchPerformances = async () => {
+    if (!profile) return
+    try {
+      let query = supabase.from("performances").select("*")
+      if (profile.role === "player") {
+        query = query.eq("player_id", profile.id)
+      } else if (profile.role === "coach" && profile.team_id) {
+        query = query.eq("team_id", profile.team_id)
+      }
+      const { data, error } = await query.order("created_at", { ascending: false })
+      if (error) throw error
+      setPerformances(data || [])
+    } catch (error) {
+      console.error("Error fetching performances:", error)
+    }
+  }
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase.from("users").select("*").order("name")
+      if (error) throw error
+      setUsers(data || [])
+    } catch (error) {
+      console.error("Error fetching users:", error)
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -142,6 +175,15 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Loading your profile...</p>
         </div>
+      </div>
+    )
+  }
+
+  if (profile?.role === "player") {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold tracking-tight">Performance Overview</h1>
+        <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
       </div>
     )
   }
