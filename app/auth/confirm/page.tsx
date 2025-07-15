@@ -62,7 +62,7 @@ function AuthConfirmContent() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2">
+          <CardTitle className="flex items-center justify-center gap-2 esports-heading text-white font-semibold">
             {status === 'loading' && <Loader2 className="h-5 w-5 animate-spin" />}
             {status === 'success' && <CheckCircle className="h-5 w-5 text-green-500" />}
             {status === 'error' && <XCircle className="h-5 w-5 text-red-500" />}
