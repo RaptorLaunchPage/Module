@@ -27,6 +27,17 @@ export default function DashboardPage() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const [performances, setPerformances] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
+  const [debugOpen, setDebugOpen] = useState(false)
+  const [lastError, setLastError] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return JSON.parse(localStorage.getItem('player_dashboard_debug_error') || 'null')
+      } catch {
+        return null
+      }
+    }
+    return null
+  })
 
   useEffect(() => {
     if (profile?.role === "player") {
@@ -157,6 +168,13 @@ export default function DashboardPage() {
     }
   }
 
+  const handleDebugError = (error: any) => {
+    setLastError(error)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('player_dashboard_debug_error', JSON.stringify(error))
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -184,6 +202,28 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">Performance Overview</h1>
         <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
+        {/* Debug Panel */}
+        <div className="mt-6">
+          <Button size="sm" variant="outline" onClick={() => setDebugOpen((v) => !v)}>
+            {debugOpen ? "Hide Debug Panel" : "Show Debug Panel"}
+          </Button>
+          {debugOpen && (
+            <div className="mt-2 p-3 bg-gray-100 border rounded text-xs overflow-auto">
+              <div className="mb-2 font-semibold">Profile</div>
+              <pre>{JSON.stringify(profile, null, 2)}</pre>
+              <div className="mb-2 font-semibold mt-2">Performances</div>
+              <pre>{JSON.stringify(performances, null, 2)}</pre>
+              <div className="mb-2 font-semibold mt-2">Users</div>
+              <pre>{JSON.stringify(users, null, 2)}</pre>
+              {lastError && (
+                <>
+                  <div className="mb-2 font-semibold mt-2 text-red-600">Last Error</div>
+                  <pre className="text-red-600">{JSON.stringify(lastError, null, 2)}</pre>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     )
   }
