@@ -63,6 +63,10 @@ export default function PerformancePage() {
   const canEdit = profile?.role && ["admin", "manager", "coach"].includes(profile.role.toLowerCase())
   const canViewDashboard = profile?.role && ["admin", "manager"].includes(profile.role.toLowerCase())
 
+  if (!profile || !users) {
+    return <div className="text-center py-8 text-muted-foreground">Loading...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div>
