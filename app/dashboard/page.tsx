@@ -43,9 +43,15 @@ export default function DashboardPage() {
   const [slots, setSlots] = useState<any[]>([])
 
   useEffect(() => {
-    if (profile?.role === "player" && profile.team_id) {
-      fetchTeam()
-      fetchSlots()
+    if (profile?.role === "player") {
+      fetchPerformances()
+      fetchUsers()
+      if (profile.team_id) {
+        fetchTeam()
+        fetchSlots()
+      }
+    } else if (profile) {
+      fetchTeams()
     }
   }, [profile])
 
@@ -218,12 +224,17 @@ export default function DashboardPage() {
   }
 
   if (profile?.role === "player") {
+    const usersEmpty = !users || users.length === 0
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">Performance Overview</h1>
-        <ErrorBoundary FallbackComponent={({error}) => { handleDebugError(error); return <div className="text-red-600">Error: {error.message}</div> }}>
-          <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
-        </ErrorBoundary>
+        {usersEmpty ? (
+          <div className="text-red-600">Unable to load user data. Please contact admin.</div>
+        ) : (
+          <ErrorBoundary FallbackComponent={({error}) => { handleDebugError(error); return <div className="text-red-600">Error: {error.message}</div> }}>
+            <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
+          </ErrorBoundary>
+        )}
         {/* Debug Panel */}
         <div className="mt-6">
           <Button size="sm" variant="outline" onClick={() => setDebugOpen((v) => !v)}>
