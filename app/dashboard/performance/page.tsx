@@ -61,6 +61,14 @@ export default function PerformancePage() {
   }
 
   const canEdit = profile?.role && ["admin", "manager", "coach"].includes(profile.role.toLowerCase())
+  const canViewDashboard = profile?.role && ["admin", "manager"].includes(profile.role.toLowerCase())
+
+  if (!profile || !users) {
+    return <div className="text-center py-8 text-muted-foreground">Loading user data...</div>;
+  }
+  if (users.length === 0) {
+    return <div className="text-center py-8 text-red-500">No user records found. Please contact support or ensure your player profile is set up.</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -69,21 +77,38 @@ export default function PerformancePage() {
         <p className="text-muted-foreground">Track and analyze match performance data</p>
       </div>
 
-      <Tabs defaultValue="dashboard" className="space-y-4">
+      <Tabs defaultValue={canViewDashboard ? "dashboard" : profile?.role === "player" ? "submit" : canEdit ? "add" : undefined} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="dashboard">📈 Dashboard</TabsTrigger>
+          {canViewDashboard && <TabsTrigger value="dashboard">📈 Dashboard</TabsTrigger>}
           {profile?.role === "player" && <TabsTrigger value="submit">🎮 Submit Performance</TabsTrigger>}
           {canEdit && <TabsTrigger value="add">➕ Add Performance</TabsTrigger>}
           {canEdit && <TabsTrigger value="ocr">📷 OCR Extract</TabsTrigger>}
         </TabsList>
 
-        <TabsContent value="dashboard">
-          <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
-        </TabsContent>
+        {canViewDashboard && (
+          <TabsContent value="dashboard">
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading performance data...</div>
+            ) : (!performances || performances.length === 0) ? (
+              <div className="text-center py-8 text-muted-foreground">No performance data found.</div>
+            ) : (!users || users.length === 0) ? (
+              <div className="text-center py-8 text-muted-foreground">No user data found.</div>
+            ) : (
+              <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
+            )}
+          </TabsContent>
+        )}
 
         {profile?.role === "player" && (
           <TabsContent value="submit">
-            <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />
+            {/* Robust null check for profile and team/slots */}
+            {profile && (() => {
+              try {
+                return <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />
+              } catch (err) {
+                return <div className="text-center py-8 text-red-500">An error occurred while loading the performance form. Please contact support.</div>;
+              }
+            })()}
           </TabsContent>
         )}
 

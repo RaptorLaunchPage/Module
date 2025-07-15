@@ -163,7 +163,7 @@ export default function SlotsPage() {
         return
       }
 
-      const { error: slotError } = await supabase.from("slots").insert({
+      const { data: slotInsertData, error: slotError } = await supabase.from("slots").insert({
         team_id: newSlotData.team_id,
         organizer: newSlotData.organizer,
         time_range: newSlotData.time_range,
@@ -172,9 +172,27 @@ export default function SlotsPage() {
         match_count: newSlotData.match_count || 0,
         notes: newSlotData.notes,
         date: format(newSlotData.date, "yyyy-MM-dd"),
-      })
+      }).select()
 
       if (slotError) throw slotError
+
+      // Insert into slot_expenses
+      const newSlot = slotInsertData && slotInsertData[0]
+      if (newSlot && newSlot.id) {
+        const { error: expenseError } = await supabase.from("slot_expenses").insert({
+          slot_id: newSlot.id,
+          team_id: newSlot.team_id,
+          rate: newSlot.slot_rate,
+          total: newSlot.slot_rate * newSlot.number_of_slots,
+        })
+        if (expenseError) {
+          toast({
+            title: "Warning",
+            description: "Slot booked, but failed to add to expenses.",
+            variant: "destructive",
+          })
+        }
+      }
 
       toast({
         title: "Success",

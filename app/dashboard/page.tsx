@@ -9,6 +9,8 @@ import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
 import type { Database } from "@/lib/supabase"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
+import { PerformanceDashboard } from "@/components/performance/performance-dashboard"
+import { ErrorBoundary } from "react-error-boundary"
 
 type Team = Database["public"]["Tables"]["teams"]["Row"]
 type SlotExpense = Database["public"]["Tables"]["slot_expenses"]["Row"]
@@ -24,9 +26,31 @@ export default function DashboardPage() {
   })
   const [teams, setTeams] = useState<Team[]>([])
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
+  const [performances, setPerformances] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
+  const [debugOpen, setDebugOpen] = useState(false)
+  const [lastError, setLastError] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return JSON.parse(localStorage.getItem('player_dashboard_debug_error') || 'null')
+      } catch {
+        return null
+      }
+    }
+    return null
+  })
+  const [team, setTeam] = useState<any>(null)
+  const [slots, setSlots] = useState<any[]>([])
 
   useEffect(() => {
-    if (profile) {
+    if (profile?.role === "player") {
+      fetchPerformances()
+      fetchUsers()
+      if (profile.team_id) {
+        fetchTeam()
+        fetchSlots()
+      }
+    } else if (profile) {
       fetchTeams()
     }
   }, [profile])
@@ -124,6 +148,59 @@ export default function DashboardPage() {
     }
   }
 
+  const fetchPerformances = async () => {
+    if (!profile) return
+    try {
+      let query = supabase.from("performances").select("*")
+      if (profile.role === "player") {
+        query = query.eq("player_id", profile.id)
+      } else if (profile.role === "coach" && profile.team_id) {
+        query = query.eq("team_id", profile.team_id)
+      }
+      const { data, error } = await query.order("created_at", { ascending: false })
+      if (error) throw error
+      setPerformances(data || [])
+    } catch (error) {
+      console.error("Error fetching performances:", error)
+    }
+  }
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase.from("users").select("*").order("name")
+      if (error) throw error
+      setUsers(data || [])
+    } catch (error) {
+      console.error("Error fetching users:", error)
+    }
+  }
+
+  const fetchTeam = async () => {
+    try {
+      const { data, error } = await supabase.from("teams").select("*").eq("id", profile.team_id).single()
+      if (!error) setTeam(data)
+      else setTeam(null)
+    } catch {
+      setTeam(null)
+    }
+  }
+  const fetchSlots = async () => {
+    try {
+      const { data, error } = await supabase.from("slots").select("*").eq("team_id", profile.team_id)
+      if (!error) setSlots(data || [])
+      else setSlots([])
+    } catch {
+      setSlots([])
+    }
+  }
+
+  const handleDebugError = (error: any) => {
+    setLastError(error)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('player_dashboard_debug_error', JSON.stringify(error))
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -141,6 +218,48 @@ export default function DashboardPage() {
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">Loading your profile...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (profile?.role === "player") {
+    const usersEmpty = !users || users.length === 0
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold tracking-tight">Performance Overview</h1>
+        {usersEmpty ? (
+          <div className="text-red-600">Unable to load user data. Please contact admin.</div>
+        ) : (
+          <ErrorBoundary FallbackComponent={({error}) => { handleDebugError(error); return <div className="text-red-600">Error: {error.message}</div> }}>
+            <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
+          </ErrorBoundary>
+        )}
+        {/* Debug Panel */}
+        <div className="mt-6">
+          <Button size="sm" variant="outline" onClick={() => setDebugOpen((v) => !v)}>
+            {debugOpen ? "Hide Debug Panel" : "Show Debug Panel"}
+          </Button>
+          {debugOpen && (
+            <div className="mt-2 p-3 bg-gray-100 border rounded text-xs overflow-auto">
+              <div className="mb-2 font-semibold">Profile</div>
+              <pre>{JSON.stringify(profile, null, 2)}</pre>
+              <div className="mb-2 font-semibold mt-2">Team</div>
+              <pre>{JSON.stringify(team, null, 2)}</pre>
+              <div className="mb-2 font-semibold mt-2">Slots</div>
+              <pre>{JSON.stringify(slots, null, 2)}</pre>
+              <div className="mb-2 font-semibold mt-2">Performances</div>
+              <pre>{JSON.stringify(performances, null, 2)}</pre>
+              <div className="mb-2 font-semibold mt-2">Users</div>
+              <pre>{JSON.stringify(users, null, 2)}</pre>
+              {lastError && (
+                <>
+                  <div className="mb-2 font-semibold mt-2 text-red-600">Last Error</div>
+                  <pre className="text-red-600">{JSON.stringify(lastError, null, 2)}</pre>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     )

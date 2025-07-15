@@ -13,6 +13,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -85,6 +86,27 @@ const menuItems = [
   },
 ]
 
+// Move getRoleDisplay to module scope so it can be used by both AppSidebar and SidebarFooterContent
+function getRoleDisplay(role: string) {
+  switch (role?.toLowerCase()) {
+    case 'admin':
+      return { label: 'Admin', icon: Crown, variant: 'default', className: 'bg-purple-100 text-purple-800 border-purple-200' }
+    case 'manager':
+      return { label: 'Manager', icon: Shield, variant: 'default', className: 'bg-blue-100 text-blue-800 border-blue-200' }
+    case 'coach':
+      return { label: 'Coach', icon: User, variant: 'default', className: 'bg-green-100 text-green-800 border-green-200' }
+    case 'player':
+      return { label: 'Player', icon: User, variant: 'default', className: 'bg-orange-100 text-orange-800 border-orange-200' }
+    case 'analyst':
+      return { label: 'Analyst', icon: BarChart3, variant: 'default', className: 'bg-indigo-100 text-indigo-800 border-indigo-200' }
+    case 'pending_player':
+    case 'awaiting_approval':
+      return { label: 'Awaiting Approval', icon: Clock, variant: 'secondary', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' }
+    default:
+      return { label: role || 'Unknown', icon: User, variant: 'outline', className: 'bg-gray-100 text-gray-800 border-gray-200' }
+  }
+}
+
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Add props to AppSidebar
   const { profile, signOut } = useAuth()
@@ -93,26 +115,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const filteredMenuItems = menuItems.filter((item) => profile?.role && item.roles.includes(profile.role.toLowerCase()))
   // Add Permissions link for admins
   const showPermissions = profile?.role && profile.role.toLowerCase() === 'admin'
-
-  const getRoleDisplay = (role: string) => {
-    switch (role?.toLowerCase()) {
-      case 'admin':
-        return { label: 'Admin', icon: Crown, variant: 'default', className: 'bg-purple-100 text-purple-800 border-purple-200' }
-      case 'manager':
-        return { label: 'Manager', icon: Shield, variant: 'default', className: 'bg-blue-100 text-blue-800 border-blue-200' }
-      case 'coach':
-        return { label: 'Coach', icon: User, variant: 'default', className: 'bg-green-100 text-green-800 border-green-200' }
-      case 'player':
-        return { label: 'Player', icon: User, variant: 'default', className: 'bg-orange-100 text-orange-800 border-orange-200' }
-      case 'analyst':
-        return { label: 'Analyst', icon: BarChart3, variant: 'default', className: 'bg-indigo-100 text-indigo-800 border-indigo-200' }
-      case 'pending_player':
-      case 'awaiting_approval':
-        return { label: 'Awaiting Approval', icon: Clock, variant: 'secondary', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' }
-      default:
-        return { label: role || 'Unknown', icon: User, variant: 'outline', className: 'bg-gray-100 text-gray-800 border-gray-200' }
-    }
-  }
 
   return (
     <Sidebar 
@@ -179,30 +181,48 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t">
-        <div className="p-3">
-          {profile?.role && (
-            <div className="mb-3">
-              {(() => {
-                const roleInfo = getRoleDisplay(profile.role)
-                const RoleIcon = roleInfo.icon
-                return (
-                  <Badge 
-                    variant={roleInfo.variant as any} 
-                    className={`w-full justify-start text-xs font-medium ${roleInfo.className}`}
-                  >
-                    <RoleIcon className="h-3 w-3 mr-2" />
-                    {roleInfo.label}
-                  </Badge>
-                )
-              })()}
-            </div>
-          )}
-          <Button variant="outline" size="sm" className="w-full justify-start bg-transparent" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
-        </div>
+        <SidebarFooterContent profile={profile} signOut={signOut} />
       </SidebarFooter>
     </Sidebar>
   )
+}
+
+function SidebarFooterContent({ profile, signOut }: { profile: any, signOut: () => void }) {
+  const { state } = useSidebar();
+  if (state === "collapsed") {
+    // Only show icon in collapsed mode
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <Button variant="ghost" size="icon" onClick={signOut}>
+          <LogOut className="h-5 w-5" />
+        </Button>
+      </div>
+    );
+  }
+  // Show full badge and signout in expanded mode
+  return (
+    <div className="p-3">
+      {profile?.role && (
+        <div className="mb-3">
+          {(() => {
+            const roleInfo = getRoleDisplay(profile.role)
+            const RoleIcon = roleInfo.icon
+            return (
+              <Badge 
+                variant={roleInfo.variant as any} 
+                className={`w-full justify-start text-xs font-medium ${roleInfo.className}`}
+              >
+                <RoleIcon className="h-3 w-3 mr-2" />
+                {roleInfo.label}
+              </Badge>
+            )
+          })()}
+        </div>
+      )}
+      <Button variant="outline" size="sm" className="w-full justify-start bg-transparent" onClick={signOut}>
+        <LogOut className="h-4 w-4 mr-2" />
+        Sign Out
+      </Button>
+    </div>
+  );
 }

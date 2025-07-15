@@ -17,6 +17,14 @@ interface PerformanceDashboardProps {
 }
 
 export function PerformanceDashboard({ performances, users, currentUser }: PerformanceDashboardProps) {
+  if (!performances || performances.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        No performance data found for the selected filters.
+      </div>
+    );
+  }
+
   const [selectedPlayer, setSelectedPlayer] = useState<string>("all")
   const [selectedMap, setSelectedMap] = useState<string>("all")
 
