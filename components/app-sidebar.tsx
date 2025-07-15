@@ -13,6 +13,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -179,30 +180,48 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t">
-        <div className="p-3">
-          {profile?.role && (
-            <div className="mb-3">
-              {(() => {
-                const roleInfo = getRoleDisplay(profile.role)
-                const RoleIcon = roleInfo.icon
-                return (
-                  <Badge 
-                    variant={roleInfo.variant as any} 
-                    className={`w-full justify-start text-xs font-medium ${roleInfo.className}`}
-                  >
-                    <RoleIcon className="h-3 w-3 mr-2" />
-                    {roleInfo.label}
-                  </Badge>
-                )
-              })()}
-            </div>
-          )}
-          <Button variant="outline" size="sm" className="w-full justify-start bg-transparent" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
-        </div>
+        <SidebarFooterContent profile={profile} signOut={signOut} />
       </SidebarFooter>
     </Sidebar>
   )
+}
+
+function SidebarFooterContent({ profile, signOut }: { profile: any, signOut: () => void }) {
+  const { state } = useSidebar();
+  if (state === "collapsed") {
+    // Only show icon in collapsed mode
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <Button variant="ghost" size="icon" onClick={signOut}>
+          <LogOut className="h-5 w-5" />
+        </Button>
+      </div>
+    );
+  }
+  // Show full badge and signout in expanded mode
+  return (
+    <div className="p-3">
+      {profile?.role && (
+        <div className="mb-3">
+          {(() => {
+            const roleInfo = getRoleDisplay(profile.role)
+            const RoleIcon = roleInfo.icon
+            return (
+              <Badge 
+                variant={roleInfo.variant as any} 
+                className={`w-full justify-start text-xs font-medium ${roleInfo.className}`}
+              >
+                <RoleIcon className="h-3 w-3 mr-2" />
+                {roleInfo.label}
+              </Badge>
+            )
+          })()}
+        </div>
+      )}
+      <Button variant="outline" size="sm" className="w-full justify-start bg-transparent" onClick={signOut}>
+        <LogOut className="h-4 w-4 mr-2" />
+        Sign Out
+      </Button>
+    </div>
+  );
 }

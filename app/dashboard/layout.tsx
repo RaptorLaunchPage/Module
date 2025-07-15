@@ -123,7 +123,7 @@ export default function DashboardLayout({
             </div>
           </header>
           <div className="flex flex-1 flex-col gap-4 p-2 sm:p-4 pt-0">
-            <div className="flex-1 rounded-xl bg-muted/50 p-2 sm:p-4 min-h-[calc(100vh-6rem)]">
+            <div className="flex-1 rounded-xl p-2 sm:p-4">
               {children}
             </div>
           </div>
