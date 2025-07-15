@@ -106,7 +106,7 @@ export default function DashboardLayout({
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-white/30 backdrop-blur-md border-white/20">
             <div className="flex items-center gap-2">
               <SidebarTrigger className="-ml-1 hidden md:flex" />
               <MobileNav />
@@ -123,7 +123,7 @@ export default function DashboardLayout({
             </div>
           </header>
           <div className="flex flex-1 flex-col gap-4 p-2 sm:p-4 pt-0">
-            <div className="flex-1 rounded-xl p-2 sm:p-4">
+            <div className="flex-1 rounded-xl p-2 sm:p-4 bg-white/30 backdrop-blur-md border border-white/20 shadow-xl">
               {children}
             </div>
           </div>
