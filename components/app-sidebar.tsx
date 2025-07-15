@@ -121,6 +121,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {...props}
     >
       <SidebarContent>
+        {/* Sidebar Branding */}
+        <div className="flex items-center justify-center py-4">
+          <span className="esports-heading text-xl font-bold text-white tracking-widest">Raptor Hub</span>
+        </div>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
