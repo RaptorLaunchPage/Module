@@ -107,14 +107,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [session, user])
 
-  useEffect(() => {
-    if (!loading && !user) {
-      const timeout = setTimeout(() => {
-        router.push("/auth/login")
-      }, 1500)
-      return () => clearTimeout(timeout)
-    }
-  }, [user, loading, router])
+  // useEffect(() => {
+  //   if (!loading && !user) {
+  //     const timeout = setTimeout(() => {
+  //       router.push("/auth/login")
+  //     }, 1500)
+  //     return () => clearTimeout(timeout)
+  //   }
+  // }, [user, loading, router])
 
   const fetchProfile = async (userId: string) => {
     try {
