@@ -44,7 +44,7 @@ function AuthConfirmContent() {
           toast({
             title: 'Verification complete',
             description: 'You can login now.',
-            variant: 'success',
+            variant: 'default',
           })
           // Redirect to home after 3 seconds
           setTimeout(() => {
