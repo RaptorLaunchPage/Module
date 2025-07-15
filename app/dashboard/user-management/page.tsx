@@ -47,6 +47,19 @@ export default function UserManagementPage() {
   const [authUsers, setAuthUsers] = useState<any[]>([])
   const [fetchingAuthUsers, setFetchingAuthUsers] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [roleFilter, setRoleFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
+
+  // Get unique roles and statuses from users
+  const uniqueRoles = Array.from(new Set(users.map(u => u.role).filter(Boolean)));
+  const uniqueStatuses = Array.from(new Set(users.map(u => u.status).filter(Boolean)));
+
+  // Filter users based on selected filters
+  const filteredUsers = users.filter(user => {
+    const roleMatch = roleFilter ? user.role === roleFilter : true;
+    const statusMatch = statusFilter ? user.status === statusFilter : true;
+    return roleMatch && statusMatch;
+  });
 
   // Check unlock state on mount
   useEffect(() => {
@@ -776,6 +789,37 @@ export default function UserManagementPage() {
         <CardHeader>
           <CardTitle>All Users</CardTitle>
           <CardDescription>Manage user roles and team assignments</CardDescription>
+          {/* Filters */}
+          <div className="flex gap-4 mt-4">
+            <div>
+              <Label htmlFor="role-filter">Role</Label>
+              <Select value={roleFilter} onValueChange={setRoleFilter} id="role-filter">
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="All Roles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Roles</SelectItem>
+                  {uniqueRoles.map(role => (
+                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="status-filter">Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter} id="status-filter">
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Statuses</SelectItem>
+                  {uniqueStatuses.map(status => (
+                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -784,18 +828,20 @@ export default function UserManagementPage() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Team</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>{user.name || "Not set"}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     <Badge variant={getRoleBadgeVariant(user.role)}>{user.role}</Badge>
                   </TableCell>
+                  <TableCell>{user.status || "-"}</TableCell>
                   <TableCell>{teams.find((t) => t.id === user.team_id)?.name || "No team"}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
