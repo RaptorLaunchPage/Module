@@ -21,10 +21,6 @@ export function VideoBackground({ children }: VideoBackgroundProps) {
         <source src="/space-particles.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </video>
-      
-      {/* Overlay for better text readability */}
-      <div className="absolute inset-0 bg-black/30" style={{ zIndex: -1 }} />
-      
       {/* Content */}
       <div className="relative z-10 h-full w-full">
         {children}
