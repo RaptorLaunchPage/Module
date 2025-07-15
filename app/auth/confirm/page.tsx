@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, XCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { useToast } from "@/hooks/use-toast"
 
 function AuthConfirmContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { toast } = useToast()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
 
@@ -39,10 +41,14 @@ function AuthConfirmContent() {
         if (data.user) {
           setStatus('success')
           setMessage('Email confirmed successfully! You can now login.')
-          
-          // Redirect to login after 3 seconds
+          toast({
+            title: 'Verification complete',
+            description: 'You can login now.',
+            variant: 'default',
+          })
+          // Redirect to home after 3 seconds
           setTimeout(() => {
-            router.push('/auth/login?message=Email confirmed! Please login.')
+            router.push('/')
           }, 3000)
         } else {
           throw new Error('No user data returned')
@@ -56,7 +62,7 @@ function AuthConfirmContent() {
     }
 
     handleAuthConfirmation()
-  }, [searchParams, router])
+  }, [searchParams, router, toast])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
@@ -89,10 +95,10 @@ function AuthConfirmContent() {
               </Alert>
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Redirecting to login page in 3 seconds...
+                  Redirecting to home page in 3 seconds...
                 </p>
                 <Button asChild className="w-full">
-                  <Link href="/auth/login">Continue to Login</Link>
+                  <Link href="/">Go to Home</Link>
                 </Button>
               </div>
             </div>

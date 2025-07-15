@@ -47,6 +47,15 @@ export default function UserManagementPage() {
   const [authUsers, setAuthUsers] = useState<any[]>([])
   const [fetchingAuthUsers, setFetchingAuthUsers] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [roleFilter, setRoleFilter] = useState<string>("");
+  // Remove statusFilter and uniqueStatuses
+
+  // Get unique roles from users
+  const uniqueRoles = Array.from(new Set(users.map(u => u.role).filter(Boolean)));
+
+  // Ensure users and teams are always arrays
+  const safeUsers = Array.isArray(users) ? users : [];
+  const safeTeams = Array.isArray(teams) ? teams : [];
 
   // Check unlock state on mount
   useEffect(() => {
@@ -789,26 +798,34 @@ export default function UserManagementPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.name || "Not set"}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant={getRoleBadgeVariant(user.role)}>{user.role}</Badge>
-                  </TableCell>
-                  <TableCell>{teams.find((t) => t.id === user.team_id)?.name || "No team"}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => setEditingUser(user)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => deleteUser(user.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+              {safeUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    No users found.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                safeUsers.map((user) => (
+                  <TableRow key={user.id || Math.random()}>
+                    <TableCell>{user?.name || "Not set"}</TableCell>
+                    <TableCell>{user?.email || "-"}</TableCell>
+                    <TableCell>
+                      <Badge variant={getRoleBadgeVariant(user?.role)}>{user?.role || "-"}</Badge>
+                    </TableCell>
+                    <TableCell>{safeTeams.find((t) => t.id === user?.team_id)?.name || "No team"}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setEditingUser(user)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => deleteUser(user.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
