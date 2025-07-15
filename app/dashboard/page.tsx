@@ -189,7 +189,7 @@ export default function DashboardPage() {
       })
     }
 
-    if (["admin", "manager", "coach", "player"].includes(role)) {
+    if (["admin", "manager", "coach"].includes(role)) {
       modules.push({
         title: "Team Management",
         description: "Manage teams, rosters, slots, expenses, and prize pools",
