@@ -100,19 +100,3 @@ h1, h2, h3, h4, h5, h6, .esports-heading {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-
-@keyframes fade-loop {
-  0% { opacity: 0; }
-  5% { opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  95% { opacity: 0; }
-  100% { opacity: 0; }
-}
-
-.fade-loop-overlay {
-  background: black;
-  opacity: 0;
-  animation: fade-loop linear infinite;
-  pointer-events: none;
-}
