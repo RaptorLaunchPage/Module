@@ -31,7 +31,14 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
   const [slotsLoading, setSlotsLoading] = useState(false)
 
   // Only allow players with valid profile
-  if (!profile || profile.role !== "player") return null
+  if (!profile || profile.role !== "player") return null;
+
+  if (!profile?.id) {
+    return <div className="text-center text-red-500 py-8">Your player profile is incomplete. Please contact support.</div>;
+  }
+  if (!profile?.team_id) {
+    return <div className="text-center text-yellow-600 py-8">You are not assigned to a team. Please contact your coach or admin.</div>;
+  }
 
   // Fetch slots for player's team
   useEffect(() => {
