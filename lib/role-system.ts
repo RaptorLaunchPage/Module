@@ -262,6 +262,38 @@ export const ROLE_CONFIG = {
       viewAnalytics: false,
       systemConfiguration: false
     }
+  },
+  pending_player: {
+    level: 10,
+    name: 'Pending Approval',
+    description: 'Temporary role, minimal access for onboarding and evaluation',
+    permissions: {
+      viewAllUsers: false,
+      updateUserRoles: false,
+      deleteUsers: false,
+      createUsers: false,
+      viewAllTeams: false,
+      createTeams: false,
+      updateTeams: false,
+      deleteTeams: false,
+      assignCoaches: false,
+      viewAllPerformance: false,
+      createPerformance: false,
+      updatePerformance: false,
+      deletePerformance: false,
+      viewAllScrims: false,
+      createScrims: false,
+      updateScrims: false,
+      deleteScrims: false,
+      viewAllFinances: false,
+      createFinances: false,
+      updateFinances: false,
+      deleteFinances: false,
+      viewAdminPanel: false,
+      viewReports: false,
+      viewAnalytics: false,
+      systemConfiguration: false
+    }
   }
 } as const
 
