@@ -18,11 +18,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-<<<<<<< HEAD
-  const { signIn } = useAuth()
-=======
   const { signIn, signInWithDiscord } = useAuth()
->>>>>>> cursor/enhance-authentication-and-profile-features-a7f6
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
