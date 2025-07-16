@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge"
 import { Home, Users, User, BarChart3, LogOut, Shield, CalendarCheck, DollarSign, Trophy, Crown, UserCheck, Clock } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import Image from "next/image"
 
 const menuItems = [
   {
@@ -111,6 +112,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Add props to AppSidebar
   const { profile, signOut } = useAuth()
   const pathname = usePathname()
+  const { state } = useSidebar();
 
   const filteredMenuItems = menuItems.filter((item) => profile?.role && item.roles.includes(profile.role.toLowerCase()))
   // Add Permissions link for admins
@@ -125,7 +127,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         {/* Sidebar Branding */}
         <div className="flex items-center justify-center py-1">
-          <span className="esports-heading text-xl font-bold text-black tracking-widest">Raptor Hub</span>
+          <img src="/RLogo.ico" alt="Raptor Hub Logo" width={48} height={48} className="rounded-full" style={{ minWidth: 32, minHeight: 32 }} />
+          {state !== "collapsed" && (
+            <span className="ml-3 esports-heading text-xl font-bold text-black tracking-widest">Raptor Hub</span>
+          )}
         </div>
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>

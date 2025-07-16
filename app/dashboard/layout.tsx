@@ -56,7 +56,10 @@ export default function DashboardLayout({
         <div className="max-w-md w-full space-y-4">
           <Alert variant="destructive">
             <AlertDescription>
-              <strong>Profile Creation Failed:</strong> {error}
+              <strong>We couldn't set up your profile:</strong> <br />
+              {error}
+              <br />
+              <span className="block mt-2">This may be a temporary issue. Please try again, or contact support if the problem persists.</span>
             </AlertDescription>
           </Alert>
 
@@ -72,7 +75,7 @@ export default function DashboardLayout({
 
             <div className="flex gap-2 justify-center">
               <Button onClick={retryProfileCreation}>Try Again</Button>
-              <Button variant="outline" onClick={() => router.push("/auth/login")}>
+              <Button variant="outline" onClick={() => router.push("/auth/login")}> 
                 Back to Login
               </Button>
             </div>
@@ -102,33 +105,31 @@ export default function DashboardLayout({
   }
 
   return (
-    <VideoBackground>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-white/30 backdrop-blur-md border-white/20">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="-ml-1 hidden md:flex" />
-              <MobileNav />
-              <span className="font-semibold hidden sm:inline">Raptor Hub</span>
-              <span className="font-semibold sm:hidden">Raptor</span>
-            </div>
-            <div className="ml-auto flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground hidden md:inline">
-                Welcome, {profile.name || profile.email}
-              </span>
-              <span className="text-sm text-muted-foreground md:hidden">
-                {profile.name || profile.email?.split('@')[0]}
-              </span>
-            </div>
-          </header>
-          <div className="flex flex-1 flex-col gap-4 p-2 sm:p-4 pt-0">
-            <div className="flex-1 rounded-xl p-2 sm:p-4 bg-white/30 backdrop-blur-md border border-white/20 shadow-xl">
-              {children}
-            </div>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex flex-wrap h-16 min-h-16 items-center gap-2 border-b px-2 sm:px-4 border-white/20 w-full bg-background">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="-ml-1 hidden md:flex" />
+            <MobileNav />
+            <span className="font-semibold hidden sm:inline">Raptor Hub</span>
+            <span className="font-semibold sm:hidden">Raptor</span>
           </div>
-        </SidebarInset>
-      </SidebarProvider>
-    </VideoBackground>
+          <div className="ml-auto flex items-center flex-wrap gap-2 sm:gap-4 min-w-0">
+            <span className="truncate text-sm text-muted-foreground hidden md:inline max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
+              Welcome, {profile.name || profile.email}
+            </span>
+            <span className="truncate text-sm text-muted-foreground md:hidden max-w-[120px]">
+              {profile.name || profile.email?.split('@')[0]}
+            </span>
+          </div>
+        </header>
+        <div className="flex flex-1 flex-col gap-4 p-2 sm:p-4 pt-0 w-full">
+          <div className="flex-1 rounded-xl p-2 sm:p-4 border border-white/20 shadow-xl w-full min-w-0 bg-background">
+            {children}
+          </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

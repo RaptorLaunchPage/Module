@@ -20,9 +20,17 @@ type AuthContextType = {
   signUp: (email: string, password: string, name: string) => Promise<{ error: any | null }>
   signOut: () => Promise<void>
   retryProfileCreation: () => void
+  resetPassword: (email: string) => Promise<{ error: any | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+// Helper to get the correct site URL for redirects
+const getSiteUrl = () => {
+  let url = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000';
+  url = url.startsWith('http') ? url : `https://${url}`;
+  return url.endsWith('/') ? url.slice(0, -1) : url;
+};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null)
@@ -125,6 +133,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (selectErr && selectErr.code !== "PGRST116") {
         // PGRST116 = row not found (that’s fine – we’ll create below)
+        console.error("[Profile] Error selecting user profile:", selectErr, { userId })
         throw selectErr
       }
 
@@ -149,6 +158,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return
       }
 
+      if (emergencyError) {
+        console.error("[Profile] Emergency RPC profile creation error:", emergencyError, { userId, email: user?.email })
+      }
+
       // Fallback to emergency admin service
       const emergencyResult = await EmergencyAdminService.createSuperAdmin(
         userId,
@@ -165,11 +178,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .single()
 
         if (fetchError) {
+          console.error("[Profile] Profile created but fetch failed:", fetchError, { userId })
           throw new Error("Profile created but could not fetch: " + fetchError.message)
         }
 
         setProfile(newProfile)
         return
+      }
+
+      if (!emergencyResult.success) {
+        console.error("[Profile] EmergencyAdminService.createSuperAdmin failed:", emergencyResult, { userId, email: user?.email })
       }
 
       // Fallback to secure profile creation
@@ -180,13 +198,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       )
 
       if (!profileResult.success) {
+        console.error("[Profile] SecureProfileCreation.createProfile failed:", profileResult, { userId, email: user?.email })
         throw new Error(profileResult.error || "Profile creation failed")
       }
 
       // 3 – Set the created profile
       setProfile(profileResult.profile)
     } catch (err: any) {
-      console.error("Profile creation / fetch error:", err)
+      console.error("[Profile] Profile creation / fetch error:", err, { stack: err?.stack, userId, email: user?.email })
       setError(err.message || "Could not create / fetch profile")
     } finally {
       setLoading(false)
@@ -220,9 +239,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           data: {
             name: name,
           },
-          emailRedirectTo: process.env.NODE_ENV === 'production' 
-            ? 'https://dev.raptorofficial.in/auth/confirm'
-            : `${window.location.origin}/auth/confirm`
+          emailRedirectTo: `${getSiteUrl()}/auth/confirm`
         },
       })
       return { error }
@@ -250,7 +267,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  const value = { session, user, profile, loading, error, signIn, signUp, signOut, retryProfileCreation }
+  const resetPassword = async (email: string): Promise<{ error: any | null }> => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${getSiteUrl()}/auth/confirm`
+      })
+      return { error }
+    } catch (err: any) {
+      console.error("Reset password exception:", err)
+      return { error: err }
+    }
+  }
+
+  const value = { session, user, profile, loading, error, signIn, signUp, signOut, retryProfileCreation, resetPassword }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
