@@ -400,7 +400,7 @@ export class RoleAccess {
    * Get safe default role for new users
    */
   static getDefaultRole(): UserRole {
-    return 'pending'
+    return 'pending_player'
   }
 
   /**
@@ -474,7 +474,7 @@ export const ROLES = {
   COACH: 'coach' as const,
   ANALYST: 'analyst' as const,
   PLAYER: 'player' as const,
-  PENDING: 'pending' as const
+  PENDING: 'pending_player' as const
 }
 
 // Export role levels for easy access
