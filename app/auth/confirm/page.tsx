@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/hooks/use-auth"
+import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -76,6 +77,10 @@ function AuthConfirmContent() {
 
     handleAuthConfirmation()
   }, [searchParams, router, toast, user, profile, loading])
+
+  if (loading || (user && !profile)) {
+    return <FullPageLoader message="Loading your account..." />
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">

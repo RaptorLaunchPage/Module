@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, CheckCircle, User, Mail, GamepadIcon } from "lucide-react"
+import { FullPageLoader } from "@/components/ui/full-page-loader"
 
 interface OnboardingForm {
   fullName: string
@@ -106,12 +107,8 @@ export default function OnboardingPage() {
     }
   }
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
+  if (authLoading || !profile) {
+    return <FullPageLoader message="Loading your profile..." />
   }
 
   return (
