@@ -18,7 +18,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+<<<<<<< HEAD
   const { signIn } = useAuth()
+=======
+  const { signIn, signInWithDiscord } = useAuth()
+>>>>>>> cursor/enhance-authentication-and-profile-features-a7f6
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,6 +56,33 @@ export default function LoginPage() {
             <CardDescription className="text-slate-200">Sign in to your Raptor Esports account</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Discord login at the top */}
+            <div className="flex flex-col items-center gap-2 mb-6">
+              <Button
+                className="w-full bg-[#5865F2] text-white border border-white/20 hover:bg-[#4752c4]"
+                type="button"
+                onClick={async () => {
+                  setLoading(true)
+                  setError("")
+                  try {
+                    await signInWithDiscord()
+                  } catch (err: any) {
+                    setError(err.message || "Discord login failed")
+                  } finally {
+                    setLoading(false)
+                  }
+                }}
+                disabled={loading}
+              >
+                {loading ? "Redirecting..." : "Login with Discord"}
+              </Button>
+            </div>
+            {/* Social login placeholder for Google */}
+            <div className="flex flex-col items-center gap-2 mb-6">
+              <Button className="w-full bg-white/10 text-white border border-white/20 cursor-not-allowed" disabled>
+                Google (Coming Soon)
+              </Button>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <Alert variant="destructive">
@@ -100,15 +131,6 @@ export default function LoginPage() {
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-            {/* Social login placeholder */}
-            <div className="mt-6 flex flex-col items-center gap-2">
-              <Button className="w-full bg-white/10 text-white border border-white/20 cursor-not-allowed" disabled>
-                Google (Coming Soon)
-              </Button>
-              <Button className="w-full bg-white/10 text-white border border-white/20 cursor-not-allowed" disabled>
-                Discord (Coming Soon)
-              </Button>
-            </div>
             <div className="mt-4 text-center">
               <p className="text-slate-200">
                 {"Don't have an account? "}

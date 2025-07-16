@@ -63,9 +63,6 @@ export default function HomePage() {
               <Button variant="outline" className="w-full bg-white/10 text-white border border-white/20 cursor-not-allowed" size="lg" disabled>
                 Login with Google
               </Button>
-              <Button variant="outline" className="w-full bg-white/10 text-white border border-white/20 cursor-not-allowed" size="lg" disabled>
-                Login with Discord
-              </Button>
             </CardContent>
           </Card>
         </div>

@@ -21,6 +21,10 @@ type AuthContextType = {
   signOut: () => Promise<void>
   retryProfileCreation: () => void
   resetPassword: (email: string) => Promise<{ error: any | null }>
+<<<<<<< HEAD
+=======
+  signInWithDiscord: () => Promise<void>
+>>>>>>> cursor/enhance-authentication-and-profile-features-a7f6
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -279,7 +283,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
+<<<<<<< HEAD
   const value = { session, user, profile, loading, error, signIn, signUp, signOut, retryProfileCreation, resetPassword }
+=======
+  const signInWithDiscord = async (): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'discord',
+        options: {
+          redirectTo: `${getSiteUrl()}/auth/confirm`,
+        },
+      })
+      if (error) throw error
+    } catch (err: any) {
+      console.error("Discord OAuth sign-in error:", err)
+      setError(err.message || "Could not sign in with Discord")
+    }
+  }
+
+  const value = { session, user, profile, loading, error, signIn, signUp, signOut, retryProfileCreation, resetPassword, signInWithDiscord }
+>>>>>>> cursor/enhance-authentication-and-profile-features-a7f6
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
