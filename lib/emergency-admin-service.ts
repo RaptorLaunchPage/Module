@@ -43,18 +43,19 @@ export class EmergencyAdminService {
   static async createSuperAdmin(
     userId: string,
     email: string,
-    name: string = 'Super Admin'
+    name: string = 'Super Admin',
+    provider?: string
   ): Promise<EmergencyAdminResult> {
     try {
       console.log(`🚨 Creating super admin: ${email} (${userId})`)
-      
+      const rpcArgs: any = {
+        user_id: userId,
+        user_email: email,
+        user_name: name
+      }
+      if (provider) rpcArgs.provider = provider
       const { data, error } = await supabaseAdmin
-        .rpc('emergency_create_super_admin_fixed', {
-          user_id: userId,
-          user_email: email,
-          user_name: name
-        })
-      
+        .rpc('emergency_create_super_admin_fixed', rpcArgs)
       if (error) {
         console.error('❌ Super admin creation failed:', error)
         return {
@@ -63,10 +64,8 @@ export class EmergencyAdminService {
           message: 'Failed to create super admin'
         }
       }
-      
       console.log('✅ Super admin created successfully:', data)
       return data as EmergencyAdminResult
-      
     } catch (error) {
       console.error('❌ Super admin creation error:', error)
       return {
