@@ -52,6 +52,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.log('⚠️ Session expired, clearing auth state')
           setSession(null)
           setUser(null)
+          setProfile(null)
+          setLoading(false)
           return
         }
         
@@ -62,6 +64,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.error('Session fetch error:', error)
           setSession(null)
           setUser(null)
+          setProfile(null)
+          setLoading(false)
           return
         }
         
@@ -72,10 +76,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         setSession(session)
         setUser(session?.user || null)
+        // Do not set loading to false here; wait for profile
       } catch (error) {
         console.error('Auth initialization error:', error)
         setSession(null)
         setUser(null)
+        setProfile(null)
+        setLoading(false)
       }
     }
 
@@ -91,9 +98,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           // Clear session data when user signs out
           await SessionManager.logout()
         }
-        
         setSession(session)
         setUser(session?.user || null)
+        // Do not set loading to false here; wait for profile
       }
     )
 
@@ -103,29 +110,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // After any login (email or OAuth), ensure profile is created/fetched
   useEffect(() => {
     if (user) {
-      // For Discord OAuth, user.email and user.id will be set by Supabase
       fetchProfile(user.id)
-    } else {
+    } else if (session === null) {
       setProfile(null)
       setLoading(false)
     }
-  }, [user])
-
-  // Ensure loading is false when session is null (after sign out)
-  useEffect(() => {
-    if (!session && !user) {
-      setLoading(false)
-    }
-  }, [session, user])
-
-  // useEffect(() => {
-  //   if (!loading && !user) {
-  //     const timeout = setTimeout(() => {
-  //       router.push("/auth/login")
-  //     }, 1500)
-  //     return () => clearTimeout(timeout)
-  //   }
-  // }, [user, loading, router])
+  }, [user, session])
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -143,6 +133,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (existing) {
         // Profile exists, use it
         setProfile(existing)
+        setLoading(false)
         return
       }
 
@@ -160,6 +151,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (!emergencyError && emergencyData?.success) {
         setProfile(emergencyData.profile)
+        setLoading(false)
         return
       }
 
@@ -189,6 +181,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         setProfile(newProfile)
+        setLoading(false)
         return
       }
 
@@ -211,10 +204,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // 3 – Set the created profile
       setProfile(profileResult.profile)
+      setLoading(false)
     } catch (err: any) {
       console.error("[Profile] Profile creation / fetch error:", err, { stack: err?.stack, userId, email: user?.email })
       setError(err.message || "Could not create / fetch profile")
-    } finally {
       setLoading(false)
     }
   }
