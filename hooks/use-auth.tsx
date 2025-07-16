@@ -148,12 +148,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // 2 – Profile doesn't exist, create it using emergency admin service
       console.log("🔧 Creating profile for user:", userId, user?.email)
-      
+      // Determine provider (email, discord, etc.)
+      const provider = user?.app_metadata?.provider || 'email'
       // Try emergency profile creation function first
       const { data: emergencyData, error: emergencyError } = await supabase.rpc('emergency_create_profile', {
         user_id: userId,
         user_email: user?.email!,
-        user_name: user?.user_metadata?.name || user?.user_metadata?.full_name || 'User'
+        user_name: user?.user_metadata?.name || user?.user_metadata?.full_name || 'User',
+        provider // pass provider to the RPC if supported
       })
 
       if (!emergencyError && emergencyData?.success) {
@@ -169,7 +171,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const emergencyResult = await EmergencyAdminService.createSuperAdmin(
         userId,
         user?.email!,
-        user?.user_metadata?.name || user?.user_metadata?.full_name || 'User'
+        user?.user_metadata?.name || user?.user_metadata?.full_name || 'User',
+        provider
       )
 
       if (emergencyResult.success) {
@@ -197,7 +200,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const profileResult = await SecureProfileCreation.createProfile(
         userId,
         user?.email!,
-        user?.user_metadata?.name || user?.user_metadata?.full_name || undefined
+        user?.user_metadata?.name || user?.user_metadata?.full_name || undefined,
+        provider
       )
 
       if (!profileResult.success) {
