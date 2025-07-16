@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
           </CardHeader>
           <CardContent>
             {success ? (
-              <Alert variant="success">
+              <Alert variant="default">
                 <AlertDescription>
                   If an account with that email exists, a password reset link has been sent.
                   <br />
