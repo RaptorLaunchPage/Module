@@ -99,7 +99,18 @@ export default function PerformancePage() {
           </TabsContent>
         )}
 
-        {/* PlayerPerformanceSubmit removed for player role to test crash root cause */}
+        {profile?.role === "player" && (
+          <TabsContent value="submit">
+            {/* Robust null check for profile and team/slots */}
+            {profile && (() => {
+              try {
+                return <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />
+              } catch (err) {
+                return <div className="text-center py-8 text-red-500">An error occurred while loading the performance form. Please contact support.</div>;
+              }
+            })()}
+          </TabsContent>
+        )}
 
         {canEdit && (
           <TabsContent value="add">
