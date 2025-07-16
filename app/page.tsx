@@ -12,11 +12,16 @@ export default function HomePage() {
   const { user, loading } = useAuth()
   const router = useRouter()
 
+  const { profile } = useAuth()
   useEffect(() => {
-    if (!loading && user) {
-      router.replace("/dashboard")
+    if (!loading && user && profile) {
+      if (profile.role === "pending_player") {
+        router.replace("/onboarding")
+      } else {
+        router.replace("/dashboard")
+      }
     }
-  }, [user, loading, router])
+  }, [user, profile, loading, router])
 
   if (loading) {
     return (

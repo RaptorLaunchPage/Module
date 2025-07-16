@@ -20,10 +20,13 @@ function AuthConfirmContent() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    // If user is already authenticated (OAuth or email), redirect to dashboard/onboarding
+    // If user is already authenticated (OAuth or email), redirect to onboarding or dashboard
     if (user && profile && !loading) {
-      // You can add onboarding logic here if needed
-      router.replace("/dashboard")
+      if (profile.role === "pending_player") {
+        router.replace("/onboarding")
+      } else {
+        router.replace("/dashboard")
+      }
       return
     }
 
