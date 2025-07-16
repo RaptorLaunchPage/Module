@@ -5,7 +5,7 @@ export class SecureProfileCreation {
   /**
    * Create a new user profile with proper default role
    */
-  static async createProfile(userId: string, email: string, name?: string): Promise<{
+  static async createProfile(userId: string, email: string, name?: string, provider?: string): Promise<{
     success: boolean
     profile?: any
     error?: string
@@ -41,6 +41,7 @@ export class SecureProfileCreation {
         role: defaultRole,
         created_at: new Date().toISOString()
       }
+      if (provider) profileData.provider = provider
       
       // Only add role_level if the column exists (after migration)
       try {
