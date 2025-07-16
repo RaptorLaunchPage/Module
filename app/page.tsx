@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
+import { FullPageLoader } from "@/components/ui/full-page-loader"
 
 export default function HomePage() {
   const { user, loading } = useAuth()
@@ -23,12 +24,8 @@ export default function HomePage() {
     }
   }, [user, profile, loading, router])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    )
+  if (loading || (user && !profile)) {
+    return <FullPageLoader message="Loading your account..." />
   }
 
   return (
