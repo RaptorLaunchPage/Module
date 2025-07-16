@@ -80,13 +80,13 @@ export default function SignUpPage() {
                 </Alert>
               )}
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-white">Full Name</Label>
+                <Label htmlFor="name" className="text-white">In Game Name</Label>
                 <Input
                   id="name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your full name"
+                  placeholder="Enter your in game name"
                   required
                   className="bg-transparent border-white/20 text-white placeholder:text-slate-400 focus:ring-white/30"
                 />
