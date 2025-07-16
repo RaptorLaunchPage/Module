@@ -100,8 +100,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe()
   }, [])
 
+  // After any login (email or OAuth), ensure profile is created/fetched
   useEffect(() => {
     if (user) {
+      // For Discord OAuth, user.email and user.id will be set by Supabase
       fetchProfile(user.id)
     } else {
       setProfile(null)
