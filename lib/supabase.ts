@@ -81,6 +81,7 @@ export type Database = {
           team_id: string | null
           avatar_url: string | null
           created_at: string
+          provider: string | null
         }
         Insert: {
           id: string
@@ -90,6 +91,7 @@ export type Database = {
           role_level?: number | null
           team_id?: string | null
           avatar_url?: string | null
+          provider?: string | null
         }
         Update: {
           name?: string | null
@@ -97,6 +99,7 @@ export type Database = {
           role_level?: number | null
           team_id?: string | null
           avatar_url?: string | null
+          provider?: string | null
         }
       }
       teams: {

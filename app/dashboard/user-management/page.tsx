@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Edit, EyeOff, Lock, Unlock } from "lucide-react"
+import { Trash2, Edit, EyeOff, Lock, Unlock, Mail, Bot } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Database } from "@/lib/supabase"
 import { UserManagementService } from "@/lib/user-management"
@@ -48,7 +48,7 @@ export default function UserManagementPage() {
   const [fetchingAuthUsers, setFetchingAuthUsers] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [roleFilter, setRoleFilter] = useState<string>("");
-  // Remove statusFilter and uniqueStatuses
+  const [userTab, setUserTab] = useState<'all' | 'discord'>('all')
 
   // Get unique roles from users
   const uniqueRoles = Array.from(new Set(users.map(u => u.role).filter(Boolean)));
@@ -56,6 +56,9 @@ export default function UserManagementPage() {
   // Ensure users and teams are always arrays
   const safeUsers = Array.isArray(users) ? users : [];
   const safeTeams = Array.isArray(teams) ? teams : [];
+
+  // Filtered users for current tab
+  const filteredUsers = userTab === 'discord' ? safeUsers.filter(u => u.provider === 'discord') : safeUsers;
 
   // Check unlock state on mount
   useEffect(() => {
@@ -517,273 +520,14 @@ export default function UserManagementPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-        <p className="text-muted-foreground">Manage users, roles, and team assignments</p>
-        {/* Blurred, password-protected debug section */}
-        {profile?.role === "admin" && (
-          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg relative overflow-hidden">
-            {!debugUnlocked && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 backdrop-blur-sm z-10">
-                <Lock className="h-8 w-8 text-yellow-700 mb-2" />
-                <p className="mb-2 text-yellow-800 font-semibold">Admin Debug Tools Locked</p>
-                <input
-                  type="password"
-                  className="border rounded px-2 py-1 mb-2"
-                  placeholder="Enter password"
-                  value={debugPassword}
-                  onChange={e => setDebugPassword(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleUnlock() }}
-                />
-                <Button size="sm" onClick={handleUnlock}>
-                  Unlock
-                </Button>
-                {unlockError && <div className="text-xs text-red-600 mt-2">{unlockError}</div>}
-              </div>
-            )}
-            <div className={debugUnlocked ? "opacity-100" : "blur-sm pointer-events-none select-none opacity-60"}>
-              <h3 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
-                <EyeOff className="h-4 w-4" /> Debug Tools
-                {debugUnlocked && <Unlock className="h-4 w-4 text-green-600 ml-2" />}
-              </h3>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => UserManagementService.testRLSPolicies()}
-                className="mr-2"
-              >
-                Test RLS Policies
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={async () => {
-                  const permissions = await UserManagementService.testDatabasePermissions()
-                  console.log("Database permissions test:", permissions)
-                  toast({
-                    title: "Database Permissions Test",
-                    description: `Read: ${permissions.canRead}, Update: ${permissions.canUpdate}, Insert: ${permissions.canInsert}, Delete: ${permissions.canDelete}`,
-                  })
-                }}
-                className="mr-2"
-              >
-                Test DB Permissions
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={runDiagnostics}
-                className="mr-2"
-              >
-                Run Full Diagnostics
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/debug/env')
-                    const data = await response.json()
-                    toast({
-                      title: "Environment Check",
-                      description: data.message || "Environment status checked",
-                      variant: data.success && data.status.hasServiceRoleKey ? "default" : "destructive"
-                    })
-                    console.log("🔍 Environment Status:", data)
-                  } catch (error: any) {
-                    console.error("Environment check failed:", error)
-                    toast({
-                      title: "Environment Check Failed",
-                      description: error.message || "Could not check environment",
-                      variant: "destructive"
-                    })
-                  }
-                }}
-                className="mr-2"
-              >
-                Check Environment
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={async () => {
-                  if (!profile?.id) {
-                    toast({
-                      title: "Error",
-                      description: "No user profile available",
-                      variant: "destructive"
-                    })
-                    return
-                  }
-                  try {
-                    console.log("🔄 Starting profile sync...")
-                    const result = await SupabaseAdminService.createMissingProfiles()
-                    if (result.success) {
-                      toast({
-                        title: "Profile Sync Complete",
-                        description: result.message || `Created ${result.created || 0} missing profiles`,
-                      })
-                      fetchUsers()
-                    } else {
-                      toast({
-                        title: "Profile Sync Failed",
-                        description: result.error || "Unknown error",
-                        variant: "destructive"
-                      })
-                    }
-                  } catch (error: any) {
-                    console.error("Profile sync error:", error)
-                    toast({
-                      title: "Profile Sync Error",
-                      description: error.message || "Failed to sync profiles",
-                      variant: "destructive"
-                    })
-                  }
-                }}
-                className="mr-2"
-              >
-                Sync Missing Profiles
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={async () => {
-                  try {
-                    const status = await AuthProfileSync.getSyncStatus()
-                    console.log("Sync Status:", status)
-                    toast({
-                      title: "Sync Status",
-                      description: `Profiles: ${status.profiles?.count || 0}, Auth Users: ${status.authUsers?.accessible ? status.authUsers.count : 'Unknown'}`,
-                    })
-                  } catch (error: any) {
-                    toast({
-                      title: "Sync Status Error",
-                      description: error.message,
-                      variant: "destructive"
-                    })
-                  }
-                }}
-                className="mr-2"
-              >
-                Check Sync Status
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowManualCreate(true)}
-                className="mr-2"
-              >
-                Manual Create Profile
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => setShowEmergencyPanel(!showEmergencyPanel)}
-                className="mr-2"
-              >
-                Emergency Admin
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={fetchAuthUsers}
-                className="mr-2"
-                disabled={fetchingAuthUsers}
-              >
-                {fetchingAuthUsers ? "Fetching..." : "Fetch Auth Users"}
-              </Button>
-              {authUsers.length > 0 && (
-                <div className="mt-2 max-h-40 overflow-y-auto bg-white border rounded p-2 text-xs">
-                  <div className="font-semibold mb-1">auth.users</div>
-                  <pre>{JSON.stringify(authUsers, null, 2)}</pre>
-                </div>
-              )}
-              {showDebug && debugInfo && (
-                <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <h5 className="font-semibold">Debug Info</h5>
-                    <Button size="sm" variant="outline" onClick={() => setShowDebug(false)}>Close</Button>
-                  </div>
-                  <pre className="text-xs overflow-auto max-h-32 whitespace-pre-wrap bg-gray-100 p-2 rounded">
-                    {JSON.stringify(debugInfo, null, 2)}
-                  </pre>
-                </div>
-              )}
-              {showManualCreate && (
-                <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <h5 className="font-semibold">Manual Profile Creation</h5>
-                    <Button size="sm" variant="outline" onClick={() => setShowManualCreate(false)}>Close</Button>
-                  </div>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      placeholder="Email"
-                      value={manualEmail}
-                      onChange={e => setManualEmail(e.target.value)}
-                    />
-                    <Input
-                      placeholder="Name"
-                      value={manualName}
-                      onChange={e => setManualName(e.target.value)}
-                    />
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        await AuthProfileSync.createProfileManually(manualEmail, manualName)
-                        toast({ title: "Profile Created", description: "Manual profile created successfully" })
-                        setShowManualCreate(false)
-                        fetchUsers()
-                      } catch (error: any) {
-                        toast({ title: "Error", description: error.message, variant: "destructive" })
-                      }
-                    }}
-                  >
-                    Create Profile
-                  </Button>
-                </div>
-              )}
-              {showEmergencyPanel && (
-                <div className="mt-4 p-3 bg-gray-50 border rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <h5 className="font-semibold">Emergency Admin Panel</h5>
-                    <Button size="sm" variant="outline" onClick={() => setShowEmergencyPanel(false)}>Close</Button>
-                  </div>
-                  <Button size="sm" onClick={setupEmergencyAdmin} disabled={emergencyLoading} className="mr-2">
-                    {emergencyLoading ? "Setting Up..." : "Setup Emergency Admin"}
-                  </Button>
-                  <Button size="sm" onClick={getAllUsersEmergency} disabled={emergencyLoading} className="mr-2">
-                    {emergencyLoading ? "Loading..." : "Get All Users (Bypass)"}
-                  </Button>
-                  <Button size="sm" onClick={enableSafeRLS} disabled={emergencyLoading} className="mr-2">
-                    {emergencyLoading ? "Enabling..." : "Enable Safe RLS"}
-                  </Button>
-                  <Button size="sm" onClick={cleanupEmergencyFunctions} disabled={emergencyLoading} className="mr-2">
-                    {emergencyLoading ? "Cleaning..." : "Cleanup Emergency Functions"}
-                  </Button>
-                  {emergencyResult && (
-                    <div className="mt-4 p-3 bg-gray-100 border rounded">
-                      <pre className="text-xs overflow-auto max-h-32 whitespace-pre-wrap">
-                        {JSON.stringify(emergencyResult, null, 2)}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            {debugUnlocked && (
-              <div className="absolute top-2 right-2 text-xs text-yellow-700">
-                <span>Unlocked • Auto-locks in 1 hour</span>
-              </div>
-            )}
-          </div>
-        )}
+      {/* Tabs for All Users / Discord Users */}
+      <div className="flex gap-2 mb-4">
+        <Button variant={userTab === 'all' ? 'default' : 'outline'} onClick={() => setUserTab('all')}>All Users</Button>
+        <Button variant={userTab === 'discord' ? 'default' : 'outline'} onClick={() => setUserTab('discord')}>Discord Users</Button>
       </div>
-
       <Card>
         <CardHeader>
-          <CardTitle>All Users</CardTitle>
+          <CardTitle>{userTab === 'discord' ? 'Discord Users' : 'All Users'}</CardTitle>
           <CardDescription>Manage user roles and team assignments</CardDescription>
         </CardHeader>
         <CardContent>
@@ -792,23 +536,31 @@ export default function UserManagementPage() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Provider</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Team</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {safeUsers.length === 0 ? (
+              {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
                     No users found.
                   </TableCell>
                 </TableRow>
               ) : (
-                safeUsers.map((user) => (
+                filteredUsers.map((user) => (
                   <TableRow key={user.id || Math.random()}>
                     <TableCell>{user?.name || "Not set"}</TableCell>
                     <TableCell>{user?.email || "-"}</TableCell>
+                    <TableCell>
+                      {user?.provider === 'discord' ? (
+                        <span className="flex items-center gap-1 text-[#5865F2] font-medium"><Bot className="h-4 w-4" /> Discord</span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-gray-500 font-medium"><Mail className="h-4 w-4" /> Email</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={getRoleBadgeVariant(user?.role)}>{user?.role || "-"}</Badge>
                     </TableCell>
