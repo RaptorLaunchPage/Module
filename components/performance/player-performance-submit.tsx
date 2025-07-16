@@ -158,14 +158,10 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
                     {teamSlots.map(slot => (
                       <SelectItem key={slot.id} value={slot.id}>{slot.time_range} ({slot.date})</SelectItem>
                     ))}
-                    <SelectItem value="manual">Enter manually</SelectItem>
                   </SelectContent>
                 </Select>
               ) : (
-                <Input id="slot" type="number" value={formData.slot} onChange={e => setFormData({ ...formData, slot: e.target.value })} placeholder="Enter slot number" required />
-              )}
-              {formData.slot === "manual" && (
-                <Input id="slot-manual" type="number" value={formData.slot} onChange={e => setFormData({ ...formData, slot: e.target.value })} placeholder="Enter slot number manually" required />
+                <div className="text-red-500 text-sm">No slots available. Please contact your coach or admin.</div>
               )}
             </div>
             <div className="space-y-2">
