@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const { signIn } = useAuth()
   const router = useRouter()
 
@@ -71,15 +72,29 @@ export default function LoginPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-white">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Test@12345"
-                  required
-                  className="bg-transparent border-white/20 text-white placeholder:text-slate-400 focus:ring-white/30"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Test@12345"
+                    required
+                    className="bg-transparent border-white/20 text-white placeholder:text-slate-400 focus:ring-white/30 pr-10"
+                  />
+                  <button
+                    type="button"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-300 hover:text-white focus:outline-none"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? "Hide" : "Show"}
+                  </button>
+                </div>
+                <div className="text-right mt-1">
+                  <Link href="/auth/forgot" className="text-xs text-slate-300 hover:text-white underline">Forgot Password?</Link>
+                </div>
               </div>
               <Button type="submit" className="w-full bg-white/90 text-black hover:bg-white" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}

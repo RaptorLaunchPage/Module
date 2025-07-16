@@ -56,7 +56,10 @@ export default function DashboardLayout({
         <div className="max-w-md w-full space-y-4">
           <Alert variant="destructive">
             <AlertDescription>
-              <strong>Profile Creation Failed:</strong> {error}
+              <strong>We couldn't set up your profile:</strong> <br />
+              {error}
+              <br />
+              <span className="block mt-2">This may be a temporary issue. Please try again, or contact support if the problem persists.</span>
             </AlertDescription>
           </Alert>
 
