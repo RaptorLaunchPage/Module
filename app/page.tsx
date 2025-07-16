@@ -12,7 +12,16 @@ export default function HomePage() {
   const { user, loading } = useAuth()
   const router = useRouter()
 
-  // Removed auto-redirect useEffect
+  const { profile } = useAuth()
+  useEffect(() => {
+    if (!loading && user && profile) {
+      if (profile.role === "pending_player") {
+        router.replace("/onboarding")
+      } else {
+        router.replace("/dashboard")
+      }
+    }
+  }, [user, profile, loading, router])
 
   if (loading) {
     return (

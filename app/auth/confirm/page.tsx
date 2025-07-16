@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { useAuth } from "@/hooks/use-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -13,11 +14,23 @@ import { useToast } from "@/hooks/use-toast"
 function AuthConfirmContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user, profile, loading } = useAuth()
   const { toast } = useToast()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
+    // If user is already authenticated (OAuth or email), redirect to onboarding or dashboard
+    if (user && profile && !loading) {
+      if (profile.role === "pending_player") {
+        router.replace("/onboarding")
+      } else {
+        router.replace("/dashboard")
+      }
+      return
+    }
+
+    // Otherwise, handle email confirmation as before
     const handleAuthConfirmation = async () => {
       try {
         // Get the token hash from URL
@@ -62,7 +75,7 @@ function AuthConfirmContent() {
     }
 
     handleAuthConfirmation()
-  }, [searchParams, router, toast])
+  }, [searchParams, router, toast, user, profile, loading])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
