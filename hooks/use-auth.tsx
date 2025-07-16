@@ -25,6 +25,13 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Helper to get the correct site URL for redirects
+const getSiteUrl = () => {
+  let url = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000';
+  url = url.startsWith('http') ? url : `https://${url}`;
+  return url.endsWith('/') ? url.slice(0, -1) : url;
+};
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<any>(null)
@@ -232,9 +239,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           data: {
             name: name,
           },
-          emailRedirectTo: process.env.NODE_ENV === 'production' 
-            ? 'https://dev.raptorofficial.in/auth/confirm'
-            : `${window.location.origin}/auth/confirm`
+          emailRedirectTo: `${getSiteUrl()}/auth/confirm`
         },
       })
       return { error }
@@ -265,9 +270,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const resetPassword = async (email: string): Promise<{ error: any | null }> => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: process.env.NODE_ENV === 'production'
-          ? 'https://dev.raptorofficial.in/auth/confirm'
-          : `${window.location.origin}/auth/confirm`
+        redirectTo: `${getSiteUrl()}/auth/confirm`
       })
       return { error }
     } catch (err: any) {
