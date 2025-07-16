@@ -19,8 +19,9 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
-  const { signUp } = useAuth()
+  const { signUp, signInWithDiscord } = useAuth()
   const router = useRouter()
+  const [discordLoading, setDiscordLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,6 +74,27 @@ export default function SignUpPage() {
             <CardDescription className="text-slate-200">Join the Raptor Esports team</CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Discord login at the top */}
+            <div className="flex flex-col items-center gap-2 mb-6">
+              <Button
+                className="w-full bg-[#5865F2] text-white border border-white/20 hover:bg-[#4752c4]"
+                type="button"
+                onClick={async () => {
+                  setDiscordLoading(true)
+                  setError("")
+                  try {
+                    await signInWithDiscord()
+                  } catch (err: any) {
+                    setError(err.message || "Discord signup failed")
+                  } finally {
+                    setDiscordLoading(false)
+                  }
+                }}
+                disabled={discordLoading}
+              >
+                {discordLoading ? "Redirecting..." : "Sign up with Discord"}
+              </Button>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <Alert variant="destructive">
@@ -119,13 +141,10 @@ export default function SignUpPage() {
                 {loading ? "Creating account..." : "Sign Up"}
               </Button>
             </form>
-            {/* Social login placeholder */}
+            {/* Social login placeholder for Google */}
             <div className="mt-6 flex flex-col items-center gap-2">
               <Button className="w-full bg-white/10 text-white border border-white/20 cursor-not-allowed" disabled>
                 Google (Coming Soon)
-              </Button>
-              <Button className="w-full bg-white/10 text-white border border-white/20 cursor-not-allowed" disabled>
-                Discord (Coming Soon)
               </Button>
             </div>
             <div className="mt-4 text-center">
