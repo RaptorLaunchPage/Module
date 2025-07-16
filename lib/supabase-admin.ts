@@ -176,7 +176,7 @@ export class SupabaseAdminService {
         id: user.id,
         email: user.email || '',
         name: user.user_metadata?.name || user.email?.split('@')[0] || '',
-        role: 'pending' as const,
+        role: 'pending_player' as const,
         created_at: new Date().toISOString()
       }))
 
