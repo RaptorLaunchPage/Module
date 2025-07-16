@@ -62,23 +62,63 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
     setLoading(true)
     setLastError(null)
     try {
+      // Validate required fields
       if (!profile.id || !profile.team_id) throw new Error("Missing player or team information.")
       if (!formData.match_number || !formData.slot || !formData.map) throw new Error("Please fill all required fields.")
+      // Coerce and validate slot
+      let slotValue: number | null = null
+      if (formData.slot === "manual") {
+        if (!formData.slot || isNaN(Number(formData.slot))) throw new Error("Please enter a valid slot number.")
+        slotValue = Number(formData.slot)
+      } else {
+        slotValue = Number(formData.slot)
+      }
+      if (!slotValue || isNaN(slotValue)) throw new Error("Slot must be a valid number.")
+      // Coerce all numeric fields
+      const match_number = Number(formData.match_number)
+      const placement = formData.placement ? Number(formData.placement) : null
+      const kills = formData.kills ? Number(formData.kills) : 0
+      const assists = formData.assists ? Number(formData.assists) : 0
+      const damage = formData.damage ? Number(formData.damage) : 0
+      const survival_time = formData.survival_time ? Number(formData.survival_time) : 0
+      // Prepare payload
       const payload = {
         player_id: profile.id,
         team_id: profile.team_id,
-        match_number: Number(formData.match_number),
-        slot: Number(formData.slot),
+        match_number,
+        slot: slotValue,
         map: formData.map,
-        placement: formData.placement ? Number(formData.placement) : null,
-        kills: Number(formData.kills) || 0,
-        assists: Number(formData.assists) || 0,
-        damage: Number(formData.damage) || 0,
-        survival_time: Number(formData.survival_time) || 0,
+        placement,
+        kills,
+        assists,
+        damage,
+        survival_time,
         added_by: profile.id,
       }
+      // Debug log
+      if (typeof window !== "undefined") {
+        const logs = JSON.parse(localStorage.getItem("debug-logs") || "[]")
+        logs.push({
+          level: "log",
+          message: "Submitting performance payload: " + JSON.stringify(payload),
+          time: new Date().toISOString(),
+        })
+        localStorage.setItem("debug-logs", JSON.stringify(logs.slice(-500)))
+      }
       const { error } = await supabase.from("performances").insert(payload)
-      if (error) throw error
+      if (error) {
+        // Log error
+        if (typeof window !== "undefined") {
+          const logs = JSON.parse(localStorage.getItem("debug-logs") || "[]")
+          logs.push({
+            level: "error",
+            message: "Supabase insert error: " + (error.message || JSON.stringify(error)),
+            time: new Date().toISOString(),
+          })
+          localStorage.setItem("debug-logs", JSON.stringify(logs.slice(-500)))
+        }
+        throw error
+      }
       toast({ title: "Performance Submitted!", description: "Performance recorded successfully" })
       setFormData({ match_number: "", slot: "", map: "", placement: "", kills: "", assists: "", damage: "", survival_time: "" })
       onPerformanceAdded()
