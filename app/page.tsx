@@ -12,7 +12,11 @@ export default function HomePage() {
   const { user, loading } = useAuth()
   const router = useRouter()
 
-  // Removed auto-redirect useEffect
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/dashboard")
+    }
+  }, [user, loading, router])
 
   if (loading) {
     return (
