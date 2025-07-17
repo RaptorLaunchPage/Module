@@ -148,6 +148,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session)
         setUser(session?.user || null)
         // Don't trigger profile fetch or loading for token refresh
+        // Keep existing loading state if already loading
+      } else if (event === 'INITIAL_SESSION') {
+        console.log('🔐 Initial session detected')
+        setSession(session)
+        setUser(session?.user || null)
+        // Don't trigger loading for initial session - handled by initializeAuth
       } else {
         console.log(`🔐 Other auth event: ${event}`)
         setSession(session)
@@ -167,7 +173,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setError(null)
 
       // Check if we already have a profile for this user to avoid unnecessary fetches
-      if (profile && profile.id === user.id) {
+      if (profile && profile.id === user.id && !shouldRedirect) {
         console.log('✅ Profile already loaded for user:', user.email)
         setLoading(false)
         return
@@ -335,7 +341,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('🔐 Signing out...')
       
-      // Clear all auth state immediately
+      // Clear all auth state immediately to prevent blank screens
       setSession(null)
       setUser(null)
       setProfile(null)
@@ -344,6 +350,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Clear all session data
       SessionManager.clearSession()
+      
+      // Clear any cached data
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('player_dashboard_debug_error')
+        sessionStorage.clear()
+      }
       
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut()
@@ -356,7 +368,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Force immediate redirect to homepage using replace to avoid going through React routing
       if (typeof window !== 'undefined') {
-        window.location.replace('/')
+        // Use setTimeout to ensure state updates are processed
+        setTimeout(() => {
+          window.location.replace('/')
+        }, 100)
       }
     } catch (err: any) {
       console.error("❌ Sign out error:", err)
@@ -369,9 +384,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false)
       SessionManager.clearSession()
       
-      // Force immediate redirect to homepage regardless of errors
+      // Clear any cached data
       if (typeof window !== 'undefined') {
-        window.location.replace('/')
+        localStorage.removeItem('player_dashboard_debug_error')
+        sessionStorage.clear()
+        
+        // Force immediate redirect to homepage regardless of errors
+        setTimeout(() => {
+          window.location.replace('/')
+        }, 100)
       }
     }
   }

@@ -1,0 +1,5 @@
+-- Add device fields to users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS device_model TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS ram TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS fps TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS storage TEXT;

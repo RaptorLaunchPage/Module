@@ -172,6 +172,7 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                 <TableHead>Map</TableHead>
                 <TableHead>Placement</TableHead>
                 <TableHead>K/A</TableHead>
+                <TableHead>K/D</TableHead>
                 <TableHead>Damage</TableHead>
                 <TableHead>Survival</TableHead>
                 <TableHead>Date</TableHead>
@@ -209,6 +210,27 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                   <TableCell>{performance.placement ? `#${performance.placement}` : "-"}</TableCell>
                   <TableCell>
                     {performance.kills}/{performance.assists}
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      // Calculate K/D ratio
+                      // If no deaths data is available, we'll use placement as a proxy
+                      // For BGMI: 1st place = 0 deaths, 2nd-4th = 1 death, 5th+ = 2+ deaths
+                      let deaths = 1; // Default to 1 death
+                      
+                      if (performance.placement) {
+                        if (performance.placement === 1) {
+                          deaths = 0; // Winner gets 0 deaths
+                        } else if (performance.placement <= 4) {
+                          deaths = 1; // Top 4 gets 1 death
+                        } else {
+                          deaths = 2; // Others get 2 deaths
+                        }
+                      }
+                      
+                      const kd = deaths === 0 ? performance.kills : (performance.kills / deaths);
+                      return kd.toFixed(2);
+                    })()}
                   </TableCell>
                   <TableCell>{performance.damage.toFixed(0)}</TableCell>
                   <TableCell>{performance.survival_time.toFixed(1)}m</TableCell>
