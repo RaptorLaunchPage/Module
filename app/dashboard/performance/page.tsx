@@ -10,7 +10,13 @@ import { PerformanceDashboard } from "@/components/performance/performance-dashb
 import { PlayerPerformanceSubmit } from "@/components/performance/player-performance-submit"
 import type { Database } from "@/lib/supabase"
 
-type Performance = Database["public"]["Tables"]["performances"]["Row"]
+type Performance = Database["public"]["Tables"]["performances"]["Row"] & {
+  slot?: {
+    id: string
+    time_range: string
+    date: string
+  } | null
+}
 type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 
 export default function PerformancePage() {
@@ -28,7 +34,7 @@ export default function PerformancePage() {
     if (!profile) return
 
     try {
-      let query = supabase.from("performances").select("*")
+      let query = supabase.from("performances").select("*, slot:slot(id, time_range, date)")
 
       // Apply role-based filtering
       if (profile.role === "player") {
