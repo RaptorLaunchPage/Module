@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import type { Database } from "@/lib/supabase"
 
 type Performance = Database["public"]["Tables"]["performances"]["Row"] & {
-  slot?: {
+  slot_data?: {
     id: string
     time_range: string
     date: string
@@ -184,23 +184,18 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                   <TableCell>#{performance.match_number}</TableCell>
                   <TableCell>
                     {(() => {
-                      const slot = performance.slot;
+                      const slot = performance.slot_data;
                       
                       if (slot && 
                           typeof slot === "object" && 
                           slot !== null &&
                           'time_range' in slot &&
                           'date' in slot) {
-                        return `${(slot as any).time_range} (${new Date((slot as any).date).toLocaleDateString()})`;
+                        return `${slot.time_range} (${new Date(slot.date).toLocaleDateString()})`;
                       }
                       
-                      // If slot is a string (UUID), we need to fetch the actual slot name
-                      // For now, show a generic slot label
-                      if (typeof slot === "string") {
-                        return "Slot Booked";
-                      }
-                      
-                      return slot || "No slot";
+                      // If no slot data, show fallback
+                      return "No slot info";
                     })()}
                   </TableCell>
                   <TableCell>

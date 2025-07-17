@@ -151,7 +151,12 @@ export default function DashboardPage() {
   const fetchPerformances = async () => {
     if (!profile) return
     try {
-      let query = supabase.from("performances").select("*")
+      let query = supabase
+        .from("performances")
+        .select(`
+          *,
+          slot_data:slots!slot(id, time_range, date)
+        `)
       if (profile.role === "player") {
         query = query.eq("player_id", profile.id)
       } else if (profile.role === "coach" && profile.team_id) {
