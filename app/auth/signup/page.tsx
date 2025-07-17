@@ -182,11 +182,11 @@ export default function SignUpPage() {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-white">Full Name</Label>
+                <Label htmlFor="name" className="text-white">In Game Name</Label>
                 <Input
                   id="name"
                   type="text"
-                  placeholder="Enter your full name"
+                  placeholder="Enter your in-game name"
                   value={name}
                   onChange={(e) => {
                     setName(e.target.value)
@@ -253,7 +253,7 @@ export default function SignUpPage() {
               
               <Button 
                 type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
                 disabled={loading || discordLoading}
               >
                 {loading ? (

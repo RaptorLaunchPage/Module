@@ -21,32 +21,14 @@ export default function DashboardLayout({
   const router = useRouter()
   const [retryCount, setRetryCount] = useState(0)
   const [isRetrying, setIsRetrying] = useState(false)
-  const [redirectTimer, setRedirectTimer] = useState<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    // More resilient redirect logic for refresh scenarios
+    // Simple redirect logic - no grace period to prevent stuck states
     if (!loading && !user) {
-      // Shorter grace period to prevent stuck redirecting screens
-      const timer = setTimeout(() => {
-        console.log('📍 Dashboard: No user after grace period, redirecting to login')
-        router.push("/auth/login")
-      }, 500) // Reduced from 2 seconds to 500ms
-      
-      setRedirectTimer(timer)
-    } else if (user) {
-      // User is present, clear any pending redirect
-      if (redirectTimer) {
-        clearTimeout(redirectTimer)
-        setRedirectTimer(null)
-      }
+      console.log('📍 Dashboard: No user, redirecting to login immediately')
+      router.push("/auth/login")
     }
-
-    return () => {
-      if (redirectTimer) {
-        clearTimeout(redirectTimer)
-      }
-    }
-  }, [user, loading, router, redirectTimer])
+  }, [user, loading, router])
 
   const handleRetry = async () => {
     setIsRetrying(true)
@@ -90,16 +72,9 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-pulse">
-            <Home className="h-8 w-8 mx-auto text-muted-foreground" />
-          </div>
-          <p className="text-muted-foreground">Redirecting to login...</p>
-        </div>
-      </div>
-    )
+    // Immediately redirect without showing loading screen to prevent stuck states
+    router.push("/auth/login")
+    return null
   }
 
   if (error) {

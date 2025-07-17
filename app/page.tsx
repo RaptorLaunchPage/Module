@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
@@ -12,49 +12,30 @@ import { FullPageLoader } from "@/components/ui/full-page-loader"
 export default function HomePage() {
   const { user, loading, profile } = useAuth()
   const router = useRouter()
-  const [initializationComplete, setInitializationComplete] = useState(false)
 
   useEffect(() => {
-    // Shorter initialization period to prevent stuck loading screens
-    const timer = setTimeout(() => {
-      setInitializationComplete(true)
-    }, 500) // Reduced from 1.5 seconds to 500ms
-
-    return () => clearTimeout(timer)
-  }, [])
-
-  useEffect(() => {
-    // Only redirect after initialization is complete AND we have stable auth state
-    if (initializationComplete && !loading && user && profile) {
+    // Simple redirect logic without delays
+    if (!loading && user && profile) {
       console.log('🏠 Home page redirecting user to appropriate page:', profile.role)
       if (profile.role === "pending_player") {
         router.replace("/onboarding")
       } else {
         router.replace("/dashboard")
       }
-    } else if (initializationComplete && !loading && !user) {
-      console.log('🏠 Home page: No user after initialization, staying on landing page')
     }
-  }, [user, profile, loading, router, initializationComplete])
+  }, [user, profile, loading, router])
 
-  // Show loader only if auth is actively loading OR we have user but no profile yet
-  // Don't show loader just because initialization isn't complete
-  if (loading || (user && !profile)) {
-    const message = (user && !profile) 
-      ? "Loading your account..." 
-      : "Checking authentication..."
-        
-    return <FullPageLoader message={message} />
+  // Only show loader if actively loading or if we have user but no profile
+  if (loading) {
+    return <FullPageLoader message="Checking authentication..." />
   }
 
-  // If initialization isn't complete yet but auth isn't loading, show a minimal loader
-  if (!initializationComplete) {
-    return <FullPageLoader message="Initializing..." />
+  // If we have a user but no profile, there might be an issue
+  if (user && !profile) {
+    return <FullPageLoader message="Loading your account..." />
   }
 
-  // If we reach here, either:
-  // 1. User is not logged in (show landing page)
-  // 2. Auth initialization failed (show landing page)
+  // Show homepage for non-authenticated users
   return (
     <VideoBackground>
       {/* Subtle white glowing dots */}
@@ -65,7 +46,7 @@ export default function HomePage() {
           <h1 className="esports-heading text-6xl font-bold text-white mb-4">Raptor Esports Hub</h1>
           <p className="text-xl text-slate-200 max-w-2xl mx-auto leading-relaxed">
             The launchpad for emerging BGMI teams, creators, and future champions.<br />
-            Raptor Esports is built for the grind. From daily scrims to content drops, we back players chasing the top. Whether you're a squad looking to rise through the tiers or a creator making your mark — this is where the real ones level up.
+            Whether you're a squad looking to rise through the tiers or a creator making your mark — this is where the real ones level up.
           </p>
         </div>
 
@@ -79,7 +60,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
               <Link href="/auth/login">
-                <Button className="w-full bg-primary hover:bg-primary/90 text-white">
+                <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
                   Sign In
                 </Button>
               </Link>
@@ -95,7 +76,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
               <Link href="/auth/signup">
-                <Button className="w-full bg-primary hover:bg-primary/90 text-white">
+                <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
                   Sign Up
                 </Button>
               </Link>
