@@ -197,7 +197,7 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                       
                       // If slot is a string (UUID), show it as is
                       if (typeof slot === "string") {
-                        return `Slot: ${slot.substring(0, 8)}...`;
+                        return `Slot: ${(slot as string).substring(0, 8)}...`;
                       }
                       
                       return slot || "No slot";
