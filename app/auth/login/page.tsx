@@ -16,12 +16,18 @@ import { Eye, EyeOff, LogIn, RefreshCw } from "lucide-react"
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [discordLoading, setDiscordLoading] = useState(false)
-  const { signIn, signInWithDiscord, clearError: clearAuthError } = useAuth()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { signIn, signInWithDiscord, clearError: clearAuthError, loading: authLoading, user } = useAuth()
   const router = useRouter()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user && !authLoading) {
+      router.push("/dashboard")
+    }
+  }, [user, authLoading, router])
 
   // Clear local error when auth error changes
   useEffect(() => {
@@ -37,7 +43,7 @@ export default function LoginPage() {
       return
     }
 
-    setLoading(true)
+    setIsSubmitting(true)
     setError("")
     clearAuthError()
     
@@ -47,20 +53,20 @@ export default function LoginPage() {
       if (result?.error) {
         const errorMessage = result.error.message || "Invalid email or password"
         setError(errorMessage)
-        setLoading(false)
+        setIsSubmitting(false)
       } else {
         // Success - auth state change will handle redirect
-        console.log("Login successful, redirecting...")
+        console.log("Login successful, auth state will handle redirect...")
+        // Keep isSubmitting true, auth loading will take over
       }
     } catch (err: any) {
       console.error("Login error:", err)
       setError("An unexpected error occurred. Please try again.")
-      setLoading(false)
+      setIsSubmitting(false)
     }
   }
 
   const handleDiscordLogin = async () => {
-    setDiscordLoading(true)
     setError("")
     clearAuthError()
     
@@ -70,7 +76,6 @@ export default function LoginPage() {
     } catch (err: any) {
       console.error("Discord login error:", err)
       setError(err.message || "Could not sign in with Discord")
-      setDiscordLoading(false)
     }
   }
 
@@ -78,6 +83,9 @@ export default function LoginPage() {
     setError("")
     clearAuthError()
   }
+
+  // Show loading if auth is processing or we're submitting
+  const isLoading = authLoading || isSubmitting
 
   return (
     <VideoBackground>
@@ -122,7 +130,7 @@ export default function LoginPage() {
                   }}
                   className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
                   required
-                  disabled={loading || discordLoading}
+                  disabled={isLoading}
                 />
               </div>
               
@@ -140,7 +148,7 @@ export default function LoginPage() {
                     }}
                     className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 pr-10"
                     required
-                    disabled={loading || discordLoading}
+                    disabled={isLoading}
                   />
                   <Button
                     type="button"
@@ -148,7 +156,7 @@ export default function LoginPage() {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
-                    disabled={loading || discordLoading}
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 text-slate-400" />
@@ -162,12 +170,12 @@ export default function LoginPage() {
               <Button 
                 type="submit" 
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={loading || discordLoading}
+                disabled={isLoading}
               >
-                {loading ? (
+                {isLoading ? (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
+                    {authLoading ? "Setting up your account..." : "Signing in..."}
                   </>
                 ) : (
                   <>
@@ -191,9 +199,9 @@ export default function LoginPage() {
               variant="outline" 
               className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white border-[#5865F2]"
               onClick={handleDiscordLogin}
-              disabled={loading || discordLoading}
+              disabled={isLoading}
             >
-              {discordLoading ? (
+              {isLoading ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                   Connecting...
