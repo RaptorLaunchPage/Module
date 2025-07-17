@@ -125,11 +125,21 @@ export default function ProfilePage() {
     try {
       // Delete existing avatar if it exists
       if (profile.avatar_url) {
-        const oldFileName = profile.avatar_url.split('/').pop()
-        if (oldFileName) {
-          await supabase.storage
-            .from('avatars')
-            .remove([`${profile.id}/${oldFileName}`])
+        try {
+          const oldFileName = profile.avatar_url.split('/').pop()
+          if (oldFileName && oldFileName !== 'undefined') {
+            const { error: deleteError } = await supabase.storage
+              .from('avatars')
+              .remove([`${profile.id}/${oldFileName}`])
+            
+            if (deleteError) {
+              console.warn('Warning: Could not delete old avatar:', deleteError)
+              // Continue with upload even if deletion fails
+            }
+          }
+        } catch (deleteErr) {
+          console.warn('Warning: Error during old avatar deletion:', deleteErr)
+          // Continue with upload even if deletion fails
         }
       }
 
@@ -138,16 +148,23 @@ export default function ProfilePage() {
       const fileName = `${Date.now()}.${fileExt}`
       const filePath = `${profile.id}/${fileName}`
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('avatars')
         .upload(filePath, file)
 
-      if (uploadError) throw uploadError
+      if (uploadError) {
+        console.error('Upload error details:', uploadError)
+        throw new Error(`Upload failed: ${uploadError.message}`)
+      }
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath)
+
+      if (!publicUrl) {
+        throw new Error('Failed to get public URL for uploaded image')
+      }
 
       // Update user profile with new avatar URL
       const { error: updateError } = await supabase
@@ -155,13 +172,16 @@ export default function ProfilePage() {
         .update({ avatar_url: publicUrl })
         .eq('id', profile.id)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        console.error('Database update error:', updateError)
+        throw new Error(`Database update failed: ${updateError.message}`)
+      }
 
       toast.success("Avatar updated successfully!")
       await refreshProfile()
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading avatar:", error)
-      toast.error("Failed to upload avatar")
+      toast.error(error.message || "Failed to upload avatar")
     } finally {
       setUploading(false)
     }
