@@ -224,43 +224,123 @@ export default function DashboardPage() {
   }
 
   if (profile?.role === "player") {
-    const usersEmpty = !users || users.length === 0
+    // Filter users to only show team members
+    const teamUsers = users.filter(user => user.team_id === profile.team_id)
+    const usersEmpty = !teamUsers || teamUsers.length === 0
+
+    // Calculate stats for the player and their team
+    const playerPerformances = performances.filter(p => p.player_id === profile.id)
+    const teamPerformances = performances.filter(p => 
+      teamUsers.some(user => user.id === p.player_id)
+    )
+
+    const calculateStats = (perfs: any[]) => {
+      if (perfs.length === 0) return { totalMatches: 0, totalKills: 0, avgDamage: 0, avgSurvival: 0, kdRatio: 0 }
+      
+      const totalMatches = perfs.length
+      const totalKills = perfs.reduce((sum, p) => sum + (p.kills || 0), 0)
+      const avgDamage = perfs.reduce((sum, p) => sum + (p.damage || 0), 0) / totalMatches
+      const avgSurvival = perfs.reduce((sum, p) => sum + (p.survival_time || 0), 0) / totalMatches
+      const kdRatio = totalMatches > 0 ? totalKills / totalMatches : 0
+      
+      return { totalMatches, totalKills, avgDamage, avgSurvival, kdRatio }
+    }
+
+    const playerStats = calculateStats(playerPerformances)
+    const teamStats = calculateStats(teamPerformances)
+
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Performance Overview</h1>
-        {usersEmpty ? (
-          <div className="text-red-600">Unable to load user data. Please contact admin.</div>
-        ) : (
-          <ErrorBoundary FallbackComponent={({error}) => { handleDebugError(error); return <div className="text-red-600">Error: {error.message}</div> }}>
-            <PerformanceDashboard performances={performances} users={users} currentUser={profile} />
-          </ErrorBoundary>
-        )}
-        {/* Debug Panel */}
-        <div className="mt-6">
-          <Button size="sm" variant="outline" onClick={() => setDebugOpen((v) => !v)}>
-            {debugOpen ? "Hide Debug Panel" : "Show Debug Panel"}
-          </Button>
-          {debugOpen && (
-            <div className="mt-2 p-3 bg-gray-100 border rounded text-xs overflow-auto">
-              <div className="mb-2 font-semibold">Profile</div>
-              <pre>{JSON.stringify(profile, null, 2)}</pre>
-              <div className="mb-2 font-semibold mt-2">Team</div>
-              <pre>{JSON.stringify(team, null, 2)}</pre>
-              <div className="mb-2 font-semibold mt-2">Slots</div>
-              <pre>{JSON.stringify(slots, null, 2)}</pre>
-              <div className="mb-2 font-semibold mt-2">Performances</div>
-              <pre>{JSON.stringify(performances, null, 2)}</pre>
-              <div className="mb-2 font-semibold mt-2">Users</div>
-              <pre>{JSON.stringify(users, null, 2)}</pre>
-              {lastError && (
-                <>
-                  <div className="mb-2 font-semibold mt-2 text-red-600">Last Error</div>
-                  <pre className="text-red-600">{JSON.stringify(lastError, null, 2)}</pre>
-                </>
-              )}
-            </div>
-          )}
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Player Dashboard</h1>
+          <p className="text-muted-foreground">Your performance and team statistics</p>
         </div>
+
+        {/* Player and Team Stats Cards */}
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <User className="h-5 w-5" />
+                Your Stats
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total Matches</p>
+                  <p className="text-xl sm:text-2xl font-bold">{playerStats.totalMatches}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total Kills</p>
+                  <p className="text-xl sm:text-2xl font-bold">{playerStats.totalKills}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Avg Damage</p>
+                  <p className="text-xl sm:text-2xl font-bold">{playerStats.avgDamage.toFixed(0)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Avg Survival</p>
+                  <p className="text-xl sm:text-2xl font-bold">{playerStats.avgSurvival.toFixed(1)}m</p>
+                </div>
+                <div className="space-y-1 col-span-2 sm:col-span-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground">KD Ratio</p>
+                  <p className="text-xl sm:text-2xl font-bold">{playerStats.kdRatio.toFixed(2)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Shield className="h-5 w-5" />
+                Team Stats
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total Matches</p>
+                  <p className="text-xl sm:text-2xl font-bold">{teamStats.totalMatches}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total Kills</p>
+                  <p className="text-xl sm:text-2xl font-bold">{teamStats.totalKills}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Avg Damage</p>
+                  <p className="text-xl sm:text-2xl font-bold">{teamStats.avgDamage.toFixed(0)}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground">Avg Survival</p>
+                  <p className="text-xl sm:text-2xl font-bold">{teamStats.avgSurvival.toFixed(1)}m</p>
+                </div>
+                <div className="space-y-1 col-span-2 sm:col-span-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground">KD Ratio</p>
+                  <p className="text-xl sm:text-2xl font-bold">{teamStats.kdRatio.toFixed(2)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Performance History */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Performance History</CardTitle>
+            <CardDescription>Your team's recent performance data</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {usersEmpty ? (
+              <div className="text-red-600">Unable to load team data. Please contact admin.</div>
+            ) : (
+              <ErrorBoundary FallbackComponent={({error}) => { handleDebugError(error); return <div className="text-red-600">Error: {error.message}</div> }}>
+                <PerformanceDashboard performances={teamPerformances} users={teamUsers} currentUser={profile} />
+              </ErrorBoundary>
+            )}
+          </CardContent>
+        </Card>
       </div>
     )
   }

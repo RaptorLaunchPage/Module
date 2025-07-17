@@ -22,6 +22,8 @@ import { SecureProfileCreation } from "@/lib/secure-profile-creation"
 import { RoleAccess, ROLE_CONFIG } from "@/lib/role-system"
 import { EmergencyAdminService, type EmergencyAdminResult } from "@/lib/emergency-admin-service"
 import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useRouter, useSearchParams } from "next/navigation"
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 type Team = Database["public"]["Tables"]["teams"]["Row"]
@@ -29,6 +31,8 @@ type Team = Database["public"]["Tables"]["teams"]["Row"]
 export default function UserManagementPage() {
   const { profile } = useAuth()
   const { toast } = useToast()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [users, setUsers] = useState<UserProfile[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,6 +53,9 @@ export default function UserManagementPage() {
   const [error, setError] = useState<string | null>(null)
   const [roleFilter, setRoleFilter] = useState<string>("");
   const [userTab, setUserTab] = useState<'all' | 'discord'>('all')
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'users')
+  const [permissions, setPermissions] = useState<any>({})
+  const [permissionsLoading, setPermissionsLoading] = useState(false)
 
   // Get unique roles from users
   const uniqueRoles = Array.from(new Set(users.map(u => u.role).filter(Boolean)));
@@ -84,6 +91,18 @@ export default function UserManagementPage() {
     }
   }, [debugUnlocked])
 
+  // Handle tab changes and update URL
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams)
+    if (activeTab !== 'users') {
+      params.set('tab', activeTab)
+    } else {
+      params.delete('tab')
+    }
+    const newUrl = params.toString() ? `?${params.toString()}` : ''
+    router.replace(`/dashboard/user-management${newUrl}`, { scroll: false })
+  }, [activeTab, router, searchParams])
+
   const handleUnlock = () => {
     // Use env variable for password
     const envPassword = process.env.NEXT_PUBLIC_ADMIN_DEBUG_PASSWORD
@@ -98,21 +117,84 @@ export default function UserManagementPage() {
 
   const fetchAuthUsers = async () => {
     setFetchingAuthUsers(true)
-    setUnlockError("")
     try {
-      // Prompt for password again for extra security
-      const envPassword = process.env.NEXT_PUBLIC_ADMIN_DEBUG_PASSWORD
-      const password = debugPassword || envPassword
-      const { data, error } = await supabase.rpc("admin_get_auth_users", {
-        admin_id: profile.id,
-        admin_password: password
+      const service = new SupabaseAdminService()
+      const result = await service.listAuthUsers()
+      if (result.success) {
+        setAuthUsers(result.data || [])
+      } else {
+        throw new Error(result.error || 'Failed to fetch auth users')
+      }
+    } catch (error) {
+      console.error('Error fetching auth users:', error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch auth users",
+        variant: "destructive",
       })
-      if (error) throw error
-      setAuthUsers(data || [])
-    } catch (err: any) {
-      setUnlockError(err.message || "Failed to fetch auth users")
     } finally {
       setFetchingAuthUsers(false)
+    }
+  }
+
+  const fetchPermissions = async () => {
+    if (activeTab !== 'permissions') return
+    setPermissionsLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('permissions')
+        .select('*')
+        .order('created_at', { ascending: false })
+      
+      if (error) throw error
+      
+      // Convert to object for easier access
+      const permissionsObj = data.reduce((acc, perm) => {
+        acc[perm.permission_key] = perm.is_enabled
+        return acc
+      }, {})
+      
+      setPermissions(permissionsObj)
+    } catch (error) {
+      console.error('Error fetching permissions:', error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch permissions",
+        variant: "destructive",
+      })
+    } finally {
+      setPermissionsLoading(false)
+    }
+  }
+
+  const updatePermission = async (permissionKey: string, isEnabled: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('permissions')
+        .upsert({
+          permission_key: permissionKey,
+          is_enabled: isEnabled,
+          updated_at: new Date().toISOString()
+        })
+      
+      if (error) throw error
+      
+      setPermissions(prev => ({
+        ...prev,
+        [permissionKey]: isEnabled
+      }))
+      
+      toast({
+        title: "Success",
+        description: `Permission ${isEnabled ? 'enabled' : 'disabled'} successfully`,
+      })
+    } catch (error) {
+      console.error('Error updating permission:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update permission",
+        variant: "destructive",
+      })
     }
   }
 
@@ -123,6 +205,7 @@ export default function UserManagementPage() {
 
     fetchUsers()
     fetchTeams()
+    fetchPermissions()
     
     // Set up real-time subscription for user changes
     const subscription = supabase
@@ -145,7 +228,7 @@ export default function UserManagementPage() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [profile])
+  }, [profile, activeTab])
 
   const fetchUsers = async () => {
     try {
@@ -519,144 +602,200 @@ export default function UserManagementPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Tabs for All Users / Discord Users */}
-      <div className="flex gap-2 mb-4">
-        <Button variant={userTab === 'all' ? 'default' : 'outline'} onClick={() => setUserTab('all')}>All Users</Button>
-        <Button variant={userTab === 'discord' ? 'default' : 'outline'} onClick={() => setUserTab('discord')}>Discord Users</Button>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>{userTab === 'discord' ? 'Discord Users' : 'All Users'}</CardTitle>
-          <CardDescription>Manage user roles and team assignments</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Provider</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Team</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    No users found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id || Math.random()}>
-                    <TableCell>{user?.name || "Not set"}</TableCell>
-                    <TableCell>{user?.email || "-"}</TableCell>
-                    <TableCell>
-                      {user?.provider === 'discord' ? (
-                        <span className="flex items-center gap-1 text-[#5865F2] font-medium"><Bot className="h-4 w-4" /> Discord</span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-gray-500 font-medium"><Mail className="h-4 w-4" /> Email</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={getRoleBadgeVariant(user?.role)}>{user?.role || "-"}</Badge>
-                    </TableCell>
-                    <TableCell>{safeTeams.find((t) => t.id === user?.team_id)?.name || "No team"}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setEditingUser(user)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => deleteUser(user.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="users">Users</TabsTrigger>
+        <TabsTrigger value="permissions">Permissions</TabsTrigger>
+      </TabsList>
 
-      {editingUser && (
+      <TabsContent value="users">
+        {/* Tabs for All Users / Discord Users */}
+        <div className="flex gap-2 mb-4">
+          <Button variant={userTab === 'all' ? 'default' : 'outline'} onClick={() => setUserTab('all')}>All Users</Button>
+          <Button variant={userTab === 'discord' ? 'default' : 'outline'} onClick={() => setUserTab('discord')}>Discord Users</Button>
+        </div>
         <Card>
           <CardHeader>
-            <CardTitle>Edit User</CardTitle>
-            <CardDescription>Update user role and team assignment</CardDescription>
+            <CardTitle>{userTab === 'discord' ? 'Discord Users' : 'All Users'}</CardTitle>
+            <CardDescription>Manage user roles and team assignments</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Select
-                  value={editingUser.role}
-                  onValueChange={(value) => setEditingUser({ ...editingUser, role: value as any })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="coach">Coach</SelectItem>
-                    <SelectItem value="player">Player</SelectItem>
-                    <SelectItem value="analyst">Analyst</SelectItem>
-                    <SelectItem value="pending_player">Pending Player</SelectItem>
-                    <SelectItem value="awaiting_approval">Awaiting Approval</SelectItem>
-                  </SelectContent>
-                </Select>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Provider</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Team</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                      No users found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user.id || Math.random()}>
+                      <TableCell>{user?.name || "Not set"}</TableCell>
+                      <TableCell>{user?.email || "-"}</TableCell>
+                      <TableCell>
+                        {user?.provider === 'discord' ? (
+                          <span className="flex items-center gap-1 text-[#5865F2] font-medium"><Bot className="h-4 w-4" /> Discord</span>
+                        ) : (
+                          <span className="flex items-center gap-1 text-gray-500 font-medium"><Mail className="h-4 w-4" /> Email</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getRoleBadgeVariant(user?.role)}>{user?.role || "-"}</Badge>
+                      </TableCell>
+                      <TableCell>{safeTeams.find((t) => t.id === user?.team_id)?.name || "No team"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => setEditingUser(user)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => deleteUser(user.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {editingUser && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Edit User</CardTitle>
+              <CardDescription>Update user role and team assignment</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Role</Label>
+                  <Select
+                    value={editingUser.role}
+                    onValueChange={(value) => setEditingUser({ ...editingUser, role: value as any })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="coach">Coach</SelectItem>
+                      <SelectItem value="player">Player</SelectItem>
+                      <SelectItem value="analyst">Analyst</SelectItem>
+                      <SelectItem value="pending_player">Pending Player</SelectItem>
+                      <SelectItem value="awaiting_approval">Awaiting Approval</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Team</Label>
+                  <Select
+                    value={editingUser.team_id || "none"}
+                    onValueChange={(value) =>
+                      setEditingUser({
+                        ...editingUser,
+                        team_id: value === "none" ? null : value,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No team</SelectItem>
+                      {teams.map((team) => (
+                        <SelectItem key={team.id} value={team.id}>
+                          {team.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Team</Label>
-                <Select
-                  value={editingUser.team_id || "none"}
-                  onValueChange={(value) =>
-                    setEditingUser({
-                      ...editingUser,
-                      team_id: value === "none" ? null : value,
+              <div className="flex gap-2">
+                <Button
+                  onClick={() =>
+                    updateUser(editingUser.id, {
+                      role: editingUser.role,
+                      team_id: editingUser.team_id,
                     })
                   }
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select team" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No team</SelectItem>
-                    {teams.map((team) => (
-                      <SelectItem key={team.id} value={team.id}>
-                        {team.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  Save Changes
+                </Button>
+                <Button variant="outline" onClick={() => setEditingUser(null)}>
+                  Cancel
+                </Button>
               </div>
-            </div>
+            </CardContent>
+          </Card>
+        )}
+        {error && <div className="text-red-500">{error}</div>}
+      </TabsContent>
 
-            <div className="flex gap-2">
-              <Button
-                onClick={() =>
-                  updateUser(editingUser.id, {
-                    role: editingUser.role,
-                    team_id: editingUser.team_id,
-                  })
-                }
-              >
-                Save Changes
-              </Button>
-              <Button variant="outline" onClick={() => setEditingUser(null)}>
-                Cancel
-              </Button>
-            </div>
+      <TabsContent value="permissions">
+        <Card>
+          <CardHeader>
+            <CardTitle>Manage Permissions</CardTitle>
+            <CardDescription>Enable or disable system-wide permissions.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Permission Key</TableHead>
+                  <TableHead>Enabled</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(permissions).length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground">
+                      No permissions found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  Object.entries(permissions).map(([key, isEnabled]) => (
+                    <TableRow key={key}>
+                      <TableCell>{key}</TableCell>
+                      <TableCell>
+                        <Badge variant={isEnabled ? "default" : "outline"}>
+                          {isEnabled ? "Enabled" : "Disabled"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updatePermission(key, !isEnabled)}
+                        >
+                          {isEnabled ? <EyeOff className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
-      )}
-      {error && <div className="text-red-500">{error}</div>}
-    </div>
+      </TabsContent>
+    </Tabs>
   )
 }
