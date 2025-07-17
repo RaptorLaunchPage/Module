@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, createContext, useContext } from "react"
+import { useState, useEffect, createContext, useContext, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 import { SessionManager } from "@/lib/session-manager"
 import { SecureProfileCreation } from "@/lib/secure-profile-creation"
@@ -40,24 +40,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  
+  // Prevent multiple profile creation attempts
+  const profileCreationInProgress = useRef(false)
+  const lastProfileCheck = useRef<string | null>(null)
 
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Check session manager first
-        const isValid = SessionManager.isSessionValid()
-        console.log('🔍 Session validity check:', isValid)
+        console.log('🔍 Initializing auth...')
         
-        if (!isValid) {
-          console.log('⚠️ Session expired, clearing auth state')
-          setSession(null)
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
-          return
-        }
-        
-        // Get current session from Supabase
+        // Get current session from Supabase first
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) {
@@ -71,12 +64,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (session) {
           console.log('✅ Valid session found:', session.user?.email)
-          SessionManager.extendSession() // Update activity
+          // Update session manager with actual session
+          SessionManager.extendSession()
+          setSession(session)
+          setUser(session.user || null)
+        } else {
+          console.log('❌ No session found')
+          setSession(null)
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
         }
-        
-        setSession(session)
-        setUser(session?.user || null)
-        // Do not set loading to false here; wait for profile
       } catch (error) {
         console.error('Auth initialization error:', error)
         setSession(null)
@@ -94,81 +92,104 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (event === 'SIGNED_IN' && session) {
           SessionManager.extendSession()
+          setSession(session)
+          setUser(session.user || null)
         } else if (event === 'SIGNED_OUT') {
-          // Clear session data when user signs out
           await SessionManager.logout()
+          setSession(null)
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+        } else {
+          setSession(session)
+          setUser(session?.user || null)
         }
-        setSession(session)
-        setUser(session?.user || null)
-        // Do not set loading to false here; wait for profile
       }
     )
 
     return () => subscription.unsubscribe()
   }, [])
 
-  // After any login (email or OAuth), ensure profile is created/fetched
+  // Profile fetching with debouncing and proper checks
   useEffect(() => {
-    if (user) {
-      fetchProfile(user.id)
-    } else if (session === null) {
+    if (user && !profileCreationInProgress.current) {
+      const userId = user.id
+      
+      // Prevent duplicate profile checks for the same user
+      if (lastProfileCheck.current === userId) {
+        return
+      }
+      
+      lastProfileCheck.current = userId
+      fetchProfile(userId)
+    } else if (!user && session === null) {
       setProfile(null)
       setLoading(false)
     }
   }, [user, session])
 
   const fetchProfile = async (userId: string) => {
-    try {
-      setError(null)
+    if (profileCreationInProgress.current) {
+      console.log('⏳ Profile creation already in progress, skipping...')
+      return
+    }
 
-      // 1 – Do we already have a profile?
-      const { data: existing, error: selectErr } = await supabase.from("users").select("*").eq("id", userId).single()
+    try {
+      profileCreationInProgress.current = true
+      setError(null)
+      console.log(`🔍 Fetching profile for user: ${userId}`)
+
+      // 1 – Check if profile already exists
+      const { data: existing, error: selectErr } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", userId)
+        .single()
 
       if (selectErr && selectErr.code !== "PGRST116") {
-        // PGRST116 = row not found (that’s fine – we’ll create below)
         console.error("[Profile] Error selecting user profile:", selectErr, { userId })
         throw selectErr
       }
 
       if (existing) {
-        // Profile exists, use it
+        console.log(`✅ Profile found for user: ${userId}`)
         setProfile(existing)
         setLoading(false)
         return
       }
 
-      // 2 – Profile doesn't exist, create it using emergency admin service
-      console.log("🔧 Creating profile for user:", userId, user?.email)
-      // Determine provider (email, discord, etc.)
-      const provider = user?.app_metadata?.provider || 'email'
-      // Try emergency profile creation function first
-      const { data: emergencyData, error: emergencyError } = await supabase.rpc('emergency_create_profile', {
-        user_id: userId,
-        user_email: user?.email!,
-        user_name: user?.user_metadata?.name || user?.user_metadata?.full_name || 'User',
-        provider // pass provider to the RPC if supported
-      })
+      console.log(`🔧 Profile not found, creating for user: ${userId}`)
 
-      if (!emergencyError && emergencyData?.success) {
-        setProfile(emergencyData.profile)
+      // 2 – Profile doesn't exist, create it using secure profile creation first
+      const provider = user?.app_metadata?.provider || 'email'
+      const userName = user?.user_metadata?.name || user?.user_metadata?.full_name || 'User'
+      
+      const profileResult = await SecureProfileCreation.createProfile(
+        userId,
+        user?.email!,
+        userName,
+        provider
+      )
+
+      if (profileResult.success && profileResult.profile) {
+        console.log(`✅ Profile created successfully for user: ${userId}`)
+        setProfile(profileResult.profile)
         setLoading(false)
         return
       }
 
-      if (emergencyError) {
-        console.error("[Profile] Emergency RPC profile creation error:", emergencyError, { userId, email: user?.email })
-      }
-
-      // Fallback to emergency admin service
+      // 3 – Fallback to emergency admin service
+      console.log(`🆘 Secure profile creation failed, trying emergency service for user: ${userId}`)
       const emergencyResult = await EmergencyAdminService.createSuperAdmin(
         userId,
         user?.email!,
-        user?.user_metadata?.name || user?.user_metadata?.full_name || 'User',
+        userName,
         provider
       )
 
       if (emergencyResult.success) {
-        // Profile created successfully, fetch it
+        console.log(`✅ Emergency profile creation successful for user: ${userId}`)
+        // Fetch the created profile
         const { data: newProfile, error: fetchError } = await supabase
           .from("users")
           .select("*")
@@ -185,35 +206,40 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return
       }
 
-      if (!emergencyResult.success) {
-        console.error("[Profile] EmergencyAdminService.createSuperAdmin failed:", emergencyResult, { userId, email: user?.email })
-      }
-
-      // Fallback to secure profile creation
-      const profileResult = await SecureProfileCreation.createProfile(
-        userId,
-        user?.email!,
-        user?.user_metadata?.name || user?.user_metadata?.full_name || undefined,
+      // 4 – Final fallback to RPC
+      console.log(`🆘 Emergency service failed, trying RPC for user: ${userId}`)
+      const { data: emergencyData, error: emergencyError } = await supabase.rpc('emergency_create_profile', {
+        user_id: userId,
+        user_email: user?.email!,
+        user_name: userName,
         provider
-      )
+      })
 
-      if (!profileResult.success) {
-        console.error("[Profile] SecureProfileCreation.createProfile failed:", profileResult, { userId, email: user?.email })
-        throw new Error(profileResult.error || "Profile creation failed")
+      if (!emergencyError && emergencyData?.success) {
+        console.log(`✅ RPC profile creation successful for user: ${userId}`)
+        setProfile(emergencyData.profile)
+        setLoading(false)
+        return
       }
 
-      // 3 – Set the created profile
-      setProfile(profileResult.profile)
+      // 5 – All methods failed
+      console.error(`❌ All profile creation methods failed for user: ${userId}`)
+      const errorMessage = profileResult.error || emergencyResult.error || emergencyError?.message || "Profile creation failed"
+      setError(errorMessage)
       setLoading(false)
+
     } catch (err: any) {
       console.error("[Profile] Profile creation / fetch error:", err, { stack: err?.stack, userId, email: user?.email })
       setError(err.message || "Could not create / fetch profile")
       setLoading(false)
+    } finally {
+      profileCreationInProgress.current = false
     }
   }
 
   const retryProfileCreation = () => {
-    if (user) {
+    if (user && !profileCreationInProgress.current) {
+      lastProfileCheck.current = null // Reset to allow retry
       setLoading(true)
       setError(null)
       fetchProfile(user.id)

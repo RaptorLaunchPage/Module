@@ -7,7 +7,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import type { Database } from "@/lib/supabase"
 
-type Performance = Database["public"]["Tables"]["performances"]["Row"]
+type Performance = Database["public"]["Tables"]["performances"]["Row"] & {
+  slot?: {
+    id: string
+    time_range: string
+    date: string
+  } | null
+}
 type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 
 interface PerformanceDashboardProps {
@@ -176,7 +182,19 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                 <TableRow key={performance.id}>
                   <TableCell>{getPlayerName(performance.player_id)}</TableCell>
                   <TableCell>#{performance.match_number}</TableCell>
-                  <TableCell>{performance.slot}</TableCell>
+                  <TableCell>
+                    {(() => {
+                      const slot = performance.slot;
+                      if (slot && 
+                          typeof slot === "object" && 
+                          slot !== null &&
+                          'time_range' in slot &&
+                          'date' in slot) {
+                        return `${(slot as any).time_range} (${new Date((slot as any).date).toLocaleDateString()})`;
+                      }
+                      return slot;
+                    })()}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">{performance.map}</Badge>
                   </TableCell>

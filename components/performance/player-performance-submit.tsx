@@ -66,14 +66,10 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
       if (!profile.id || !profile.team_id) throw new Error("Missing player or team information.")
       if (!formData.match_number || !formData.slot || !formData.map) throw new Error("Please fill all required fields.")
       // Coerce and validate slot
-      let slotValue: number | null = null
-      if (formData.slot === "manual") {
-        if (!formData.slot || isNaN(Number(formData.slot))) throw new Error("Please enter a valid slot number.")
-        slotValue = Number(formData.slot)
-      } else {
-        slotValue = Number(formData.slot)
-      }
-      if (!slotValue || isNaN(slotValue)) throw new Error("Slot must be a valid number.")
+      let slotValue: string | null = null
+      if (!formData.slot) throw new Error("Please select a slot.")
+      slotValue = formData.slot
+      // No number coercion for slot; treat as string (slot ID)
       // Coerce all numeric fields
       const match_number = Number(formData.match_number)
       const placement = formData.placement ? Number(formData.placement) : null
@@ -158,14 +154,10 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
                     {teamSlots.map(slot => (
                       <SelectItem key={slot.id} value={slot.id}>{slot.time_range} ({slot.date})</SelectItem>
                     ))}
-                    <SelectItem value="manual">Enter manually</SelectItem>
                   </SelectContent>
                 </Select>
               ) : (
-                <Input id="slot" type="number" value={formData.slot} onChange={e => setFormData({ ...formData, slot: e.target.value })} placeholder="Enter slot number" required />
-              )}
-              {formData.slot === "manual" && (
-                <Input id="slot-manual" type="number" value={formData.slot} onChange={e => setFormData({ ...formData, slot: e.target.value })} placeholder="Enter slot number manually" required />
+                <div className="text-red-500 text-sm">No slots available. Please contact your coach or admin.</div>
               )}
             </div>
             <div className="space-y-2">
