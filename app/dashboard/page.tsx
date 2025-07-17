@@ -151,20 +151,44 @@ export default function DashboardPage() {
   const fetchPerformances = async () => {
     if (!profile) return
     try {
-      let query = supabase
-        .from("performances")
-        .select(`
-          *,
-          slot_data:slots!slot(id, time_range, date)
-        `)
-      if (profile.role === "player") {
-        query = query.eq("player_id", profile.id)
+
+      
+      // First, fetch performances with basic data
+      let query = supabase.from("performances").select("*")
+      
+      // For players, fetch team performances (not just their own)
+      if (profile.role === "player" && profile.team_id) {
+        query = query.eq("team_id", profile.team_id)
       } else if (profile.role === "coach" && profile.team_id) {
         query = query.eq("team_id", profile.team_id)
       }
-      const { data, error } = await query.order("created_at", { ascending: false })
+      // For other roles, fetch all performances
+      
+      const { data: performanceData, error } = await query.order("created_at", { ascending: false })
       if (error) throw error
-      setPerformances(data || [])
+      
+      // Now fetch slots data separately
+      const { data: slotsData, error: slotsError } = await supabase
+        .from("slots")
+        .select("id, time_range, date")
+      
+      if (slotsError) {
+        console.error("Error fetching slots:", slotsError)
+        setPerformances(performanceData || [])
+        return
+      }
+      
+      // Join performance data with slot data
+      const performancesWithSlots = (performanceData || []).map(performance => {
+        const slotInfo = slotsData?.find(slot => slot.id === performance.slot)
+        return {
+          ...performance,
+          slot: slotInfo || performance.slot // Use slot info if found, otherwise keep original
+        }
+      })
+      
+
+      setPerformances(performancesWithSlots)
     } catch (error) {
       console.error("Error fetching performances:", error)
     }
@@ -238,6 +262,8 @@ export default function DashboardPage() {
     const teamPerformances = performances.filter(p => 
       teamUsers.some(user => user.id === p.player_id)
     )
+    
+
 
     const calculateStats = (perfs: any[]) => {
       if (perfs.length === 0) return { totalMatches: 0, totalKills: 0, avgDamage: 0, avgSurvival: 0, kdRatio: 0 }
