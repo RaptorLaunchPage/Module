@@ -118,9 +118,8 @@ export default function UserManagementPage() {
   const fetchAuthUsers = async () => {
     setFetchingAuthUsers(true)
     try {
-      const service = new SupabaseAdminService()
-      const result = await service.listAuthUsers()
-      if (result.success) {
+      const result = await SupabaseAdminService.getAllUsers()
+      if (result.data) {
         setAuthUsers(result.data || [])
       } else {
         throw new Error(result.error || 'Failed to fetch auth users')
@@ -179,7 +178,7 @@ export default function UserManagementPage() {
       
       if (error) throw error
       
-      setPermissions(prev => ({
+      setPermissions((prev: any) => ({
         ...prev,
         [permissionKey]: isEnabled
       }))
