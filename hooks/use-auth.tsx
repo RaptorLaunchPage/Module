@@ -19,6 +19,7 @@ type AuthContextType = {
   signUp: (email: string, password: string, name: string) => Promise<{ error: any | null }>
   signOut: () => Promise<void>
   retryProfileCreation: () => void
+  refreshProfile: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: any | null }>
   signInWithDiscord: () => Promise<void>
   clearError: () => void
@@ -262,6 +263,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await fetchUserProfile(user, false) // Don't redirect on retry
   }
 
+  const refreshProfile = async () => {
+    if (!user) {
+      console.log('❌ No user logged in, cannot refresh profile')
+      return
+    }
+    
+    console.log('🔄 Refreshing profile for:', user.email)
+    setError(null)
+    
+    // Force refresh by clearing current profile first
+    setProfile(null)
+    await fetchUserProfile(user, false)
+  }
+
   const clearError = () => {
     setError(null)
   }
@@ -402,6 +417,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signUp, 
     signOut, 
     retryProfileCreation, 
+    refreshProfile,
     resetPassword, 
     signInWithDiscord,
     clearError
