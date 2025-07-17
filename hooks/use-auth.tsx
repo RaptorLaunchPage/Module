@@ -2,11 +2,10 @@
 
 import type React from "react"
 
-import { useState, useEffect, createContext, useContext, useRef } from "react"
+import { useState, useEffect, createContext, useContext } from "react"
 import { supabase } from "@/lib/supabase"
 import { SessionManager } from "@/lib/session-manager"
 import { SecureProfileCreation } from "@/lib/secure-profile-creation"
-import { EmergencyAdminService } from "@/lib/emergency-admin-service"
 import type { Session } from "@supabase/supabase-js"
 import { useRouter } from "next/navigation"
 
@@ -22,6 +21,7 @@ type AuthContextType = {
   retryProfileCreation: () => void
   resetPassword: (email: string) => Promise<{ error: any | null }>
   signInWithDiscord: () => Promise<void>
+  clearError: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -40,180 +40,192 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
-  
-  // Prevent multiple profile creation attempts
-  const profileCreationInProgress = useRef(false)
-  const lastProfileCheck = useRef<string | null>(null)
 
+  // Initialize auth on mount
   useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        console.log('🔍 Initializing auth...')
-        
-        // Get current session from Supabase first
-        const { data: { session }, error } = await supabase.auth.getSession()
-        
-        if (error) {
-          console.error('Session fetch error:', error)
-          setSession(null)
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
-          return
-        }
-        
-        if (session) {
-          console.log('✅ Valid session found:', session.user?.email)
-          // Update session manager with actual session
-          SessionManager.extendSession()
-          setSession(session)
-          setUser(session.user || null)
-        } else {
-          console.log('❌ No session found')
-          setSession(null)
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error)
-        setSession(null)
-        setUser(null)
-        setProfile(null)
-        setLoading(false)
-      }
-    }
-
     initializeAuth()
-
+    
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("🔐 Auth state change:", event, session?.user?.email)
-        
-        if (event === 'SIGNED_IN' && session) {
-          SessionManager.extendSession()
-          setSession(session)
-          setUser(session.user || null)
-        } else if (event === 'SIGNED_OUT') {
-          await SessionManager.logout()
-          setSession(null)
-          setUser(null)
-          setProfile(null)
-          setLoading(false)
-        } else {
-          setSession(session)
-          setUser(session?.user || null)
-        }
+        handleAuthStateChange(event, session)
       }
     )
 
     return () => subscription.unsubscribe()
   }, [])
 
-  // Profile fetching with debouncing and proper checks
-  useEffect(() => {
-    if (user && !profileCreationInProgress.current) {
-      const userId = user.id
+  const initializeAuth = async () => {
+    try {
+      console.log('🔍 Initializing auth...')
+      setLoading(true)
+      setError(null)
       
-      // Prevent duplicate profile checks for the same user
-      if (lastProfileCheck.current === userId) {
+      // Get current session from Supabase
+      const { data: { session }, error } = await supabase.auth.getSession()
+      
+      if (error) {
+        console.error('Session fetch error:', error)
+        setSession(null)
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
         return
       }
       
-      lastProfileCheck.current = userId
-      fetchProfile(userId)
-    } else if (!user && session === null) {
+      if (session?.user) {
+        console.log('✅ Valid session found:', session.user.email)
+        SessionManager.extendSession()
+        setSession(session)
+        setUser(session.user)
+        
+        // Fetch profile for authenticated user
+        await fetchUserProfile(session.user)
+      } else {
+        console.log('❌ No session found')
+        setSession(null)
+        setUser(null)
+        setProfile(null)
+        setLoading(false)
+      }
+    } catch (error) {
+      console.error('Auth initialization error:', error)
+      setSession(null)
+      setUser(null)
       setProfile(null)
+      setError('Failed to initialize authentication')
       setLoading(false)
     }
-  }, [user, session])
+  }
 
-  const fetchProfile = async (userId: string) => {
-    if (profileCreationInProgress.current) {
-      console.log('⏳ Profile creation already in progress, skipping...')
-      return
-    }
-
+  const handleAuthStateChange = async (event: string, session: Session | null) => {
     try {
-      profileCreationInProgress.current = true
-      setError(null)
-      console.log(`🔍 Fetching profile for user: ${userId}`)
+      if (event === 'SIGNED_IN' && session?.user) {
+        SessionManager.extendSession()
+        setSession(session)
+        setUser(session.user)
+        setError(null)
+        
+        // Fetch or create profile
+        await fetchUserProfile(session.user)
+      } else if (event === 'SIGNED_OUT') {
+        await SessionManager.logout()
+        setSession(null)
+        setUser(null)
+        setProfile(null)
+        setError(null)
+        setLoading(false)
+      } else {
+        setSession(session)
+        setUser(session?.user || null)
+      }
+    } catch (error) {
+      console.error('Auth state change error:', error)
+      setError('Authentication state error')
+    }
+  }
 
-      // 1 – Check if profile already exists
-      const { data: existing, error: selectErr } = await supabase
+  const fetchUserProfile = async (user: any) => {
+    try {
+      setLoading(true)
+      setError(null)
+      console.log(`🔍 Fetching profile for user: ${user.id} (${user.email})`)
+
+      // First, try to get existing profile
+      const { data: existingProfile, error: selectError } = await supabase
         .from("users")
         .select("*")
-        .eq("id", userId)
-        .single()
+        .eq("id", user.id)
+        .maybeSingle()
 
-      if (selectErr && selectErr.code !== "PGRST116") {
-        console.error("[Profile] Error selecting user profile:", selectErr, { userId })
-        throw selectErr
-      }
-
-      if (existing) {
-        console.log(`✅ Profile found for user: ${userId}`)
-        setProfile(existing)
+      if (selectError && selectError.code !== "PGRST116") {
+        console.error("Profile fetch error:", selectError)
+        setError(`Failed to fetch profile: ${selectError.message}`)
         setLoading(false)
         return
       }
 
-      console.log(`🔧 Profile not found, creating for user: ${userId}`)
+      if (existingProfile) {
+        console.log(`✅ Profile found for user: ${user.email}`)
+        setProfile(existingProfile)
+        setLoading(false)
+        return
+      }
 
-      // 2 – Profile doesn't exist, create it using secure profile creation only
-      const provider = user?.app_metadata?.provider || 'email'
-      const userName = user?.user_metadata?.name || user?.user_metadata?.full_name || 'User'
+      // Profile doesn't exist, create it
+      console.log(`🔧 Profile not found, creating for user: ${user.email}`)
+      
+      const provider = user.app_metadata?.provider || 'email'
+      const userName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
       
       const profileResult = await SecureProfileCreation.createProfile(
-        userId,
-        user?.email!,
+        user.id,
+        user.email,
         userName,
         provider
       )
 
       if (profileResult.success && profileResult.profile) {
-        console.log(`✅ Profile created successfully for user: ${userId}`)
+        console.log(`✅ Profile created successfully for user: ${user.email}`)
         setProfile(profileResult.profile)
         setLoading(false)
         return
       }
 
-      // 3 – Profile creation failed
-      console.error(`❌ Profile creation failed for user: ${userId}`)
-      const errorMessage = profileResult.error || "Profile creation failed"
+      // Profile creation failed
+      console.error(`❌ Profile creation failed for user: ${user.email}`)
+      const errorMessage = profileResult.error || "Failed to create profile"
       setError(errorMessage)
       setLoading(false)
 
     } catch (err: any) {
-      console.error("[Profile] Profile creation / fetch error:", err, { stack: err?.stack, userId, email: user?.email })
-      setError(err.message || "Could not create / fetch profile")
+      console.error("Profile creation/fetch error:", err)
+      setError(err.message || "Could not create or fetch profile")
       setLoading(false)
-    } finally {
-      profileCreationInProgress.current = false
     }
   }
 
-  const retryProfileCreation = () => {
-    if (user && !profileCreationInProgress.current) {
-      lastProfileCheck.current = null // Reset to allow retry
-      setLoading(true)
-      setError(null)
-      fetchProfile(user.id)
+  const retryProfileCreation = async () => {
+    if (!user) {
+      setError("No user logged in")
+      return
     }
+    
+    setError(null)
+    await fetchUserProfile(user)
+  }
+
+  const clearError = () => {
+    setError(null)
   }
 
   const signIn = async (email: string, password: string): Promise<{ error: any | null }> => {
     try {
+      setLoading(true)
+      setError(null)
+      
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      return { error }
+      
+      if (error) {
+        setLoading(false)
+        return { error }
+      }
+      
+      // Don't set loading to false here - let the auth state change handle it
+      return { error: null }
     } catch (err: any) {
       console.error("Sign-in exception:", err)
+      setLoading(false)
       return { error: err }
     }
   }
 
   const signUp = async (email: string, password: string, name: string): Promise<{ error: any | null }> => {
     try {
+      setLoading(true)
+      setError(null)
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -224,28 +236,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           emailRedirectTo: `${getSiteUrl()}/auth/confirm`
         },
       })
+      
+      setLoading(false)
       return { error }
     } catch (err: any) {
       console.error("Sign-up exception:", err)
+      setLoading(false)
       return { error: err }
     }
   }
 
   const signOut = async () => {
     try {
-      // Clear all auth state immediately first
+      setLoading(true)
+      
+      // Clear all auth state first
       setSession(null)
       setUser(null)
       setProfile(null)
       setError(null)
-      setLoading(false)
       
       // Then sign out from Supabase
       const { error } = await supabase.auth.signOut()
       if (error) throw error
+      
+      setLoading(false)
     } catch (err: any) {
       console.error("Sign out error:", err)
       setError(err.message)
+      setLoading(false)
     }
   }
 
@@ -263,6 +282,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithDiscord = async (): Promise<void> => {
     try {
+      setError(null)
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
@@ -276,7 +296,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  const value = { session, user, profile, loading, error, signIn, signUp, signOut, retryProfileCreation, resetPassword, signInWithDiscord }
+  const value = { 
+    session, 
+    user, 
+    profile, 
+    loading, 
+    error, 
+    signIn, 
+    signUp, 
+    signOut, 
+    retryProfileCreation, 
+    resetPassword, 
+    signInWithDiscord,
+    clearError
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
