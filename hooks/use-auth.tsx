@@ -66,6 +66,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true)
       setError(null)
       
+      // Try to recover session first (for page refreshes)
+      const sessionRecovered = await SessionManager.recoverSession()
+      
       // Get current session from Supabase
       const { data: { session }, error } = await supabase.auth.getSession()
       
@@ -80,14 +83,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (session?.user) {
         console.log('✅ Valid session found:', session.user.email)
+        if (sessionRecovered) {
+          console.log('✅ Session was recovered from page refresh')
+        }
         SessionManager.extendSession()
         setSession(session)
         setUser(session.user)
         
-        // Fetch profile for authenticated user
+        // Fetch profile for authenticated user - ensure loading is managed properly
         await fetchUserProfile(session.user, false) // Don't redirect on init
       } else {
         console.log('❌ No session found')
+        SessionManager.clearSession()
         setSession(null)
         setUser(null)
         setProfile(null)
@@ -95,6 +102,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error('❌ Auth initialization error:', error)
+      SessionManager.clearSession()
       setSession(null)
       setUser(null)
       setProfile(null)
@@ -293,7 +301,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       console.log('🔐 Signing out...')
-      setLoading(true)
+      // Don't set loading during logout to avoid showing loading screens
       
       // Clear all auth state first
       setSession(null)
@@ -306,11 +314,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error
       
       console.log('✅ Sign out successful')
-      setLoading(false)
     } catch (err: any) {
       console.error("❌ Sign out error:", err)
       setError(err.message)
-      setLoading(false)
+      // Still clear auth state even if signout fails
+      setSession(null)
+      setUser(null)
+      setProfile(null)
     }
   }
 

@@ -21,12 +21,32 @@ export default function DashboardLayout({
   const router = useRouter()
   const [retryCount, setRetryCount] = useState(0)
   const [isRetrying, setIsRetrying] = useState(false)
+  const [redirectTimer, setRedirectTimer] = useState<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
+    // More resilient redirect logic for refresh scenarios
     if (!loading && !user) {
-      router.push("/auth/login")
+      // Give a short grace period before redirecting to allow for session recovery
+      const timer = setTimeout(() => {
+        console.log('📍 Dashboard: No user after grace period, redirecting to login')
+        router.push("/auth/login")
+      }, 2000) // 2 second grace period
+      
+      setRedirectTimer(timer)
+    } else if (user) {
+      // User is present, clear any pending redirect
+      if (redirectTimer) {
+        clearTimeout(redirectTimer)
+        setRedirectTimer(null)
+      }
     }
-  }, [user, loading, router])
+
+    return () => {
+      if (redirectTimer) {
+        clearTimeout(redirectTimer)
+      }
+    }
+  }, [user, loading, router, redirectTimer])
 
   const handleRetry = async () => {
     setIsRetrying(true)
