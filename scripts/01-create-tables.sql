@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS teams (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
+  tier TEXT DEFAULT 'Bronze',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -16,6 +17,10 @@ CREATE TABLE IF NOT EXISTS users (
   in_game_role TEXT,
   device_info TEXT,
   avatar_url TEXT,
+  status TEXT DEFAULT 'Active' CHECK (status IN ('Active', 'Benched', 'On Leave', 'Discontinued')),
+  gyroscope_enabled BOOLEAN DEFAULT true,
+  instagram_handle TEXT,
+  discord_id TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

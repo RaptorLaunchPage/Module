@@ -10,7 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/hooks/use-toast"
 import { Upload, User } from "lucide-react"
@@ -29,22 +30,28 @@ export default function ProfilePage() {
     ram: "",
     fps: "",
     storage: "",
+    status: profile?.status || "Active",
+    gyroscope_enabled: profile?.gyroscope_enabled !== undefined ? profile.gyroscope_enabled : true,
+    instagram_handle: profile?.instagram_handle || "",
+    discord_id: profile?.discord_id || "",
   })
-  // Add state for debug logs
-  const [debugInfo, setDebugInfo] = useState<any>(null)
-  const [teamName, setTeamName] = useState<string>("")
+  const [teamInfo, setTeamInfo] = useState<any>(null)
 
   useEffect(() => {
-    const fetchTeamName = async () => {
+    const fetchTeamInfo = async () => {
       if (profile?.team_id) {
-        const { data, error } = await supabase.from("teams").select("name").eq("id", profile.team_id).single()
-        if (!error && data?.name) setTeamName(data.name)
-        else setTeamName("")
-      } else {
-        setTeamName("")
+        const { data, error } = await supabase
+          .from("teams")
+          .select("name, tier, created_at")
+          .eq("id", profile.team_id)
+          .single()
+        
+        if (!error && data) {
+          setTeamInfo(data)
+        }
       }
     }
-    fetchTeamName()
+    fetchTeamInfo()
 
     // Parse device_info if it exists
     if (profile?.device_info) {
@@ -61,7 +68,21 @@ export default function ProfilePage() {
         // If parsing fails, keep empty values
       }
     }
-  }, [profile?.team_id, profile?.device_info])
+
+    // Update form data when profile changes
+    if (profile) {
+      setFormData(prev => ({
+        ...prev,
+        name: profile.name || "",
+        contact_number: profile.contact_number || "",
+        in_game_role: profile.in_game_role || "",
+        status: profile.status || "Active",
+        gyroscope_enabled: profile.gyroscope_enabled !== undefined ? profile.gyroscope_enabled : true,
+        instagram_handle: profile.instagram_handle || "",
+        discord_id: profile.discord_id || "",
+      }))
+    }
+  }, [profile])
 
   const updateProfile = async () => {
     if (!profile) return
@@ -83,6 +104,10 @@ export default function ProfilePage() {
           contact_number: formData.contact_number,
           in_game_role: formData.in_game_role,
           device_info: JSON.stringify(deviceInfo),
+          status: formData.status,
+          gyroscope_enabled: formData.gyroscope_enabled,
+          instagram_handle: formData.instagram_handle,
+          discord_id: formData.discord_id,
         })
         .eq("id", profile.id)
 
@@ -171,9 +196,45 @@ export default function ProfilePage() {
               <Input value={profile.role} disabled />
             </div>
             <div className="space-y-2">
-              <Label>Team</Label>
-              <Input value={teamName || profile.team_id || "No team assigned"} disabled />
+              <Label>Team Name</Label>
+              <Input value={teamInfo?.name || "No team assigned"} disabled />
             </div>
+            <div className="space-y-2">
+              <Label>Team Tier</Label>
+              <Input value={teamInfo?.tier || "N/A"} disabled />
+            </div>
+            <div className="space-y-2">
+              <Label>Join Date</Label>
+              <Input 
+                value={profile.created_at ? new Date(profile.created_at).toLocaleDateString() : "N/A"} 
+                disabled 
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Avatar</CardTitle>
+            <CardDescription>Upload your profile picture</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={profile.avatar_url || ""} />
+                <AvatarFallback>
+                  <User className="h-10 w-10" />
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <Button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="mb-2">
+                  <Upload className="h-4 w-4 mr-2" />
+                  {uploading ? "Uploading..." : "Upload Avatar"}
+                </Button>
+                <p className="text-sm text-muted-foreground">JPG, PNG up to 2MB</p>
+              </div>
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={uploadAvatar} className="hidden" />
           </CardContent>
         </Card>
       </div>
@@ -205,14 +266,30 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="in_game_role">In-Game Role</Label>
-            <Input
-              id="in_game_role"
-              value={formData.in_game_role}
-              onChange={(e) => setFormData({ ...formData, in_game_role: e.target.value })}
-              placeholder="e.g., IGL, Support, Entry Fragger"
-            />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="in_game_role">In-Game Role</Label>
+              <Input
+                id="in_game_role"
+                value={formData.in_game_role}
+                onChange={(e) => setFormData({ ...formData, in_game_role: e.target.value })}
+                placeholder="e.g., IGL, Support, Entry Fragger"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Benched">Benched</SelectItem>
+                  <SelectItem value="On Leave">On Leave</SelectItem>
+                  <SelectItem value="Discontinued">Discontinued</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -252,6 +329,42 @@ export default function ProfilePage() {
                   value={formData.storage}
                   onChange={(e) => setFormData({ ...formData, storage: e.target.value })}
                   placeholder="e.g., 256GB"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <Label>Game Settings</Label>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="gyroscope"
+                checked={formData.gyroscope_enabled}
+                onCheckedChange={(checked) => setFormData({ ...formData, gyroscope_enabled: checked })}
+              />
+              <Label htmlFor="gyroscope">Gyroscope Enabled</Label>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <Label>Social Links</Label>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="instagram">Instagram Handle</Label>
+                <Input
+                  id="instagram"
+                  value={formData.instagram_handle}
+                  onChange={(e) => setFormData({ ...formData, instagram_handle: e.target.value })}
+                  placeholder="@username"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="discord">Discord ID</Label>
+                <Input
+                  id="discord"
+                  value={formData.discord_id}
+                  onChange={(e) => setFormData({ ...formData, discord_id: e.target.value })}
+                  placeholder="username#1234"
                 />
               </div>
             </div>
