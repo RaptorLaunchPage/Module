@@ -313,7 +313,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
       
-      console.log('✅ Sign out successful')
+      console.log('✅ Sign out successful, redirecting to homepage')
+      
+      // Redirect to homepage after successful logout
+      if (typeof window !== 'undefined') {
+        window.location.href = '/'
+      }
     } catch (err: any) {
       console.error("❌ Sign out error:", err)
       setError(err.message)
@@ -321,6 +326,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(null)
       setUser(null)
       setProfile(null)
+      
+      // Force redirect to homepage even if logout fails
+      if (typeof window !== 'undefined') {
+        window.location.href = '/'
+      }
     }
   }
 

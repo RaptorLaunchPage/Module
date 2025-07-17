@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
-import { Eye, EyeOff, UserPlus, RefreshCw, Mail } from "lucide-react"
+import { Eye, EyeOff, UserPlus, RefreshCw, Mail, Home } from "lucide-react"
 
 export default function SignUpPage() {
   const [name, setName] = useState("")

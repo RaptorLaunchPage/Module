@@ -60,8 +60,9 @@ export default function HomePage() {
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <div className="text-center mb-16">
           <h1 className="esports-heading text-6xl font-bold text-white mb-4">Raptor Esports Hub</h1>
-          <p className="text-xl text-slate-200 max-w-2xl mx-auto">
-            Professional esports team management system for performance tracking, user management, and team analytics.
+          <p className="text-xl text-slate-200 max-w-2xl mx-auto leading-relaxed">
+            The launchpad for emerging BGMI teams, creators, and future champions.<br />
+            Raptor Esports is built for the grind. From daily scrims to content drops, we back players chasing the top. Whether you're a squad looking to rise through the tiers or a creator making your mark — this is where the real ones level up.
           </p>
         </div>
 
@@ -91,7 +92,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
               <Link href="/auth/signup">
-                <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/10">
+                <Button className="w-full bg-primary hover:bg-primary/90 text-white">
                   Sign Up
                 </Button>
               </Link>
