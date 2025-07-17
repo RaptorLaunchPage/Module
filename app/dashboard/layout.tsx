@@ -10,17 +10,17 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { MobileNav } from "@/components/mobile-nav"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield } from "lucide-react"
-import { VideoBackground } from "@/components/video-background"
+import { Shield, RefreshCw, Home, AlertTriangle } from "lucide-react"
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const { user, profile, loading, error, retryProfileCreation } = useAuth()
+  const { user, profile, loading, error, retryProfileCreation, clearError, signOut } = useAuth()
   const router = useRouter()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [retryCount, setRetryCount] = useState(0)
+  const [isRetrying, setIsRetrying] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) {
@@ -28,13 +28,42 @@ export default function DashboardLayout({
     }
   }, [user, loading, router])
 
+  const handleRetry = async () => {
+    setIsRetrying(true)
+    setRetryCount(prev => prev + 1)
+    clearError()
+    
+    try {
+      await retryProfileCreation()
+    } catch (err) {
+      console.error('Retry failed:', err)
+    } finally {
+      setIsRetrying(false)
+    }
+  }
+
+  const handleBackToLogin = async () => {
+    try {
+      await signOut()
+      router.push("/auth/login")
+    } catch (err) {
+      console.error('Sign out failed:', err)
+      // Force redirect even if sign out fails
+      router.push("/auth/login")
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Setting up your profile...</p>
-          <p className="text-xs text-muted-foreground">Check console (F12) for details</p>
+        <div className="flex flex-col items-center gap-4 max-w-md text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+          <div className="space-y-2">
+            <p className="text-lg font-medium">Setting up your account...</p>
+            <p className="text-sm text-muted-foreground">
+              This usually takes just a moment
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -43,7 +72,10 @@ export default function DashboardLayout({
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
+        <div className="text-center space-y-4">
+          <div className="animate-pulse">
+            <Home className="h-8 w-8 mx-auto text-muted-foreground" />
+          </div>
           <p className="text-muted-foreground">Redirecting to login...</p>
         </div>
       </div>
@@ -51,41 +83,111 @@ export default function DashboardLayout({
   }
 
   if (error) {
+    const isConstraintError = error.includes('constraint') || error.includes('role')
+    const isDatabaseError = error.includes('database') || error.includes('Database')
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="max-w-md w-full space-y-4">
+        <div className="max-w-lg w-full space-y-6">
+          <div className="text-center space-y-4">
+            <AlertTriangle className="h-12 w-12 mx-auto text-destructive" />
+            <div>
+              <h1 className="text-2xl font-bold">Account Setup Issue</h1>
+              <p className="text-muted-foreground mt-2">
+                We're having trouble setting up your profile
+              </p>
+            </div>
+          </div>
+
           <Alert variant="destructive">
-            <AlertDescription>
-              <strong>We couldn't set up your profile:</strong> <br />
-              {error}
-              <br />
-              <span className="block mt-2">This may be a temporary issue. Please try again, or contact support if the problem persists.</span>
+            <AlertDescription className="space-y-3">
+              <div>
+                <strong>What happened:</strong>
+                <p className="mt-1 text-sm">{error}</p>
+              </div>
+              
+              {isConstraintError && (
+                <div>
+                  <strong>Technical info:</strong>
+                  <p className="mt-1 text-sm">
+                    This appears to be a database configuration issue. The system is trying to assign a role that isn't allowed in the database.
+                  </p>
+                </div>
+              )}
+              
+              <div>
+                <strong>What you can do:</strong>
+                <ul className="mt-1 text-sm space-y-1 list-disc list-inside">
+                  <li>Try again - temporary issues often resolve themselves</li>
+                  <li>Check your internet connection</li>
+                  {retryCount > 2 && <li>Contact support if the problem persists</li>}
+                </ul>
+              </div>
             </AlertDescription>
           </Alert>
 
-          <div className="text-center space-y-4">
-            <div className="text-sm text-muted-foreground">
-              <p>
-                <strong>User ID:</strong> {user.id}
-              </p>
-              <p>
-                <strong>Email:</strong> {user.email}
-              </p>
+          <div className="space-y-4">
+            <div className="text-center space-y-2">
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p><strong>User ID:</strong> <code className="text-xs">{user.id}</code></p>
+                <p><strong>Email:</strong> {user.email}</p>
+                <p><strong>Provider:</strong> {user.app_metadata?.provider || 'email'}</p>
+                {retryCount > 0 && <p><strong>Retry attempts:</strong> {retryCount}</p>}
+              </div>
             </div>
 
-            <div className="flex gap-2 justify-center">
-              <Button onClick={retryProfileCreation}>Try Again</Button>
-              <Button variant="outline" onClick={() => router.push("/auth/login")}> 
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                onClick={handleRetry} 
+                disabled={isRetrying}
+                className="flex-1"
+              >
+                {isRetrying ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Retrying...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Try Again {retryCount > 0 && `(${retryCount + 1})`}
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={handleBackToLogin}
+                className="flex-1"
+              >
+                <Home className="mr-2 h-4 w-4" />
                 Back to Login
               </Button>
             </div>
 
-            <div className="text-xs text-muted-foreground bg-muted p-3 rounded">
-              <p className="font-semibold mb-2">Manual Fix:</p>
-              <code className="block text-left">
-                {`INSERT INTO users (id, email, name, role) VALUES ('${user.id}', '${user.email}', 'Your Name', 'admin');`}
-              </code>
-            </div>
+            {(isDatabaseError || retryCount > 2) && (
+              <div className="mt-6 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold text-sm mb-2">For Developers:</h3>
+                <div className="text-xs space-y-2">
+                  <p>This error suggests a database schema issue. To fix:</p>
+                  <ol className="list-decimal list-inside space-y-1 ml-4">
+                    <li>Run the database migration in <code>database/emergency-role-constraint-fix.sql</code></li>
+                    <li>Ensure the role constraint includes 'pending_player'</li>
+                    <li>Check that the default role is set correctly</li>
+                  </ol>
+                  
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-muted-foreground">Show SQL fix</summary>
+                    <pre className="mt-2 p-2 bg-background rounded text-xs overflow-x-auto">
+{`-- Emergency fix:
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check 
+CHECK (role IN ('admin', 'manager', 'coach', 'player', 'analyst', 'pending_player', 'awaiting_approval'));`}
+                    </pre>
+                  </details>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -95,10 +197,31 @@ export default function DashboardLayout({
   if (!profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <h2 className="text-2xl font-bold">Profile Not Found</h2>
-          <p className="text-muted-foreground">Your profile should have been created automatically.</p>
-          <Button onClick={retryProfileCreation}>Retry Profile Creation</Button>
+        <div className="text-center space-y-6 max-w-md">
+          <div className="space-y-4">
+            <Shield className="h-12 w-12 mx-auto text-muted-foreground" />
+            <div>
+              <h2 className="text-2xl font-bold">Profile Setup Required</h2>
+              <p className="text-muted-foreground mt-2">
+                Your account exists, but we need to set up your profile.
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <Button onClick={handleRetry} className="w-full">
+              <Shield className="mr-2 h-4 w-4" />
+              Set Up Profile
+            </Button>
+            
+            <Button variant="outline" onClick={handleBackToLogin} className="w-full">
+              Back to Login
+            </Button>
+          </div>
+          
+          <div className="text-xs text-muted-foreground">
+            <p>User: {user.email}</p>
+          </div>
         </div>
       </div>
     )
