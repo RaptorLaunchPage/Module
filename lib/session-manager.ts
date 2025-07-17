@@ -175,7 +175,7 @@ export class SessionManager {
     console.log('🔒 Session expired, redirecting to login')
     
     // Clear stored data
-    this.clearSessionData()
+    this.clearSession()
     
     // Redirect to login with message
     if (typeof window !== 'undefined') {
@@ -195,7 +195,7 @@ export class SessionManager {
       await supabase.auth.signOut()
       
       // Clear all stored data
-      this.clearSessionData()
+      this.clearSession()
       
       // Show message and redirect
       if (typeof window !== 'undefined') {
@@ -209,24 +209,54 @@ export class SessionManager {
   }
 
   /**
+   * Recover session after page refresh
+   * This ensures session persists across page reloads
+   */
+  static async recoverSession(): Promise<boolean> {
+    try {
+      console.log('🔄 Attempting session recovery after page refresh...')
+      
+      // Check if we have stored session info
+      const storedInfo = this.getStoredSessionInfo()
+      if (!storedInfo) {
+        console.log('❌ No stored session info found')
+        return false
+      }
+
+      // Get current session from Supabase
+      const { data: { session }, error } = await supabase.auth.getSession()
+      
+      if (error) {
+        console.error('❌ Session recovery failed:', error)
+        return false
+      }
+
+      if (session) {
+        console.log('✅ Session recovered successfully for:', session.user.email)
+        this.storeSessionInfo(session)
+        this.updateActivity()
+        return true
+      } else {
+        console.log('❌ No active session found, clearing stored info')
+        this.clearSession()
+        return false
+      }
+    } catch (error) {
+      console.error('❌ Session recovery error:', error)
+      return false
+    }
+  }
+
+  /**
    * Clear all session data
    */
-  private static clearSessionData() {
+  static clearSession() {
     if (typeof window === 'undefined') return
-
-    // Clear localStorage
+    
     localStorage.removeItem(this.SESSION_KEY)
     localStorage.removeItem(this.ACTIVITY_KEY)
-    localStorage.removeItem('raptor-auth-token')
-    
-    // Clear sessionStorage
     sessionStorage.removeItem('raptor-tab-active')
-    
-    // Clear activity timer
-    if (this.activityTimer) {
-      clearInterval(this.activityTimer)
-      this.activityTimer = null
-    }
+    console.log('🧹 Session data cleared')
   }
 
   /**
