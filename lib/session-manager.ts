@@ -44,13 +44,17 @@ export class SessionManager {
   }
 
   /**
-   * Check if session is still valid
+   * Check if session is still valid - less aggressive check
    */
   static isSessionValid(): boolean {
     if (typeof window === 'undefined') return false
 
     const lastActivity = localStorage.getItem(this.ACTIVITY_KEY)
-    if (!lastActivity) return false
+    if (!lastActivity) {
+      // If no activity recorded, don't immediately invalidate
+      // Let Supabase handle the actual session state
+      return true
+    }
 
     const timeSinceActivity = Date.now() - parseInt(lastActivity)
     return timeSinceActivity < this.SESSION_DURATION
@@ -91,20 +95,20 @@ export class SessionManager {
       clearInterval(this.activityTimer)
     }
 
-    // Check every minute
+    // Check every 5 minutes instead of every minute
     this.activityTimer = setInterval(() => {
       this.checkSession()
-    }, 60000)
+    }, 300000) // 5 minutes
   }
 
   /**
-   * Check session validity and handle logout
+   * Check session validity and handle logout - less aggressive
    */
   static async checkSession() {
     if (typeof window === 'undefined') return
 
     try {
-      // Check if we have a valid session
+      // Check if we have a valid session from Supabase first
       const { data: { session }, error } = await supabase.auth.getSession()
       
       if (error) {
@@ -118,7 +122,8 @@ export class SessionManager {
         return
       }
 
-      // Check activity-based expiration
+      // Only check activity-based expiration if we have a session
+      // Don't be too aggressive with activity checks
       if (!this.isSessionValid()) {
         console.log('⏰ Session expired due to inactivity')
         await this.logout('Session expired due to 4 hours of inactivity')
@@ -251,29 +256,21 @@ export class SessionManager {
   }
 
   /**
-   * Extend session (reset activity timer)
+   * Extend session activity
    */
   static extendSession() {
     this.updateActivity()
-    console.log('⏱️ Session extended')
+    console.log('✅ Session activity extended')
   }
 
   /**
-   * Get session status for debugging
+   * Get current session status
    */
   static getSessionStatus() {
-    const lastActivity = localStorage.getItem(this.ACTIVITY_KEY)
-    const sessionInfo = this.getStoredSessionInfo()
-    
     return {
       isValid: this.isSessionValid(),
-      lastActivity: lastActivity ? new Date(parseInt(lastActivity)) : null,
-      timeSinceActivity: lastActivity ? Date.now() - parseInt(lastActivity) : null,
-      sessionDuration: this.SESSION_DURATION,
-      storedSession: sessionInfo ? {
-        user: sessionInfo.user?.email,
-        storedAt: new Date(sessionInfo.stored_at)
-      } : null
+      lastActivity: localStorage.getItem(this.ACTIVITY_KEY),
+      storedSession: this.getStoredSessionInfo()
     }
   }
 }
