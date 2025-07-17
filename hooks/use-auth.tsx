@@ -160,7 +160,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       console.log(`🔧 Profile not found, creating for user: ${userId}`)
 
-      // 2 – Profile doesn't exist, create it using secure profile creation first
+      // 2 – Profile doesn't exist, create it using secure profile creation only
       const provider = user?.app_metadata?.provider || 'email'
       const userName = user?.user_metadata?.name || user?.user_metadata?.full_name || 'User'
       
@@ -178,53 +178,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return
       }
 
-      // 3 – Fallback to emergency admin service
-      console.log(`🆘 Secure profile creation failed, trying emergency service for user: ${userId}`)
-      const emergencyResult = await EmergencyAdminService.createSuperAdmin(
-        userId,
-        user?.email!,
-        userName,
-        provider
-      )
-
-      if (emergencyResult.success) {
-        console.log(`✅ Emergency profile creation successful for user: ${userId}`)
-        // Fetch the created profile
-        const { data: newProfile, error: fetchError } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", userId)
-          .single()
-
-        if (fetchError) {
-          console.error("[Profile] Profile created but fetch failed:", fetchError, { userId })
-          throw new Error("Profile created but could not fetch: " + fetchError.message)
-        }
-
-        setProfile(newProfile)
-        setLoading(false)
-        return
-      }
-
-      // 4 – Final fallback to RPC
-      console.log(`🆘 Emergency service failed, trying RPC for user: ${userId}`)
-      const { data: emergencyData, error: emergencyError } = await supabase.rpc('emergency_create_profile', {
-        user_id: userId,
-        user_email: user?.email!,
-        user_name: userName,
-        provider
-      })
-
-      if (!emergencyError && emergencyData?.success) {
-        console.log(`✅ RPC profile creation successful for user: ${userId}`)
-        setProfile(emergencyData.profile)
-        setLoading(false)
-        return
-      }
-
-      // 5 – All methods failed
-      console.error(`❌ All profile creation methods failed for user: ${userId}`)
-      const errorMessage = profileResult.error || emergencyResult.error || emergencyError?.message || "Profile creation failed"
+      // 3 – Profile creation failed
+      console.error(`❌ Profile creation failed for user: ${userId}`)
+      const errorMessage = profileResult.error || "Profile creation failed"
       setError(errorMessage)
       setLoading(false)
 

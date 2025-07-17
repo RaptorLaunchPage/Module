@@ -42,7 +42,7 @@ export default function PerformancePage() {
       } else if (profile.role === "coach" && profile.team_id) {
         query = query.eq("team_id", profile.team_id)
       }
-      // Admin, manager, and analyst can see all
+      // Admin, manager, and analyst can see all performances (no filtering)
 
       const { data, error } = await query.order("created_at", { ascending: false })
 
