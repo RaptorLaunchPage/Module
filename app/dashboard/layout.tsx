@@ -72,16 +72,9 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="animate-pulse">
-            <Home className="h-8 w-8 mx-auto text-muted-foreground" />
-          </div>
-          <p className="text-muted-foreground">Redirecting to login...</p>
-        </div>
-      </div>
-    )
+    // Immediately redirect without showing loading screen to prevent stuck states
+    router.push("/auth/login")
+    return null
   }
 
   if (error) {

@@ -324,11 +324,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Don't throw error, continue with redirect
       }
       
-      console.log('✅ Sign out completed, forcing redirect to homepage')
+      console.log('✅ Sign out completed, forcing immediate redirect to homepage')
       
-      // Force redirect to homepage using window.location for immediate effect
+      // Force immediate redirect to homepage using replace to avoid going through React routing
       if (typeof window !== 'undefined') {
-        window.location.href = '/'
+        window.location.replace('/')
       }
     } catch (err: any) {
       console.error("❌ Sign out error:", err)
@@ -341,9 +341,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false)
       SessionManager.clearSession()
       
-      // Force redirect to homepage regardless of errors
+      // Force immediate redirect to homepage regardless of errors
       if (typeof window !== 'undefined') {
-        window.location.href = '/'
+        window.location.replace('/')
       }
     }
   }
