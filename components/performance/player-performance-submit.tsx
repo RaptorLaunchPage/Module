@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 
-const MAPS = ["Ascent", "Bind", "Breeze", "Fracture", "Haven", "Icebox", "Lotus", "Pearl", "Split", "Sunset"]
+const MAPS = ["Erangle", "Miramar", "Sanhok", "Vikendi", "Rondo"]
 
 export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceAdded: () => void }) {
   const { profile } = useAuth()

@@ -10,7 +10,11 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { MobileNav } from "@/components/mobile-nav"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Shield, RefreshCw, Home, AlertTriangle } from "lucide-react"
+import { Shield, RefreshCw, Home, AlertTriangle, User, Upload, LogOut } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useToast } from "@/hooks/use-toast"
+import { supabase } from "@/lib/supabase"
 
 export default function DashboardLayout({
   children,
@@ -19,8 +23,10 @@ export default function DashboardLayout({
 }) {
   const { user, profile, loading, error, retryProfileCreation, clearError, signOut } = useAuth()
   const router = useRouter()
+  const { toast } = useToast()
   const [retryCount, setRetryCount] = useState(0)
   const [isRetrying, setIsRetrying] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   // Remove redirect logic - let the auth system handle redirects
   // This prevents interference with logout redirect to homepage
@@ -47,6 +53,46 @@ export default function DashboardLayout({
       console.error('Sign out failed:', err)
       // Force redirect even if sign out fails
       router.push("/auth/login")
+    }
+  }
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file || !profile) return
+
+    setUploading(true)
+    try {
+      const fileExt = file.name.split(".").pop()
+      const fileName = `${profile.id}-${Math.random()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      const { data } = supabase.storage.from("avatars").getPublicUrl(filePath)
+
+      // Update user profile with avatar URL
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ avatar_url: data.publicUrl })
+        .eq("id", profile.id)
+
+      if (updateError) throw updateError
+
+      toast({
+        title: "Success",
+        description: "Avatar updated successfully",
+      })
+    } catch (error) {
+      console.error("Error uploading avatar:", error)
+      toast({
+        title: "Error",
+        description: "Failed to upload avatar",
+        variant: "destructive",
+      })
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -220,20 +266,52 @@ CHECK (role IN ('admin', 'manager', 'coach', 'player', 'analyst', 'pending_playe
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex flex-wrap h-16 min-h-16 items-center gap-2 border-b px-2 sm:px-4 border-white/20 w-full bg-background">
-          <div className="flex items-center gap-2">
+        <header className="flex h-16 min-h-16 items-center justify-between gap-2 border-b px-2 sm:px-4 border-white/20 w-full bg-background">
+          <div className="flex items-center gap-2 min-w-0">
             <SidebarTrigger className="-ml-1 hidden md:flex" />
             <MobileNav />
-            <span className="font-semibold hidden sm:inline">Raptor Hub</span>
-            <span className="font-semibold sm:hidden">Raptor</span>
+            <span className="font-semibold hidden sm:inline truncate">Raptor Hub</span>
+            <span className="font-semibold sm:hidden truncate">Raptor</span>
           </div>
-          <div className="ml-auto flex items-center flex-wrap gap-2 sm:gap-4 min-w-0">
-            <span className="truncate text-sm text-muted-foreground hidden md:inline max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="truncate text-sm text-muted-foreground hidden lg:inline max-w-[200px]">
               Welcome, {profile.name || profile.email}
             </span>
-            <span className="truncate text-sm text-muted-foreground md:hidden max-w-[120px]">
+            <span className="truncate text-sm text-muted-foreground lg:hidden max-w-[100px]">
               {profile.name || profile.email?.split('@')[0]}
             </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full shrink-0">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={profile.avatar_url || ""} alt={profile.name || "User"} />
+                    <AvatarFallback>
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem 
+                  onClick={() => document.getElementById('avatar-upload')?.click()}
+                  disabled={uploading}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  {uploading ? "Uploading..." : "Update Avatar"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <input
+              id="avatar-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+            />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-2 sm:p-4 pt-0 w-full">

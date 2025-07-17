@@ -35,7 +35,7 @@ interface ParsedRow {
   player_id: string
 }
 
-const MAPS = ["Ascent", "Bind", "Breeze", "Fracture", "Haven", "Icebox", "Lotus", "Pearl", "Split", "Sunset"]
+const MAPS = ["Erangle", "Miramar", "Sanhok", "Vikendi", "Rondo"]
 
 export function OCRExtract({ users, onPerformanceAdded }: OCRExtractProps) {
   const { profile } = useAuth()

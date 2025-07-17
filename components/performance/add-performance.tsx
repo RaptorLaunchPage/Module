@@ -20,7 +20,7 @@ interface AddPerformanceProps {
   onPerformanceAdded: () => void
 }
 
-const MAPS = ["Ascent", "Bind", "Breeze", "Fracture", "Haven", "Icebox", "Lotus", "Pearl", "Split", "Sunset"]
+const MAPS = ["Erangle", "Miramar", "Sanhok", "Vikendi", "Rondo"]
 
 export function AddPerformance({ users, onPerformanceAdded }: AddPerformanceProps) {
   const { profile } = useAuth()

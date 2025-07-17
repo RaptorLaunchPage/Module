@@ -37,41 +37,9 @@ const menuItems = [
   },
   {
     title: "Team Management",
-    url: "/dashboard/team-management/teams", // Base route for team management
+    url: "/dashboard/team-management/teams",
     icon: Shield,
     roles: ["admin", "manager", "coach"],
-    subItems: [
-      {
-        title: "Teams",
-        url: "/dashboard/team-management/teams",
-        icon: Shield,
-        roles: ["admin", "manager", "coach"],
-      },
-      {
-        title: "Roster",
-        url: "/dashboard/team-management/roster",
-        icon: UsersRound,
-        roles: ["admin", "manager", "coach"],
-      },
-      {
-        title: "Slot Booking",
-        url: "/dashboard/team-management/slots",
-        icon: Calendar,
-        roles: ["admin", "manager", "coach"],
-      },
-      {
-        title: "Slot Expenses",
-        url: "/dashboard/team-management/expenses",
-        icon: IndianRupee,
-        roles: ["admin", "manager", "coach"],
-      },
-      {
-        title: "Prize Pool",
-        url: "/dashboard/team-management/prize-pool",
-        icon: Award,
-        roles: ["admin", "manager", "coach"],
-      },
-    ],
   },
   {
     title: "Performance",
@@ -109,14 +77,11 @@ function getRoleDisplay(role: string) {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  // Add props to AppSidebar
   const { profile, signOut } = useAuth()
   const pathname = usePathname()
   const { state } = useSidebar();
 
   const filteredMenuItems = menuItems.filter((item) => profile?.role && item.roles.includes(profile.role.toLowerCase()))
-  // Add Permissions link for admins
-  const showPermissions = profile?.role && profile.role.toLowerCase() === 'admin'
 
   return (
     <Sidebar 
@@ -142,10 +107,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     asChild
                     isActive={
                       pathname === item.url ||
-                      (item.subItems &&
-                        pathname.startsWith(
-                          item.url.split("/")[0] + "/" + item.url.split("/")[1] + "/" + item.url.split("/")[2],
-                        ))
+                      (item.title === "Team Management" &&
+                        pathname.startsWith("/dashboard/team-management")) ||
+                      (item.title === "User Management" &&
+                        (pathname.startsWith("/dashboard/user-management") || pathname === "/dashboard/permissions"))
                     }
                   >
                     <Link href={item.url}>
@@ -153,34 +118,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
-                  {item.subItems && (
-                    <SidebarMenu>
-                      {item.subItems
-                        .filter((subItem) => profile?.role && subItem.roles.includes(profile.role.toLowerCase()))
-                        .map((subItem) => (
-                          <SidebarMenuItem key={subItem.title}>
-                            <SidebarMenuButton asChild isActive={pathname === subItem.url}>
-                              <Link href={subItem.url}>
-                                <subItem.icon className="h-4 w-4" />
-                                <span>{subItem.title}</span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        ))}
-                    </SidebarMenu>
-                  )}
                 </SidebarMenuItem>
               ))}
-            {showPermissions && (
-              <SidebarMenuItem key="Permissions">
-                <SidebarMenuButton asChild isActive={pathname === "/dashboard/permissions"}>
-                  <Link href="/dashboard/permissions">
-                    <Shield className="h-4 w-4" />
-                    <span>Permissions</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -185,7 +185,6 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                   <TableCell>
                     {(() => {
                       const slot = performance.slot;
-                      console.log('Slot data:', slot, typeof slot);
                       
                       if (slot && 
                           typeof slot === "object" && 
@@ -195,12 +194,13 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                         return `${(slot as any).time_range} (${new Date((slot as any).date).toLocaleDateString()})`;
                       }
                       
-                      // If slot is a string (UUID), show it as is
+                      // If slot is a string (UUID), we need to fetch the actual slot name
+                      // For now, show a generic slot label
                       if (typeof slot === "string") {
-                        return `Slot: ${(slot as string).substring(0, 8)}...`;
+                        return "Slot Booked";
                       }
                       
-                      return slot || "No slot";
+                      return "No slot";
                     })()}
                   </TableCell>
                   <TableCell>

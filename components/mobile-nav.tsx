@@ -26,7 +26,7 @@ const menuItems = [
     title: "Team Management",
     url: "/dashboard/team-management/teams",
     icon: Shield,
-    roles: ["admin", "manager", "coach", "player"],
+    roles: ["admin", "manager", "coach"],
   },
   {
     title: "Performance",
@@ -50,20 +50,20 @@ export function MobileNav() {
   const getRoleDisplay = (role: string) => {
     switch (role?.toLowerCase()) {
       case 'admin':
-        return { label: 'Admin', icon: Crown, className: 'bg-purple-100 text-purple-800 border-purple-200' }
+        return { label: 'Admin', icon: Crown, variant: 'default', className: 'bg-purple-100 text-purple-800 border-purple-200' }
       case 'manager':
-        return { label: 'Manager', icon: Shield, className: 'bg-blue-100 text-blue-800 border-blue-200' }
+        return { label: 'Manager', icon: Shield, variant: 'default', className: 'bg-blue-100 text-blue-800 border-blue-200' }
       case 'coach':
-        return { label: 'Coach', icon: User, className: 'bg-green-100 text-green-800 border-green-200' }
+        return { label: 'Coach', icon: User, variant: 'default', className: 'bg-green-100 text-green-800 border-green-200' }
       case 'player':
-        return { label: 'Player', icon: User, className: 'bg-orange-100 text-orange-800 border-orange-200' }
+        return { label: 'Player', icon: User, variant: 'default', className: 'bg-orange-100 text-orange-800 border-orange-200' }
       case 'analyst':
-        return { label: 'Analyst', icon: BarChart3, className: 'bg-indigo-100 text-indigo-800 border-indigo-200' }
+        return { label: 'Analyst', icon: BarChart3, variant: 'default', className: 'bg-indigo-100 text-indigo-800 border-indigo-200' }
       case 'pending_player':
       case 'awaiting_approval':
-        return { label: 'Awaiting Approval', icon: Clock, className: 'bg-yellow-100 text-yellow-800 border-yellow-200' }
+        return { label: 'Awaiting Approval', icon: Clock, variant: 'secondary', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' }
       default:
-        return { label: role || 'Unknown', icon: User, className: 'bg-gray-100 text-gray-800 border-gray-200' }
+        return { label: role || 'Unknown', icon: User, variant: 'outline', className: 'bg-gray-100 text-gray-800 border-gray-200' }
     }
   }
 
@@ -74,48 +74,49 @@ export function MobileNav() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="md:hidden">
-          <Menu className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <Menu className="h-5 w-5" />
+          <span className="sr-only">Toggle navigation menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-64">
+      <SheetContent side="left" className="w-[280px] sm:w-[350px]">
         <div className="flex flex-col h-full">
-          <div className="flex items-center gap-2 mb-6">
-            <Shield className="h-5 w-5 text-primary" />
-            <span className="font-semibold">Raptor Hub</span>
+          <div className="flex items-center justify-center py-4 border-b">
+            <img src="/RLogo.ico" alt="Raptor Hub Logo" width={32} height={32} className="rounded-full mr-2" />
+            <span className="text-lg font-bold">Raptor Hub</span>
           </div>
           
-          <nav className="flex-1 space-y-2">
-            {filteredMenuItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.url
-              return (
+          <nav className="flex-1 py-4">
+            <div className="space-y-2">
+              {filteredMenuItems.map((item) => (
                 <Link
                   key={item.title}
                   href={item.url}
                   onClick={() => setOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                    isActive 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'hover:bg-muted'
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
+                    pathname === item.url || 
+                    (item.title === "Team Management" && pathname.startsWith("/dashboard/team-management")) ||
+                    (item.title === "User Management" && (pathname.startsWith("/dashboard/user-management") || pathname === "/dashboard/permissions"))
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground"
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <item.icon className="h-4 w-4" />
                   {item.title}
                 </Link>
-              )
-            })}
+              ))}
+            </div>
           </nav>
           
-          <div className="border-t pt-4 space-y-3">
+          <div className="border-t pt-4">
             {profile?.role && (
-              <div>
+              <div className="mb-4 px-3">
                 {(() => {
                   const roleInfo = getRoleDisplay(profile.role)
                   const RoleIcon = roleInfo.icon
                   return (
                     <Badge 
-                      variant="outline" 
+                      variant={roleInfo.variant as any} 
                       className={`w-full justify-start text-xs font-medium ${roleInfo.className}`}
                     >
                       <RoleIcon className="h-3 w-3 mr-2" />
@@ -125,14 +126,12 @@ export function MobileNav() {
                 })()}
               </div>
             )}
-            
             <Button 
               variant="outline" 
-              size="sm" 
-              className="w-full justify-start" 
-              onClick={async () => {
-                await signOut()
+              className="w-full justify-start mx-3 mb-4" 
+              onClick={() => {
                 setOpen(false)
+                signOut()
               }}
             >
               <LogOut className="h-4 w-4 mr-2" />
