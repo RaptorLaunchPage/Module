@@ -4,7 +4,7 @@ import { RoleAccess, ROLES, type UserRole } from "./role-system"
 export class SecureProfileCreation {
   /**
    * Create a new user profile with proper default role
-   * Simplified and more reliable version
+   * Updated to handle foreign key constraints properly
    */
   static async createProfile(userId: string, email: string, name?: string, provider?: string): Promise<{
     success: boolean
@@ -12,14 +12,33 @@ export class SecureProfileCreation {
     error?: string
   }> {
     try {
-      console.log(`🔧 Creating profile for user: ${email}`)
+      console.log(`🔧 Creating profile for user: ${email} (ID: ${userId})`)
       
-      // Check if profile already exists first
+      // First, verify the user exists in auth.users by checking current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      
+      if (sessionError) {
+        console.error('❌ Session verification failed:', sessionError)
+        return {
+          success: false,
+          error: `Session verification failed: ${sessionError.message}`
+        }
+      }
+      
+      if (!session || session.user.id !== userId) {
+        console.error('❌ User ID mismatch or no session:', { sessionUserId: session?.user?.id, requestedUserId: userId })
+        return {
+          success: false,
+          error: 'User must be authenticated to create profile'
+        }
+      }
+      
+      // Check if profile already exists
       const { data: existingProfile, error: checkError } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
-        .maybeSingle() // Use maybeSingle to avoid error when no row found
+        .maybeSingle()
       
       if (checkError) {
         console.error('❌ Error checking existing profile:', checkError)
@@ -41,9 +60,9 @@ export class SecureProfileCreation {
       const defaultRole: UserRole = 'pending_player'
       const defaultRoleLevel = 10 // Pending role level
       
-      // Create profile with safe defaults
+      // Create profile data - the user ID comes from authenticated session
       const profileData: any = {
-        id: userId,
+        id: userId, // This now references an existing auth.users.id
         email: email,
         name: name || email.split('@')[0] || 'User',
         role: defaultRole,
@@ -55,7 +74,7 @@ export class SecureProfileCreation {
         profileData.provider = provider
       }
       
-      console.log(`📝 Creating profile with role: ${defaultRole}`)
+      console.log(`📝 Creating profile with role: ${defaultRole} for authenticated user`)
       
       const { data: newProfile, error: createError } = await supabase
         .from('users')
@@ -70,7 +89,14 @@ export class SecureProfileCreation {
         if (createError.code === '23514') {
           return {
             success: false,
-            error: `Database role constraint violation. Please contact support. Error: ${createError.message}`
+            error: `Database role constraint violation. The role '${defaultRole}' is not allowed in the database.`
+          }
+        }
+        
+        if (createError.code === '23503') {
+          return {
+            success: false,
+            error: `Foreign key constraint violation. User must be authenticated first. Please try logging in again.`
           }
         }
         
@@ -205,6 +231,7 @@ export class SecureProfileCreation {
   
   /**
    * Emergency profile creation for admin use
+   * This should only be used when the user is already authenticated
    */
   static async createAdminProfile(
     userId: string,
@@ -218,8 +245,17 @@ export class SecureProfileCreation {
     try {
       console.log(`🚨 Creating emergency admin profile for: ${email}`)
       
+      // Verify user is authenticated
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session || session.user.id !== userId) {
+        return {
+          success: false,
+          error: 'User must be authenticated to create admin profile'
+        }
+      }
+      
       const profileData = {
-        id: userId,
+        id: userId, // Must reference existing auth.users.id
         email: email,
         name: name || 'Admin User',
         role: 'admin' as UserRole,
@@ -258,7 +294,8 @@ export class SecureProfileCreation {
   }
 
   /**
-   * Batch create profiles for multiple users
+   * Batch create profiles for authenticated users only
+   * Note: This method assumes all users are already authenticated
    */
   static async createBatchProfiles(
     users: Array<{
@@ -275,8 +312,10 @@ export class SecureProfileCreation {
     try {
       console.log(`🔧 Creating ${users.length} profiles in batch`)
       
+      // Note: This method doesn't verify each user is authenticated
+      // It should only be used in admin contexts where users are known to exist
       const profilesData = users.map(user => ({
-        id: user.id,
+        id: user.id, // Must reference existing auth.users.id
         email: user.email,
         name: user.name || user.email.split('@')[0] || 'User',
         role: user.role || 'pending_player' as UserRole,

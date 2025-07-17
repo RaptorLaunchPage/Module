@@ -43,17 +43,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Initialize auth on mount
   useEffect(() => {
+    console.log('🔍 AuthProvider mounting...')
     initializeAuth()
     
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("🔐 Auth state change:", event, session?.user?.email)
-        handleAuthStateChange(event, session)
+        console.log("🔐 Auth state change:", event, session?.user?.email || 'no user')
+        await handleAuthStateChange(event, session)
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      console.log('🔍 AuthProvider unmounting...')
+      subscription.unsubscribe()
+    }
   }, [])
 
   const initializeAuth = async () => {
@@ -66,7 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data: { session }, error } = await supabase.auth.getSession()
       
       if (error) {
-        console.error('Session fetch error:', error)
+        console.error('❌ Session fetch error:', error)
         setSession(null)
         setUser(null)
         setProfile(null)
@@ -81,7 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session.user)
         
         // Fetch profile for authenticated user
-        await fetchUserProfile(session.user)
+        await fetchUserProfile(session.user, false) // Don't redirect on init
       } else {
         console.log('❌ No session found')
         setSession(null)
@@ -90,7 +94,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false)
       }
     } catch (error) {
-      console.error('Auth initialization error:', error)
+      console.error('❌ Auth initialization error:', error)
       setSession(null)
       setUser(null)
       setProfile(null)
@@ -101,36 +105,46 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleAuthStateChange = async (event: string, session: Session | null) => {
     try {
+      console.log(`🔐 Handling auth state change: ${event}`)
+      
       if (event === 'SIGNED_IN' && session?.user) {
+        console.log('🔐 User signed in:', session.user.email)
         SessionManager.extendSession()
         setSession(session)
         setUser(session.user)
         setError(null)
+        setLoading(true) // Start loading for profile fetch
         
         // Fetch or create profile
-        await fetchUserProfile(session.user)
+        await fetchUserProfile(session.user, true) // Pass true to indicate this is from sign in
       } else if (event === 'SIGNED_OUT') {
+        console.log('🔐 User signed out')
         await SessionManager.logout()
         setSession(null)
         setUser(null)
         setProfile(null)
         setError(null)
         setLoading(false)
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('🔐 Token refreshed for:', session?.user?.email)
+        setSession(session)
+        setUser(session?.user || null)
       } else {
+        console.log(`🔐 Other auth event: ${event}`)
         setSession(session)
         setUser(session?.user || null)
       }
     } catch (error) {
-      console.error('Auth state change error:', error)
+      console.error('❌ Auth state change error:', error)
       setError('Authentication state error')
+      setLoading(false)
     }
   }
 
-  const fetchUserProfile = async (user: any) => {
+  const fetchUserProfile = async (user: any, shouldRedirect: boolean = false) => {
     try {
-      setLoading(true)
-      setError(null)
       console.log(`🔍 Fetching profile for user: ${user.id} (${user.email})`)
+      setError(null)
 
       // First, try to get existing profile
       const { data: existingProfile, error: selectError } = await supabase
@@ -140,16 +154,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .maybeSingle()
 
       if (selectError && selectError.code !== "PGRST116") {
-        console.error("Profile fetch error:", selectError)
+        console.error("❌ Profile fetch error:", selectError)
         setError(`Failed to fetch profile: ${selectError.message}`)
         setLoading(false)
         return
       }
 
       if (existingProfile) {
-        console.log(`✅ Profile found for user: ${user.email}`)
+        console.log(`✅ Profile found for user: ${user.email}`, existingProfile)
         setProfile(existingProfile)
         setLoading(false)
+        
+        // Redirect to appropriate page if this is from a sign in
+        if (shouldRedirect) {
+          if (existingProfile.role === "pending_player") {
+            console.log('📍 Redirecting to onboarding...')
+            router.push("/onboarding")
+          } else {
+            console.log('📍 Redirecting to dashboard...')
+            router.push("/dashboard")
+          }
+        }
         return
       }
 
@@ -159,6 +184,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const provider = user.app_metadata?.provider || 'email'
       const userName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
       
+      console.log(`🔧 Creating profile with data:`, {
+        userId: user.id,
+        email: user.email,
+        name: userName,
+        provider
+      })
+      
       const profileResult = await SecureProfileCreation.createProfile(
         user.id,
         user.email,
@@ -167,20 +199,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       )
 
       if (profileResult.success && profileResult.profile) {
-        console.log(`✅ Profile created successfully for user: ${user.email}`)
+        console.log(`✅ Profile created successfully for user: ${user.email}`, profileResult.profile)
         setProfile(profileResult.profile)
         setLoading(false)
+        
+        // Redirect to onboarding for new users
+        if (shouldRedirect) {
+          console.log('📍 Redirecting to onboarding for new user...')
+          router.push("/onboarding")
+        }
         return
       }
 
       // Profile creation failed
-      console.error(`❌ Profile creation failed for user: ${user.email}`)
+      console.error(`❌ Profile creation failed for user: ${user.email}`, profileResult.error)
       const errorMessage = profileResult.error || "Failed to create profile"
       setError(errorMessage)
       setLoading(false)
 
     } catch (err: any) {
-      console.error("Profile creation/fetch error:", err)
+      console.error("❌ Profile creation/fetch error:", err)
       setError(err.message || "Could not create or fetch profile")
       setLoading(false)
     }
@@ -192,8 +230,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return
     }
     
+    console.log('🔄 Retrying profile creation for:', user.email)
     setError(null)
-    await fetchUserProfile(user)
+    setLoading(true)
+    await fetchUserProfile(user, false) // Don't redirect on retry
   }
 
   const clearError = () => {
@@ -202,28 +242,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string): Promise<{ error: any | null }> => {
     try {
-      setLoading(true)
+      console.log('🔐 Attempting sign in for:', email)
       setError(null)
       
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       
       if (error) {
-        setLoading(false)
+        console.error('❌ Sign in error:', error)
         return { error }
       }
       
-      // Don't set loading to false here - let the auth state change handle it
+      console.log('✅ Sign in successful, waiting for auth state change...')
+      // Success - auth state change will handle the rest
       return { error: null }
     } catch (err: any) {
-      console.error("Sign-in exception:", err)
-      setLoading(false)
+      console.error("❌ Sign-in exception:", err)
       return { error: err }
     }
   }
 
   const signUp = async (email: string, password: string, name: string): Promise<{ error: any | null }> => {
     try {
-      setLoading(true)
+      console.log('🔐 Attempting sign up for:', email)
       setError(null)
       
       const { error } = await supabase.auth.signUp({
@@ -237,17 +277,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         },
       })
       
-      setLoading(false)
+      if (error) {
+        console.error('❌ Sign up error:', error)
+      } else {
+        console.log('✅ Sign up successful, check email for confirmation')
+      }
+      
       return { error }
     } catch (err: any) {
-      console.error("Sign-up exception:", err)
-      setLoading(false)
+      console.error("❌ Sign-up exception:", err)
       return { error: err }
     }
   }
 
   const signOut = async () => {
     try {
+      console.log('🔐 Signing out...')
       setLoading(true)
       
       // Clear all auth state first
@@ -260,9 +305,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
       
+      console.log('✅ Sign out successful')
       setLoading(false)
     } catch (err: any) {
-      console.error("Sign out error:", err)
+      console.error("❌ Sign out error:", err)
       setError(err.message)
       setLoading(false)
     }
@@ -270,18 +316,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetPassword = async (email: string): Promise<{ error: any | null }> => {
     try {
+      console.log('🔐 Requesting password reset for:', email)
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${getSiteUrl()}/auth/confirm`
       })
       return { error }
     } catch (err: any) {
-      console.error("Reset password exception:", err)
+      console.error("❌ Reset password exception:", err)
       return { error: err }
     }
   }
 
   const signInWithDiscord = async (): Promise<void> => {
     try {
+      console.log('🔐 Attempting Discord OAuth...')
       setError(null)
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
@@ -290,8 +338,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         },
       })
       if (error) throw error
+      console.log('✅ Discord OAuth initiated, redirecting...')
     } catch (err: any) {
-      console.error("Discord OAuth sign-in error:", err)
+      console.error("❌ Discord OAuth sign-in error:", err)
       setError(err.message || "Could not sign in with Discord")
     }
   }
