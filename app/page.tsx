@@ -46,7 +46,7 @@ export default function HomePage() {
           <h1 className="esports-heading text-6xl font-bold text-white mb-4">Raptor Esports Hub</h1>
           <p className="text-xl text-slate-200 max-w-2xl mx-auto leading-relaxed">
             The launchpad for emerging BGMI teams, creators, and future champions.<br />
-            Raptor Esports is built for the grind. From daily scrims to content drops, we back players chasing the top. Whether you're a squad looking to rise through the tiers or a creator making your mark — this is where the real ones level up.
+            Whether you're a squad looking to rise through the tiers or a creator making your mark — this is where the real ones level up.
           </p>
         </div>
 
