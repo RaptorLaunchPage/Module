@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
-import { Eye, EyeOff, LogIn, RefreshCw } from "lucide-react"
+import { Eye, EyeOff, LogIn, RefreshCw, Home } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -94,7 +94,13 @@ export default function LoginPage() {
       <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-black/60 backdrop-blur-md border border-white/20 shadow-xl">
-          <CardHeader className="text-center">
+          <CardHeader className="text-center relative">
+            <Link href="/" className="absolute left-4 top-4">
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
+                <Home className="h-4 w-4 mr-2" />
+                Home
+              </Button>
+            </Link>
             <CardTitle className="text-2xl text-white font-semibold">Welcome Back</CardTitle>
             <CardDescription className="text-slate-200">
               Sign in to your Raptor Esports account
