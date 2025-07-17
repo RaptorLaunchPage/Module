@@ -76,15 +76,15 @@ export default function DashboardPage() {
       if (error) {
         if (error.code === "42P01") {
           console.warn(`Table "${table}" does not exist – returning empty array`)
-          return []
+          return [] as T[]
         }
         throw error
       }
-      return data || []
+      return (data || []) as T[]
     } catch (err: any) {
       if (err?.code === "42P01") {
         console.warn(`Table "${table}" does not exist – returning empty array`)
-        return []
+        return [] as T[]
       }
       throw err
     }
