@@ -183,13 +183,17 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                   <TableCell>{getPlayerName(performance.player_id)}</TableCell>
                   <TableCell>#{performance.match_number}</TableCell>
                   <TableCell>
-                    {performance.slot && 
-                     typeof performance.slot === "object" && 
-                     performance.slot !== null &&
-                     'time_range' in performance.slot &&
-                     'date' in performance.slot
-                      ? `${performance.slot.time_range} (${new Date(performance.slot.date).toLocaleDateString()})`
-                      : performance.slot}
+                    {(() => {
+                      const slot = performance.slot;
+                      if (slot && 
+                          typeof slot === "object" && 
+                          slot !== null &&
+                          'time_range' in slot &&
+                          'date' in slot) {
+                        return `${(slot as any).time_range} (${new Date((slot as any).date).toLocaleDateString()})`;
+                      }
+                      return slot;
+                    })()}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{performance.map}</Badge>
