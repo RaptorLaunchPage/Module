@@ -91,7 +91,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session.user)
         
         // Fetch profile for authenticated user - ensure loading is managed properly
-        await fetchUserProfile(session.user, false) // Don't redirect on init
+        try {
+          await fetchUserProfile(session.user, false) // Don't redirect on init
+        } catch (profileError) {
+          console.error('❌ Profile fetch failed during init:', profileError)
+          setLoading(false) // Ensure loading is cleared even if profile fetch fails
+        }
       } else {
         console.log('❌ No session found')
         SessionManager.clearSession()
@@ -302,30 +307,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('🔐 Signing out...')
       
-      // Clear all auth state first
+      // Clear all auth state immediately
       setSession(null)
       setUser(null)
       setProfile(null)
       setError(null)
+      setLoading(false) // Ensure loading is false
       
-      // Then sign out from Supabase
+      // Clear all session data
+      SessionManager.clearSession()
+      
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      if (error) {
+        console.warn('⚠️ Supabase signout warning:', error)
+        // Don't throw error, continue with redirect
+      }
       
-      console.log('✅ Sign out successful, redirecting to homepage')
+      console.log('✅ Sign out completed, forcing redirect to homepage')
       
-      // Use router.push for better Next.js routing
-      router.push('/')
+      // Force redirect to homepage using window.location for immediate effect
+      if (typeof window !== 'undefined') {
+        window.location.href = '/'
+      }
     } catch (err: any) {
       console.error("❌ Sign out error:", err)
-      setError(err.message)
-      // Still clear auth state even if signout fails
+      
+      // Force clear everything even if signout fails
       setSession(null)
       setUser(null)
       setProfile(null)
+      setError(null)
+      setLoading(false)
+      SessionManager.clearSession()
       
-      // Force redirect to homepage even if logout fails
-      router.push('/')
+      // Force redirect to homepage regardless of errors
+      if (typeof window !== 'undefined') {
+        window.location.href = '/'
+      }
     }
   }
 
