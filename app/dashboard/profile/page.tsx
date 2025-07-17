@@ -1,31 +1,24 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useRef, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
-import { supabase } from "@/lib/supabase"
-import { EmergencyAdminService } from "@/lib/emergency-admin-service"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useToast } from "@/hooks/use-toast"
-import { Upload, User } from "lucide-react"
+import { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
+import { Upload, User, Shield, Calendar, Star, ToggleLeft, Instagram, MessageSquare } from "lucide-react"
 
 export default function ProfilePage() {
-  const { profile } = useAuth()
-  const { toast } = useToast()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [loading, setLoading] = useState(false)
+  const { profile, loading, refreshProfile } = useAuth()
+  const [updating, setUpdating] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [formData, setFormData] = useState({
-    name: profile?.name || "",
-    contact_number: profile?.contact_number || "",
-    in_game_role: profile?.in_game_role || "",
+    name: "",
     device_model: "",
     ram: "",
     fps: "",
@@ -40,70 +33,59 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchTeamInfo = async () => {
       if (profile?.team_id) {
-        const { data, error } = await supabase
-          .from("teams")
-          .select("name, tier, created_at")
-          .eq("id", profile.team_id)
-          .single()
-        
-        if (!error && data) {
-          setTeamInfo(data)
+        try {
+          const { data, error } = await supabase
+            .from("teams")
+            .select("name, tier, created_at")
+            .eq("id", profile.team_id)
+            .single()
+          
+          if (!error && data) {
+            setTeamInfo(data)
+          }
+        } catch (error) {
+          console.error("Error fetching team info:", error)
         }
       }
     }
-    fetchTeamInfo()
 
-    // Parse device_info if it exists
-    if (profile?.device_info) {
-      try {
-        const deviceInfo = JSON.parse(profile.device_info)
-        setFormData(prev => ({
-          ...prev,
-          device_model: deviceInfo.device_model || "",
-          ram: deviceInfo.ram || "",
-          fps: deviceInfo.fps || "",
-          storage: deviceInfo.storage || "",
-        }))
-      } catch {
-        // If parsing fails, keep empty values
-      }
-    }
-
-    // Update form data when profile changes
     if (profile) {
-      setFormData(prev => ({
-        ...prev,
+      setFormData({
         name: profile.name || "",
-        contact_number: profile.contact_number || "",
-        in_game_role: profile.in_game_role || "",
+        device_model: profile.device_model || "",
+        ram: profile.ram || "",
+        fps: profile.fps || "",
+        storage: profile.storage || "",
         status: profile.status || "Active",
         gyroscope_enabled: profile.gyroscope_enabled !== undefined ? profile.gyroscope_enabled : true,
         instagram_handle: profile.instagram_handle || "",
         discord_id: profile.discord_id || "",
-      }))
+      })
+      fetchTeamInfo()
     }
   }, [profile])
 
-  const updateProfile = async () => {
+  const handleInputChange = (field: string, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     if (!profile) return
 
-    setLoading(true)
+    setUpdating(true)
     try {
-      // Construct device_info as JSON
-      const deviceInfo = {
-        device_model: formData.device_model,
-        ram: formData.ram,
-        fps: formData.fps,
-        storage: formData.storage,
-      }
-
       const { error } = await supabase
         .from("users")
         .update({
           name: formData.name,
-          contact_number: formData.contact_number,
-          in_game_role: formData.in_game_role,
-          device_info: JSON.stringify(deviceInfo),
+          device_model: formData.device_model,
+          ram: formData.ram,
+          fps: formData.fps,
+          storage: formData.storage,
           status: formData.status,
           gyroscope_enabled: formData.gyroscope_enabled,
           instagram_handle: formData.instagram_handle,
@@ -113,268 +95,330 @@ export default function ProfilePage() {
 
       if (error) throw error
 
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      })
+      toast.success("Profile updated successfully!")
+      await refreshProfile()
     } catch (error) {
       console.error("Error updating profile:", error)
-      toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive",
-      })
+      toast.error("Failed to update profile")
     } finally {
-      setLoading(false)
+      setUpdating(false)
     }
   }
 
-  const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file || !profile) return
 
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select a valid image file")
+      return
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB")
+      return
+    }
+
     setUploading(true)
     try {
-      const fileExt = file.name.split(".").pop()
-      const fileName = `${profile.id}-${Math.random()}.${fileExt}`
-      const filePath = `${fileName}`
+      // Delete existing avatar if it exists
+      if (profile.avatar_url) {
+        const oldFileName = profile.avatar_url.split('/').pop()
+        if (oldFileName) {
+          await supabase.storage
+            .from('avatars')
+            .remove([`${profile.id}/${oldFileName}`])
+        }
+      }
 
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(filePath, file, { upsert: true })
+      // Upload new avatar
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}.${fileExt}`
+      const filePath = `${profile.id}/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file)
 
       if (uploadError) throw uploadError
 
-      const { data } = supabase.storage.from("avatars").getPublicUrl(filePath)
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
 
-      // Update user profile with avatar URL
+      // Update user profile with new avatar URL
       const { error: updateError } = await supabase
-        .from("users")
-        .update({ avatar_url: data.publicUrl })
-        .eq("id", profile.id)
+        .from('users')
+        .update({ avatar_url: publicUrl })
+        .eq('id', profile.id)
 
       if (updateError) throw updateError
 
-      toast({
-        title: "Success",
-        description: "Avatar uploaded successfully",
-      })
+      toast.success("Avatar updated successfully!")
+      await refreshProfile()
     } catch (error) {
       console.error("Error uploading avatar:", error)
-      toast({
-        title: "Error",
-        description: "Failed to upload avatar",
-        variant: "destructive",
-      })
+      toast.error("Failed to upload avatar")
     } finally {
       setUploading(false)
     }
   }
 
-  if (!profile) {
-    return <div>Loading...</div>
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-muted rounded w-48 mb-2"></div>
+          <div className="h-4 bg-muted rounded w-64"></div>
+        </div>
+      </div>
+    )
   }
+
+  if (!profile) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
+          <p className="text-muted-foreground">Loading your profile...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Format join date
+  const joinDate = teamInfo?.created_at ? new Date(teamInfo.created_at).toLocaleDateString() : "N/A"
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-        <p className="text-muted-foreground">Manage your account settings and preferences</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
+          <p className="text-muted-foreground">Manage your account settings and preferences</p>
+        </div>
+        
+        {/* Avatar Upload Section */}
+        <div className="flex items-center space-x-4">
+          <div className="relative">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src={profile.avatar_url || ""} alt={profile.name || "User"} />
+              <AvatarFallback>
+                <User className="h-8 w-8" />
+              </AvatarFallback>
+            </Avatar>
+            <label 
+              htmlFor="avatar-upload" 
+              className="absolute -bottom-2 -right-2 p-1 bg-primary text-primary-foreground rounded-full cursor-pointer hover:bg-primary/90 transition-colors"
+            >
+              <Upload className="h-3 w-3" />
+            </label>
+            <input
+              id="avatar-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              disabled={uploading}
+              className="hidden"
+            />
+          </div>
+          <div className="text-sm">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => document.getElementById('avatar-upload')?.click()}
+              disabled={uploading}
+            >
+              {uploading ? "Uploading..." : "Update Avatar"}
+            </Button>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
+        {/* Team Information (Non-editable) */}
         <Card>
           <CardHeader>
-            <CardTitle>Account Information</CardTitle>
-            <CardDescription>Your account details (read-only)</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Team Information
+            </CardTitle>
+            <CardDescription>Your current team details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input value={profile.email} disabled />
-            </div>
-            <div className="space-y-2">
-              <Label>Role</Label>
-              <Input value={profile.role} disabled />
-            </div>
-            <div className="space-y-2">
-              <Label>Team Name</Label>
-              <Input value={teamInfo?.name || "No team assigned"} disabled />
-            </div>
-            <div className="space-y-2">
-              <Label>Team Tier</Label>
-              <Input value={teamInfo?.tier || "N/A"} disabled />
-            </div>
-            <div className="space-y-2">
-              <Label>Join Date</Label>
-              <Input 
-                value={profile.created_at ? new Date(profile.created_at).toLocaleDateString() : "N/A"} 
-                disabled 
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Avatar</CardTitle>
-            <CardDescription>Upload your profile picture</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={profile.avatar_url || ""} />
-                <AvatarFallback>
-                  <User className="h-10 w-10" />
-                </AvatarFallback>
-              </Avatar>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Button onClick={() => fileInputRef.current?.click()} disabled={uploading} className="mb-2">
-                  <Upload className="h-4 w-4 mr-2" />
-                  {uploading ? "Uploading..." : "Upload Avatar"}
-                </Button>
-                <p className="text-sm text-muted-foreground">JPG, PNG up to 2MB</p>
+                <Label className="text-sm font-medium text-muted-foreground">Team Name</Label>
+                <p className="text-sm font-medium">{teamInfo?.name || "No team assigned"}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Join Date</Label>
+                <p className="text-sm font-medium">{joinDate}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Team Tier</Label>
+                <p className="text-sm font-medium">{teamInfo?.tier || "N/A"}</p>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                <p className="text-sm font-medium">{formData.status}</p>
+              </div>
+              <div className="col-span-2">
+                <Label className="text-sm font-medium text-muted-foreground">Role</Label>
+                <p className="text-sm font-medium capitalize">{profile.role?.replace('_', ' ')}</p>
               </div>
             </div>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={uploadAvatar} className="hidden" />
           </CardContent>
         </Card>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Personal Information</CardTitle>
-          <CardDescription>Update your personal details</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">In-Game Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Enter your in-game name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="contact">Contact Number</Label>
-              <Input
-                id="contact"
-                value={formData.contact_number}
-                onChange={(e) => setFormData({ ...formData, contact_number: e.target.value })}
-                placeholder="Enter your contact number"
-              />
-            </div>
-          </div>
+        {/* Personal Information (Editable) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Personal Information
+            </CardTitle>
+            <CardDescription>Update your personal details</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="name">In-Game Name</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  placeholder="Enter your in-game name"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  value={profile.email}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="in_game_role">In-Game Role</Label>
-              <Input
-                id="in_game_role"
-                value={formData.in_game_role}
-                onChange={(e) => setFormData({ ...formData, in_game_role: e.target.value })}
-                placeholder="e.g., IGL, Support, Entry Fragger"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Benched">Benched</SelectItem>
-                  <SelectItem value="On Leave">On Leave</SelectItem>
-                  <SelectItem value="Discontinued">Discontinued</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="gyroscope"
+                  checked={formData.gyroscope_enabled}
+                  onCheckedChange={(checked) => handleInputChange("gyroscope_enabled", checked)}
+                />
+                <Label htmlFor="gyroscope" className="flex items-center gap-2">
+                  <ToggleLeft className="h-4 w-4" />
+                  Gyroscope Enabled
+                </Label>
+              </div>
 
-          <div className="space-y-4">
-            <Label>Device Information</Label>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
+              <Button type="submit" disabled={updating} className="w-full">
+                {updating ? "Updating..." : "Update Profile"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Device Information */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Device Information</CardTitle>
+            <CardDescription>Your gaming device specifications</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
                 <Label htmlFor="device_model">Device Model</Label>
                 <Input
                   id="device_model"
                   value={formData.device_model}
-                  onChange={(e) => setFormData({ ...formData, device_model: e.target.value })}
-                  placeholder="e.g., iPhone 14 Pro"
+                  onChange={(e) => handleInputChange("device_model", e.target.value)}
+                  placeholder="e.g., iPhone 13 Pro, Samsung Galaxy S21"
                 />
               </div>
-              <div className="space-y-2">
+
+              <div>
                 <Label htmlFor="ram">RAM</Label>
                 <Input
                   id="ram"
                   value={formData.ram}
-                  onChange={(e) => setFormData({ ...formData, ram: e.target.value })}
-                  placeholder="e.g., 8GB"
+                  onChange={(e) => handleInputChange("ram", e.target.value)}
+                  placeholder="e.g., 8GB, 12GB"
                 />
               </div>
-              <div className="space-y-2">
+
+              <div>
                 <Label htmlFor="fps">FPS</Label>
                 <Input
                   id="fps"
                   value={formData.fps}
-                  onChange={(e) => setFormData({ ...formData, fps: e.target.value })}
-                  placeholder="e.g., 60 FPS"
+                  onChange={(e) => handleInputChange("fps", e.target.value)}
+                  placeholder="e.g., 60, 90, 120"
                 />
               </div>
-              <div className="space-y-2">
+
+              <div>
                 <Label htmlFor="storage">Storage</Label>
                 <Input
                   id="storage"
                   value={formData.storage}
-                  onChange={(e) => setFormData({ ...formData, storage: e.target.value })}
-                  placeholder="e.g., 256GB"
+                  onChange={(e) => handleInputChange("storage", e.target.value)}
+                  placeholder="e.g., 128GB, 256GB"
                 />
               </div>
-            </div>
-          </div>
 
-          <div className="space-y-4">
-            <Label>Game Settings</Label>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="gyroscope"
-                checked={formData.gyroscope_enabled}
-                onCheckedChange={(checked) => setFormData({ ...formData, gyroscope_enabled: checked })}
-              />
-              <Label htmlFor="gyroscope">Gyroscope Enabled</Label>
-            </div>
-          </div>
+              <Button type="submit" disabled={updating} className="w-full">
+                {updating ? "Updating..." : "Update Device Info"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-          <div className="space-y-4">
-            <Label>Social Links</Label>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="instagram">Instagram Handle</Label>
+        {/* Social Links */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Social Links</CardTitle>
+            <CardDescription>Connect your social media accounts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="instagram_handle" className="flex items-center gap-2">
+                  <Instagram className="h-4 w-4" />
+                  Instagram Handle
+                </Label>
                 <Input
-                  id="instagram"
+                  id="instagram_handle"
                   value={formData.instagram_handle}
-                  onChange={(e) => setFormData({ ...formData, instagram_handle: e.target.value })}
-                  placeholder="@username"
+                  onChange={(e) => handleInputChange("instagram_handle", e.target.value)}
+                  placeholder="@username (without @)"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="discord">Discord ID</Label>
+
+              <div>
+                <Label htmlFor="discord_id" className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Discord ID
+                </Label>
                 <Input
-                  id="discord"
+                  id="discord_id"
                   value={formData.discord_id}
-                  onChange={(e) => setFormData({ ...formData, discord_id: e.target.value })}
+                  onChange={(e) => handleInputChange("discord_id", e.target.value)}
                   placeholder="username#1234"
                 />
               </div>
-            </div>
-          </div>
 
-          <Button onClick={updateProfile} disabled={loading}>
-            {loading ? "Updating..." : "Update Profile"}
-          </Button>
-        </CardContent>
-      </Card>
+              <Button type="submit" disabled={updating} className="w-full">
+                {updating ? "Updating..." : "Update Social Links"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

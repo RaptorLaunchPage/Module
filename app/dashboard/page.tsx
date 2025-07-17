@@ -50,55 +50,56 @@ export default function DashboardPage() {
         fetchTeam()
         fetchSlots()
       }
-    } else if (profile) {
+    } else {
       fetchTeams()
+      fetchPerformances()
+      fetchUsers()
     }
   }, [profile])
 
   useEffect(() => {
     if (selectedTeamId) {
       fetchTeamStats(selectedTeamId)
-    } else {
-      setTeamStats({
-        totalSlotsBooked: 0,
-        totalExpense: 0,
-        totalWinnings: 0,
-        netProfit: 0,
-      })
     }
   }, [selectedTeamId])
 
-  const fetchTeams = async () => {
+  const safeSelect = async <T,>(
+    table: string,
+    column: string,
+    teamId: string,
+  ): Promise<T[]> => {
     try {
-      let query = supabase.from("teams").select("*").order("name")
-      if (profile?.role === "coach") {
-        query = query.eq("coach_id", profile.id)
-      } else if (profile?.role === "player") {
-        query = query.eq("id", profile.team_id!)
+      const { data, error } = await supabase
+        .from(table)
+        .select(column)
+        .eq("team_id", teamId)
+      if (error) {
+        if (error.code === "42P01") {
+          console.warn(`Table "${table}" does not exist – returning empty array`)
+          return []
+        }
+        throw error
       }
-      const { data, error } = await query
-      if (error) throw error
-      setTeams(data || [])
-      if (data && data.length > 0 && !selectedTeamId) {
-        setSelectedTeamId(data[0].id) // Auto-select first team
+      return data || []
+    } catch (err: any) {
+      if (err?.code === "42P01") {
+        console.warn(`Table "${table}" does not exist – returning empty array`)
+        return []
       }
-    } catch (error) {
-      console.error("Error fetching teams for dashboard:", error)
+      throw err
     }
   }
 
-  const safeSelect = async <T,>(table: string, column: string, teamId: string): Promise<T[]> => {
+  const fetchTeams = async () => {
     try {
-      const { data, error } = await supabase.from(table).select(column).eq("team_id", teamId)
+      const { data, error } = await supabase.from("teams").select("*").order("name")
       if (error) throw error
-      return data as T[]
-    } catch (err: any) {
-      // ── Table not yet created ────────────────────────────────
-      if (err?.code === "42P01" || String(err?.message).includes("does not exist")) {
-        console.warn(`[Dashboard] Table "${table}" missing – defaulting to 0`)
-        return [] as T[]
+      setTeams(data || [])
+      if (data && data.length > 0 && !selectedTeamId) {
+        setSelectedTeamId(data[0].id)
       }
-      throw err
+    } catch (error) {
+      console.error("Error fetching teams:", error)
     }
   }
 
@@ -151,7 +152,6 @@ export default function DashboardPage() {
   const fetchPerformances = async () => {
     if (!profile) return
     try {
-
       
       // First, fetch performances with basic data
       let query = supabase.from("performances").select("*")
@@ -187,7 +187,6 @@ export default function DashboardPage() {
         }
       })
       
-
       setPerformances(performancesWithSlots)
     } catch (error) {
       console.error("Error fetching performances:", error)
