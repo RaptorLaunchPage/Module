@@ -26,11 +26,11 @@ export default function DashboardLayout({
   useEffect(() => {
     // More resilient redirect logic for refresh scenarios
     if (!loading && !user) {
-      // Give a short grace period before redirecting to allow for session recovery
+      // Shorter grace period to prevent stuck redirecting screens
       const timer = setTimeout(() => {
         console.log('📍 Dashboard: No user after grace period, redirecting to login')
         router.push("/auth/login")
-      }, 2000) // 2 second grace period
+      }, 500) // Reduced from 2 seconds to 500ms
       
       setRedirectTimer(timer)
     } else if (user) {
