@@ -23,10 +23,11 @@ export default function DashboardLayout({
   const [isRetrying, setIsRetrying] = useState(false)
 
   useEffect(() => {
-    if (!loading && !user) {
+    // Immediately redirect if no user (including during logout)
+    if (!user) {
       router.push("/auth/login")
     }
-  }, [user, loading, router])
+  }, [user, router])
 
   const handleRetry = async () => {
     setIsRetrying(true)

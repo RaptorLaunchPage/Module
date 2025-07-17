@@ -293,7 +293,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       console.log('🔐 Signing out...')
-      setLoading(true)
+      // Don't set loading during logout to avoid showing loading screens
       
       // Clear all auth state first
       setSession(null)
@@ -306,11 +306,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) throw error
       
       console.log('✅ Sign out successful')
-      setLoading(false)
     } catch (err: any) {
       console.error("❌ Sign out error:", err)
       setError(err.message)
-      setLoading(false)
+      // Still clear auth state even if signout fails
+      setSession(null)
+      setUser(null)
+      setProfile(null)
     }
   }
 

@@ -130,8 +130,8 @@ export function MobileNav() {
               variant="outline" 
               size="sm" 
               className="w-full justify-start" 
-              onClick={() => {
-                signOut()
+              onClick={async () => {
+                await signOut()
                 setOpen(false)
               }}
             >
