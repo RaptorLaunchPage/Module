@@ -126,7 +126,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session)
         setUser(session.user)
         setError(null)
-        setLoading(true) // Start loading for profile fetch
+        
+        // Only set loading if we don't already have a profile for this user
+        if (!profile || profile.id !== session.user.id) {
+          setLoading(true) // Start loading for profile fetch
+        }
         
         // Fetch or create profile
         await fetchUserProfile(session.user, true) // Pass true to indicate this is from sign in
@@ -142,10 +146,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('🔐 Token refreshed for:', session?.user?.email)
         setSession(session)
         setUser(session?.user || null)
+        // Don't trigger profile fetch or loading for token refresh
       } else {
         console.log(`🔐 Other auth event: ${event}`)
         setSession(session)
         setUser(session?.user || null)
+        // Don't trigger loading for other events
       }
     } catch (error) {
       console.error('❌ Auth state change error:', error)
@@ -158,6 +164,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log(`🔍 Fetching profile for user: ${user.id} (${user.email})`)
       setError(null)
+
+      // Check if we already have a profile for this user to avoid unnecessary fetches
+      if (profile && profile.id === user.id) {
+        console.log('✅ Profile already loaded for user:', user.email)
+        setLoading(false)
+        return
+      }
 
       // First, try to get existing profile
       const { data: existingProfile, error: selectError } = await supabase

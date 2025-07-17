@@ -143,10 +143,10 @@ export default function OnboardingPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name *</Label>
-                  <Input
-                    id="fullName"
-                    placeholder="Enter your full name"
+                                  <Label htmlFor="fullName">In-Game Name *</Label>
+                <Input
+                  id="fullName"
+                  placeholder="Enter your in-game name"
                     value={formData.fullName}
                     onChange={(e) => handleInputChange("fullName", e.target.value)}
                     required
