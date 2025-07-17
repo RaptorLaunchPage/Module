@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Home, Users, User, BarChart3, LogOut, Shield, CalendarCheck, DollarSign, Trophy, Crown, UserCheck, Clock } from "lucide-react"
+import { Home, Users, User, BarChart3, LogOut, Shield, CalendarCheck, IndianRupee, Trophy, Crown, UserCheck, Clock, UsersRound, Calendar, Coins, Award } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
@@ -32,7 +32,7 @@ const menuItems = [
   {
     title: "User Management",
     url: "/dashboard/user-management",
-    icon: Users,
+    icon: UserCheck,
     roles: ["admin"],
   },
   {
@@ -50,25 +50,25 @@ const menuItems = [
       {
         title: "Roster",
         url: "/dashboard/team-management/roster",
-        icon: Users,
+        icon: UsersRound,
         roles: ["admin", "manager", "coach"],
       },
       {
         title: "Slot Booking",
         url: "/dashboard/team-management/slots",
-        icon: CalendarCheck,
+        icon: Calendar,
         roles: ["admin", "manager", "coach"],
       },
       {
         title: "Slot Expenses",
         url: "/dashboard/team-management/expenses",
-        icon: DollarSign,
+        icon: IndianRupee,
         roles: ["admin", "manager", "coach"],
       },
       {
         title: "Prize Pool",
         url: "/dashboard/team-management/prize-pool",
-        icon: Trophy,
+        icon: Award,
         roles: ["admin", "manager", "coach"],
       },
     ],

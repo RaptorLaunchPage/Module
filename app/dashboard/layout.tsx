@@ -22,13 +22,8 @@ export default function DashboardLayout({
   const [retryCount, setRetryCount] = useState(0)
   const [isRetrying, setIsRetrying] = useState(false)
 
-  useEffect(() => {
-    // Simple redirect logic - no grace period to prevent stuck states
-    if (!loading && !user) {
-      console.log('📍 Dashboard: No user, redirecting to login immediately')
-      router.push("/auth/login")
-    }
-  }, [user, loading, router])
+  // Remove redirect logic - let the auth system handle redirects
+  // This prevents interference with logout redirect to homepage
 
   const handleRetry = async () => {
     setIsRetrying(true)
@@ -72,8 +67,7 @@ export default function DashboardLayout({
   }
 
   if (!user) {
-    // Immediately redirect without showing loading screen to prevent stuck states
-    router.push("/auth/login")
+    // Let auth system handle redirects - don't interfere with logout
     return null
   }
 
