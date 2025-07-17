@@ -50,55 +50,56 @@ export default function DashboardPage() {
         fetchTeam()
         fetchSlots()
       }
-    } else if (profile) {
+    } else {
       fetchTeams()
+      fetchPerformances()
+      fetchUsers()
     }
   }, [profile])
 
   useEffect(() => {
     if (selectedTeamId) {
       fetchTeamStats(selectedTeamId)
-    } else {
-      setTeamStats({
-        totalSlotsBooked: 0,
-        totalExpense: 0,
-        totalWinnings: 0,
-        netProfit: 0,
-      })
     }
   }, [selectedTeamId])
 
-  const fetchTeams = async () => {
+  const safeSelect = async <T,>(
+    table: string,
+    column: string,
+    teamId: string,
+  ): Promise<T[]> => {
     try {
-      let query = supabase.from("teams").select("*").order("name")
-      if (profile?.role === "coach") {
-        query = query.eq("coach_id", profile.id)
-      } else if (profile?.role === "player") {
-        query = query.eq("id", profile.team_id!)
+      const { data, error } = await supabase
+        .from(table)
+        .select(column)
+        .eq("team_id", teamId)
+      if (error) {
+        if (error.code === "42P01") {
+          console.warn(`Table "${table}" does not exist – returning empty array`)
+          return []
+        }
+        throw error
       }
-      const { data, error } = await query
-      if (error) throw error
-      setTeams(data || [])
-      if (data && data.length > 0 && !selectedTeamId) {
-        setSelectedTeamId(data[0].id) // Auto-select first team
+      return data || []
+    } catch (err: any) {
+      if (err?.code === "42P01") {
+        console.warn(`Table "${table}" does not exist – returning empty array`)
+        return []
       }
-    } catch (error) {
-      console.error("Error fetching teams for dashboard:", error)
+      throw err
     }
   }
 
-  const safeSelect = async <T,>(table: string, column: string, teamId: string): Promise<T[]> => {
+  const fetchTeams = async () => {
     try {
-      const { data, error } = await supabase.from(table).select(column).eq("team_id", teamId)
+      const { data, error } = await supabase.from("teams").select("*").order("name")
       if (error) throw error
-      return data as T[]
-    } catch (err: any) {
-      // ── Table not yet created ────────────────────────────────
-      if (err?.code === "42P01" || String(err?.message).includes("does not exist")) {
-        console.warn(`[Dashboard] Table "${table}" missing – defaulting to 0`)
-        return [] as T[]
+      setTeams(data || [])
+      if (data && data.length > 0 && !selectedTeamId) {
+        setSelectedTeamId(data[0].id)
       }
-      throw err
+    } catch (error) {
+      console.error("Error fetching teams:", error)
     }
   }
 
@@ -151,7 +152,6 @@ export default function DashboardPage() {
   const fetchPerformances = async () => {
     if (!profile) return
     try {
-
       
       // First, fetch performances with basic data
       let query = supabase.from("performances").select("*")
@@ -187,7 +187,6 @@ export default function DashboardPage() {
         }
       })
       
-
       setPerformances(performancesWithSlots)
     } catch (error) {
       console.error("Error fetching performances:", error)
@@ -257,101 +256,132 @@ export default function DashboardPage() {
     const teamUsers = users.filter(user => user.team_id === profile.team_id)
     const usersEmpty = !teamUsers || teamUsers.length === 0
 
-    // Calculate stats for the player and their team
-    const playerPerformances = performances.filter(p => p.player_id === profile.id)
+    // Calculate team stats only
     const teamPerformances = performances.filter(p => 
       teamUsers.some(user => user.id === p.player_id)
     )
     
 
-
-    const calculateStats = (perfs: any[]) => {
-      if (perfs.length === 0) return { totalMatches: 0, totalKills: 0, avgDamage: 0, avgSurvival: 0, kdRatio: 0 }
+    const calculateTeamStats = (perfs: any[]) => {
+      if (perfs.length === 0) return { 
+        totalMatches: 0, 
+        avgPlacement: 0, 
+        totalKills: 0, 
+        topFragger: "N/A", 
+        chickenCount: 0, 
+        mostPlayedMap: "N/A", 
+        overallKD: 0 
+      }
       
       const totalMatches = perfs.length
       const totalKills = perfs.reduce((sum, p) => sum + (p.kills || 0), 0)
-      const avgDamage = perfs.reduce((sum, p) => sum + (p.damage || 0), 0) / totalMatches
-      const avgSurvival = perfs.reduce((sum, p) => sum + (p.survival_time || 0), 0) / totalMatches
-      const kdRatio = totalMatches > 0 ? totalKills / totalMatches : 0
+      const avgPlacement = perfs.reduce((sum, p) => sum + (p.placement || 0), 0) / totalMatches
+      const chickenCount = perfs.filter(p => p.placement === 1).length
+      const overallKD = totalMatches > 0 ? totalKills / totalMatches : 0
       
-      return { totalMatches, totalKills, avgDamage, avgSurvival, kdRatio }
+      // Find top fragger
+      const playerKills: Record<string, number> = {}
+      perfs.forEach(p => {
+        const playerName = teamUsers.find(u => u.id === p.player_id)?.name || "Unknown"
+        if (!playerKills[playerName]) playerKills[playerName] = 0
+        playerKills[playerName] += p.kills || 0
+      })
+      const topFragger = Object.keys(playerKills).reduce((a, b) => 
+        playerKills[a] > playerKills[b] ? a : b, "N/A"
+      )
+      
+      // Find most played map
+      const mapCounts: Record<string, number> = {}
+      perfs.forEach(p => {
+        if (!mapCounts[p.map]) mapCounts[p.map] = 0
+        mapCounts[p.map]++
+      })
+      const mostPlayedMap = Object.keys(mapCounts).reduce((a, b) => 
+        mapCounts[a] > mapCounts[b] ? a : b, "N/A"
+      )
+      
+      return { 
+        totalMatches, 
+        avgPlacement, 
+        totalKills, 
+        topFragger, 
+        chickenCount, 
+        mostPlayedMap, 
+        overallKD 
+      }
     }
 
-    const playerStats = calculateStats(playerPerformances)
-    const teamStats = calculateStats(teamPerformances)
+    const teamStats = calculateTeamStats(teamPerformances)
 
     return (
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Player Dashboard</h1>
-          <p className="text-muted-foreground">Your performance and team statistics</p>
+          <p className="text-muted-foreground">Your team's performance and statistics</p>
         </div>
 
-        {/* Player and Team Stats Cards */}
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+        {/* Team Stats Cards */}
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <User className="h-5 w-5" />
-                Your Stats
-              </CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Matches</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total Matches</p>
-                  <p className="text-xl sm:text-2xl font-bold">{playerStats.totalMatches}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total Kills</p>
-                  <p className="text-xl sm:text-2xl font-bold">{playerStats.totalKills}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Avg Damage</p>
-                  <p className="text-xl sm:text-2xl font-bold">{playerStats.avgDamage.toFixed(0)}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Avg Survival</p>
-                  <p className="text-xl sm:text-2xl font-bold">{playerStats.avgSurvival.toFixed(1)}m</p>
-                </div>
-                <div className="space-y-1 col-span-2 sm:col-span-1">
-                  <p className="text-xs sm:text-sm text-muted-foreground">KD Ratio</p>
-                  <p className="text-xl sm:text-2xl font-bold">{playerStats.kdRatio.toFixed(2)}</p>
-                </div>
-              </div>
+              <div className="text-2xl font-bold">{teamStats.totalMatches}</div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Shield className="h-5 w-5" />
-                Team Stats
-              </CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Avg Team Placement</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total Matches</p>
-                  <p className="text-xl sm:text-2xl font-bold">{teamStats.totalMatches}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total Kills</p>
-                  <p className="text-xl sm:text-2xl font-bold">{teamStats.totalKills}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Avg Damage</p>
-                  <p className="text-xl sm:text-2xl font-bold">{teamStats.avgDamage.toFixed(0)}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs sm:text-sm text-muted-foreground">Avg Survival</p>
-                  <p className="text-xl sm:text-2xl font-bold">{teamStats.avgSurvival.toFixed(1)}m</p>
-                </div>
-                <div className="space-y-1 col-span-2 sm:col-span-1">
-                  <p className="text-xs sm:text-sm text-muted-foreground">KD Ratio</p>
-                  <p className="text-xl sm:text-2xl font-bold">{teamStats.kdRatio.toFixed(2)}</p>
-                </div>
-              </div>
+              <div className="text-2xl font-bold">#{teamStats.avgPlacement.toFixed(1)}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Total Team Kills</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{teamStats.totalKills}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Top Fragger</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-lg font-bold truncate">{teamStats.topFragger}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Chicken Count</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-600">🏆 {teamStats.chickenCount}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Most Played Map</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-lg font-bold truncate">{teamStats.mostPlayedMap}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Overall Team KD</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{teamStats.overallKD.toFixed(2)}</div>
             </CardContent>
           </Card>
         </div>
