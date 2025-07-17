@@ -176,7 +176,11 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                 <TableRow key={performance.id}>
                   <TableCell>{getPlayerName(performance.player_id)}</TableCell>
                   <TableCell>#{performance.match_number}</TableCell>
-                  <TableCell>{performance.slot}</TableCell>
+                  <TableCell>
+                    {performance.slot && typeof performance.slot === "object"
+                      ? `${performance.slot.time_range} (${new Date(performance.slot.date).toLocaleDateString()})`
+                      : performance.slot}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline">{performance.map}</Badge>
                   </TableCell>
