@@ -15,11 +15,10 @@ export default function HomePage() {
   const [initializationComplete, setInitializationComplete] = useState(false)
 
   useEffect(() => {
-    // Give more time for auth initialization to complete
-    // This prevents premature redirects during page refresh
+    // Shorter initialization period to prevent stuck loading screens
     const timer = setTimeout(() => {
       setInitializationComplete(true)
-    }, 1500) // Wait 1.5 seconds for auth to fully initialize
+    }, 500) // Reduced from 1.5 seconds to 500ms
 
     return () => clearTimeout(timer)
   }, [])
@@ -38,15 +37,19 @@ export default function HomePage() {
     }
   }, [user, profile, loading, router, initializationComplete])
 
-  // Show loader during auth initialization OR if we have a user but are still waiting for profile
-  if (!initializationComplete || loading || (user && !profile)) {
-    const message = !initializationComplete 
-      ? "Initializing..." 
-      : (user && !profile) 
-        ? "Loading your account..." 
-        : "Checking authentication..."
+  // Show loader only if auth is actively loading OR we have user but no profile yet
+  // Don't show loader just because initialization isn't complete
+  if (loading || (user && !profile)) {
+    const message = (user && !profile) 
+      ? "Loading your account..." 
+      : "Checking authentication..."
         
     return <FullPageLoader message={message} />
+  }
+
+  // If initialization isn't complete yet but auth isn't loading, show a minimal loader
+  if (!initializationComplete) {
+    return <FullPageLoader message="Initializing..." />
   }
 
   // If we reach here, either:

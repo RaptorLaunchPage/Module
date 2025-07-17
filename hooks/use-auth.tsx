@@ -301,7 +301,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       console.log('🔐 Signing out...')
-      // Don't set loading during logout to avoid showing loading screens
       
       // Clear all auth state first
       setSession(null)
@@ -315,10 +314,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log('✅ Sign out successful, redirecting to homepage')
       
-      // Redirect to homepage after successful logout
-      if (typeof window !== 'undefined') {
-        window.location.href = '/'
-      }
+      // Use router.push for better Next.js routing
+      router.push('/')
     } catch (err: any) {
       console.error("❌ Sign out error:", err)
       setError(err.message)
@@ -328,9 +325,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(null)
       
       // Force redirect to homepage even if logout fails
-      if (typeof window !== 'undefined') {
-        window.location.href = '/'
-      }
+      router.push('/')
     }
   }
 
