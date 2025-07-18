@@ -68,7 +68,7 @@ export default function AnalyticsPage() {
     }
   }
 
-  const handleExport = async (dataType: 'performances' | 'teams', format: 'csv' | 'json' = 'csv') => {
+  const handleExport = async (dataType: 'performance' | 'teams', format: 'csv' | 'json' = 'csv') => {
     if (!profile) return
 
     try {
@@ -444,7 +444,7 @@ export default function AnalyticsPage() {
                       <h4 className="font-medium">Performance Data</h4>
                       <div className="flex space-x-2">
                         <Button 
-                          onClick={() => handleExport('performances', 'csv')}
+                          onClick={() => handleExport('performance', 'csv')}
                           variant="outline"
                           size="sm"
                         >
@@ -452,7 +452,7 @@ export default function AnalyticsPage() {
                           CSV
                         </Button>
                         <Button 
-                          onClick={() => handleExport('performances', 'json')}
+                          onClick={() => handleExport('performance', 'json')}
                           variant="outline"
                           size="sm"
                         >

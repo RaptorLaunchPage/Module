@@ -101,7 +101,7 @@ export default function NewDashboardPage() {
     loadDashboardData()
   }
 
-  const handleExport = async (dataType: 'performances' | 'teams' | 'users') => {
+  const handleExport = async (dataType: 'performance' | 'teams' | 'users') => {
     if (!profile) return
 
     try {
@@ -331,7 +331,7 @@ export default function NewDashboardPage() {
               </div>
               {recentPerformances.length > 0 && (
                 <Button
-                  onClick={() => handleExport('performances')}
+                  onClick={() => handleExport('performance')}
                   variant="outline"
                   size="sm"
                 >
@@ -388,7 +388,7 @@ export default function NewDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Button onClick={() => handleExport('performances')} variant="outline">
+                <Button onClick={() => handleExport('performance')} variant="outline">
                   <Download className="mr-2 h-4 w-4" />
                   Export Performances
                 </Button>

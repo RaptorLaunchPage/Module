@@ -235,7 +235,7 @@ export class DashboardData {
    * Export data to CSV/Excel format
    */
   static async exportData(
-    dataType: 'users' | 'teams' | 'performances' | 'finance',
+    dataType: 'users' | 'teams' | 'performance' | 'finance',
     options: DashboardDataOptions,
     format: 'csv' | 'json' = 'csv'
   ) {
@@ -256,7 +256,7 @@ export class DashboardData {
         const teamsResult = await this.getTeams(options)
         data = teamsResult.data
         break
-      case 'performances':
+      case 'performance':
         const performancesResult = await this.getPerformances(options)
         data = performancesResult.data
         break
