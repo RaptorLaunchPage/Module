@@ -62,14 +62,56 @@ export function PerformanceReportSimple() {
           
           console.log('✅ Simple select successful:', perfData?.length, 'records')
           
+          // Test 3: Query other tables individually
+          console.log('🔍 Testing: Simple query on users table')
+          const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select('id, name, role')
+            .limit(5)
+          
+          if (usersError) {
+            console.warn('⚠️ Users query failed:', usersError.message)
+          } else {
+            console.log('✅ Users query successful:', usersData?.length, 'records')
+          }
+          
+          // Test 4: Query teams table
+          console.log('🔍 Testing: Simple query on teams table')
+          const { data: teamsData, error: teamsError } = await supabase
+            .from('teams')
+            .select('id, name')
+            .limit(5)
+          
+          if (teamsError) {
+            console.warn('⚠️ Teams query failed:', teamsError.message)
+          } else {
+            console.log('✅ Teams query successful:', teamsData?.length, 'records')
+          }
+          
+          // Test 5: Query slots table
+          console.log('🔍 Testing: Simple query on slots table')
+          const { data: slotsData, error: slotsError } = await supabase
+            .from('slots')
+            .select('id, time_range, date')
+            .limit(5)
+          
+          if (slotsError) {
+            console.warn('⚠️ Slots query failed:', slotsError.message)
+          } else {
+            console.log('✅ Slots query successful:', slotsData?.length, 'records')
+          }
+          
           setDbResults({
             totalCount: count,
             sampleRecords: perfData?.length || 0,
-            firstRecord: perfData?.[0] || null
+            firstRecord: perfData?.[0] || null,
+            usersCount: usersData?.length || 0,
+            teamsCount: teamsData?.length || 0,
+            slotsCount: slotsData?.length || 0
           })
           
-          setTestData('Basic database queries completed successfully!')
-          console.log('✅ Database test completed')
+          setTestData('Multiple table queries completed successfully!')
+          console.log('✅ Multiple table database test completed')
         } catch (err) {
           console.error('❌ Error in database test:', err)
           setError(err instanceof Error ? err.message : String(err))
@@ -138,7 +180,7 @@ export function PerformanceReportSimple() {
           </CardHeader>
           <CardContent>
             <p className="text-center py-8 text-muted-foreground">
-              Basic database queries work! 🎉
+              Multiple table queries work! 🎉
             </p>
             <div className="text-center text-sm text-muted-foreground space-y-2">
               <p><strong>Profile ID:</strong> {profile?.id || 'None'}</p>
@@ -147,6 +189,9 @@ export function PerformanceReportSimple() {
               <p><strong>Total Performances:</strong> {dbResults?.totalCount ?? 'Unknown'}</p>
               <p><strong>Sample Records:</strong> {dbResults?.sampleRecords ?? 'Unknown'}</p>
               <p><strong>First Record ID:</strong> {dbResults?.firstRecord?.id ?? 'None'}</p>
+              <p><strong>Users Found:</strong> {dbResults?.usersCount ?? 'Unknown'}</p>
+              <p><strong>Teams Found:</strong> {dbResults?.teamsCount ?? 'Unknown'}</p>
+              <p><strong>Slots Found:</strong> {dbResults?.slotsCount ?? 'Unknown'}</p>
               <p><strong>Loading:</strong> {loading ? 'Yes' : 'No'}</p>
               <p><strong>Error:</strong> {error || 'None'}</p>
             </div>
