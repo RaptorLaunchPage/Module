@@ -215,7 +215,12 @@ export default function RosterPage() {
   const canManage = isAdminOrManager
   const canEditOwnTeam = isCoach
   const canView = isAdminOrManager || isCoach || isAnalyst
+  
   // Check if user has access to roster management
+  if (!profile) {
+    return <div className="flex items-center justify-center h-64">Loading profile...</div>
+  }
+  
   if (!canView) {
     return null
   }

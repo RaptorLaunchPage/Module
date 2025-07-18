@@ -138,7 +138,8 @@ export default function UserManagementPage() {
   }
 
   useEffect(() => {
-    if (profile?.role?.toLowerCase() !== "admin") {
+    // Only fetch data for admin users
+    if (profile?.role !== "admin") {
       return
     }
 
@@ -527,16 +528,14 @@ export default function UserManagementPage() {
     }
   }
 
-  console.log('User Management - Profile:', profile)
-  console.log('User Management - Profile Role:', profile?.role)
-  console.log('User Management - Loading:', loading)
-  
   const isAdmin = profile?.role === "admin"
-  console.log('User Management - isAdmin:', isAdmin)
   
   // Only admin can access user management
+  if (!profile) {
+    return <div className="flex items-center justify-center h-64">Loading profile...</div>
+  }
+  
   if (!isAdmin) {
-    console.log('User Management - Access denied, returning null')
     return null
   }
 
