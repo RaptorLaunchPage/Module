@@ -84,34 +84,13 @@ const menuItems = [
 export function AppTopbar() {
   const { profile, signOut } = useAuth()
   const pathname = usePathname()
-  const [permissions, setPermissions] = useState<{ [key: string]: boolean }>({})
   const router = useRouter()
-
-  useEffect(() => {
-    async function fetchPermissions() {
-      if (!profile?.role) return
-      const res = await fetch("/api/permissions")
-      const data = await res.json()
-      const perms: { [key: string]: boolean } = {}
-      data.permissions.forEach((p: any) => {
-        if (p.role === profile.role.toLowerCase()) {
-          perms[p.module] = p.can_access
-        }
-      })
-      setPermissions(perms)
-    }
-    fetchPermissions()
-  }, [profile?.role])
-
-  const filteredMenuItems = menuItems.filter(
-    (item) => permissions[item.url.split("/")[2]?.replace("-management", "_management")] !== false
-  )
 
   return (
     <nav className="w-full flex items-center justify-between px-4 py-2 border-b bg-white">
       <div className="flex items-center gap-6">
         <span className="font-bold text-lg">Raptor Hub</span>
-        {filteredMenuItems.map((item) => (
+        {menuItems.map((item) => (
           <div key={item.title} className="relative group">
             <Link
               href={item.url}
@@ -125,7 +104,6 @@ export function AppTopbar() {
             {item.subItems && (
               <div className="absolute left-0 top-full mt-1 hidden group-hover:block bg-white border rounded shadow z-10 min-w-max">
                 {item.subItems
-                  .filter((sub) => permissions[sub.url.split("/")[2]?.replace("-management", "_management")] !== false)
                   .map((sub) => (
                     <Link
                       key={sub.title}

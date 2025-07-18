@@ -102,7 +102,7 @@ export function MobileNav() {
                   className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground ${
                     pathname === item.url || 
                     (item.title === "Team Management" && pathname.startsWith("/dashboard/team-management")) ||
-                    (item.title === "User Management" && (pathname.startsWith("/dashboard/user-management") || pathname === "/dashboard/permissions"))
+                    (item.title === "User Management" && pathname.startsWith("/dashboard/user-management"))
                       ? "bg-accent text-accent-foreground"
                       : "text-muted-foreground"
                   }`}

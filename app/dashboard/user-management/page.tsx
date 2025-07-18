@@ -24,6 +24,7 @@ import { EmergencyAdminService, type EmergencyAdminResult } from "@/lib/emergenc
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useRouter, useSearchParams } from "next/navigation"
+import { Switch } from "@/components/ui/switch"
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 type Team = Database["public"]["Tables"]["teams"]["Row"]
@@ -136,67 +137,6 @@ export default function UserManagementPage() {
     }
   }
 
-  const fetchPermissions = async () => {
-    if (activeTab !== 'permissions') return
-    setPermissionsLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('permissions')
-        .select('*')
-        .order('created_at', { ascending: false })
-      
-      if (error) throw error
-      
-      // Convert to object for easier access
-      const permissionsObj = data.reduce((acc, perm) => {
-        acc[perm.permission_key] = perm.is_enabled
-        return acc
-      }, {})
-      
-      setPermissions(permissionsObj)
-    } catch (error) {
-      console.error('Error fetching permissions:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch permissions",
-        variant: "destructive",
-      })
-    } finally {
-      setPermissionsLoading(false)
-    }
-  }
-
-  const updatePermission = async (permissionKey: string, isEnabled: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('permissions')
-        .upsert({
-          permission_key: permissionKey,
-          is_enabled: isEnabled,
-          updated_at: new Date().toISOString()
-        })
-      
-      if (error) throw error
-      
-      setPermissions((prev: any) => ({
-        ...prev,
-        [permissionKey]: isEnabled
-      }))
-      
-      toast({
-        title: "Success",
-        description: `Permission ${isEnabled ? 'enabled' : 'disabled'} successfully`,
-      })
-    } catch (error) {
-      console.error('Error updating permission:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update permission",
-        variant: "destructive",
-      })
-    }
-  }
-
   useEffect(() => {
     if (profile?.role?.toLowerCase() !== "admin") {
       return
@@ -204,7 +144,6 @@ export default function UserManagementPage() {
 
     fetchUsers()
     fetchTeams()
-    fetchPermissions()
     
     // Set up real-time subscription for user changes
     const subscription = supabase
@@ -779,13 +718,7 @@ export default function UserManagementPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updatePermission(key, !isEnabled)}
-                        >
-                          {isEnabled ? <EyeOff className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                        </Button>
+                        <Switch checked={isEnabled} onCheckedChange={v => updatePermission(key, v)} />
                       </TableCell>
                     </TableRow>
                   ))
