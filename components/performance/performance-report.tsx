@@ -53,10 +53,10 @@ interface FilterState {
   dateTo: string
 }
 
-export default function PerformanceReportPage() {
+export function PerformanceReport() {
   const { profile } = useAuth()
   const { toast } = useToast()
-  
+
   const [performances, setPerformances] = useState<PerformanceData[]>([])
   const [summaryStats, setSummaryStats] = useState<SummaryStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -323,7 +323,7 @@ export default function PerformanceReportPage() {
   }
 
   const clearFilters = () => {
-    const emptyFilters = {
+    setFilters({
       teamId: '',
       playerId: '',
       map: '',
@@ -331,302 +331,260 @@ export default function PerformanceReportPage() {
       matchNumber: '',
       dateFrom: '',
       dateTo: ''
-    }
-    setFilters(emptyFilters)
-    setAppliedFilters(emptyFilters)
+    })
+    setAppliedFilters({
+      teamId: '',
+      playerId: '',
+      map: '',
+      slotId: '',
+      matchNumber: '',
+      dateFrom: '',
+      dateTo: ''
+    })
   }
 
-  const getPlacementBadge = (placement: number) => {
-    if (placement <= 3) return "bg-yellow-100 text-yellow-800"
-    if (placement <= 10) return "bg-green-100 text-green-800"
-    return "bg-gray-100 text-gray-800"
-  }
-
-  if (!profile?.role || !["admin", "manager", "coach", "analyst", "player"].includes(profile.role.toLowerCase())) {
+  if (loading) {
     return (
-      <Alert className="max-w-2xl mx-auto mt-8">
-        <AlertDescription>
-          You don't have permission to access this page.
-        </AlertDescription>
-      </Alert>
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading performance data...</span>
+      </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Trophy className="h-5 w-5" />
         <div>
-          <h1 className="text-3xl font-bold">Performance Report</h1>
+          <h2 className="text-2xl font-bold tracking-tight">Performance Report</h2>
           <p className="text-muted-foreground">
             {isPlayer ? "Your match performance data" : "Advanced performance analytics and reporting"}
           </p>
         </div>
-        <Badge variant="outline" className="text-sm">
-          {profile.role?.replace('_', ' ').toUpperCase()} VIEW
-        </Badge>
       </div>
 
-      {/* Filters - Hidden for players */}
-      {!isPlayer && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filters
-            </CardTitle>
-            <CardDescription>
-              Filter performance data by various criteria
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Team Filter */}
-              {(hasFullAccess || isCoach) && (
-                <div className="space-y-2">
-                  <Label>Team</Label>
-                  <Select value={filters.teamId} onValueChange={(value) => handleFilterChange('teamId', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select team" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">All Teams</SelectItem>
-                      {teams.map(team => (
-                        <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Player Filter */}
-              <div className="space-y-2">
-                <Label>Player</Label>
-                <Select value={filters.playerId} onValueChange={(value) => handleFilterChange('playerId', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select player" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Players</SelectItem>
-                    {players.map(player => (
-                      <SelectItem key={player.id} value={player.id}>{player.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Map Filter */}
-              <div className="space-y-2">
-                <Label>Map</Label>
-                <Select value={filters.map} onValueChange={(value) => handleFilterChange('map', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select map" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Maps</SelectItem>
-                    {maps.map(map => (
-                      <SelectItem key={map} value={map}>{map}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Slot Filter */}
-              <div className="space-y-2">
-                <Label>Slot</Label>
-                <Select value={filters.slotId} onValueChange={(value) => handleFilterChange('slotId', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select slot" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Slots</SelectItem>
-                    {slots.map(slot => (
-                      <SelectItem key={slot.id} value={slot.id}>
-                        {slot.organizer} - {format(new Date(slot.date), 'MMM dd, yyyy')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Match Number Filter */}
-              <div className="space-y-2">
-                <Label>Match Number</Label>
-                <Input
-                  type="number"
-                  placeholder="Enter match number"
-                  value={filters.matchNumber}
-                  onChange={(e) => handleFilterChange('matchNumber', e.target.value)}
-                />
-              </div>
-
-              {/* Date From Filter */}
-              <div className="space-y-2">
-                <Label>Date From</Label>
-                <Input
-                  type="date"
-                  value={filters.dateFrom}
-                  onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                />
-              </div>
-
-              {/* Date To Filter */}
-              <div className="space-y-2">
-                <Label>Date To</Label>
-                <Input
-                  type="date"
-                  value={filters.dateTo}
-                  onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-4">
-              <Button onClick={applyFilters} className="flex items-center gap-2">
-                <Filter className="h-4 w-4" />
-                Apply Filters
-              </Button>
-              <Button variant="outline" onClick={clearFilters} className="flex items-center gap-2">
-                <X className="h-4 w-4" />
-                Clear Filters
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Summary Statistics */}
+      {/* Summary Stats */}
       {summaryStats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Matches</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <Calendar className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{summaryStats.totalMatches}</div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Average Placement</CardTitle>
-              <Trophy className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">#{summaryStats.avgPlacement}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Kills</CardTitle>
+              <CardTitle className="text-sm font-medium">Avg Placement</CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summaryStats.totalKills}</div>
-              <p className="text-xs text-muted-foreground">
-                Avg: {summaryStats.avgKills} per match
-              </p>
+              <div className="text-2xl font-bold">{summaryStats.avgPlacement}</div>
+              <Badge variant={summaryStats.avgPlacement <= 3 ? "default" : "secondary"}>
+                {summaryStats.avgPlacement <= 3 ? "Excellent" : "Good"}
+              </Badge>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Damage</CardTitle>
+              <CardTitle className="text-sm font-medium">Avg Kills</CardTitle>
               <Zap className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{summaryStats.totalDamage.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
-                Avg: {summaryStats.avgDamage.toLocaleString()} per match
-              </p>
+              <div className="text-2xl font-bold">{summaryStats.avgKills}</div>
+              <div className="text-xs text-muted-foreground">
+                Total: {summaryStats.totalKills}
+              </div>
             </CardContent>
           </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Top Kill Player</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Avg Damage</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-bold">{summaryStats.topKillPlayer.name}</div>
-              <p className="text-xs text-muted-foreground">
-                {summaryStats.topKillPlayer.kills} kills
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Top Damage Player</CardTitle>
-              <Zap className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-bold">{summaryStats.topDamagePlayer.name}</div>
-              <p className="text-xs text-muted-foreground">
-                {summaryStats.topDamagePlayer.damage.toLocaleString()} damage
-              </p>
+              <div className="text-2xl font-bold">{summaryStats.avgDamage}</div>
+              <div className="text-xs text-muted-foreground">
+                Total: {summaryStats.totalDamage.toLocaleString()}
+              </div>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* Performance Table */}
+      {/* Filters */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Performance Data
+            <Filter className="h-4 w-4" />
+            Filters
           </CardTitle>
+          <CardDescription>Filter performance data by various criteria</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Team Filter */}
+            {hasFullAccess && (
+              <div className="space-y-2">
+                <Label htmlFor="team-filter">Team</Label>
+                <Select value={filters.teamId} onValueChange={(value) => handleFilterChange('teamId', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All teams" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All teams</SelectItem>
+                    {teams.map((team) => (
+                      <SelectItem key={team.id} value={team.id}>
+                        {team.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Player Filter */}
+            {!isPlayer && (
+              <div className="space-y-2">
+                <Label htmlFor="player-filter">Player</Label>
+                <Select value={filters.playerId} onValueChange={(value) => handleFilterChange('playerId', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All players" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All players</SelectItem>
+                    {players.map((player) => (
+                      <SelectItem key={player.id} value={player.id}>
+                        {player.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Map Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="map-filter">Map</Label>
+              <Select value={filters.map} onValueChange={(value) => handleFilterChange('map', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All maps" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All maps</SelectItem>
+                  {maps.map((map) => (
+                    <SelectItem key={map} value={map}>
+                      {map}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Match Number Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="match-filter">Match Number</Label>
+              <Input
+                id="match-filter"
+                type="number"
+                placeholder="All matches"
+                value={filters.matchNumber}
+                onChange={(e) => handleFilterChange('matchNumber', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Date From */}
+            <div className="space-y-2">
+              <Label htmlFor="date-from">Date From</Label>
+              <Input
+                id="date-from"
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+              />
+            </div>
+
+            {/* Date To */}
+            <div className="space-y-2">
+              <Label htmlFor="date-to">Date To</Label>
+              <Input
+                id="date-to"
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={applyFilters}>Apply Filters</Button>
+            <Button variant="outline" onClick={clearFilters}>
+              <X className="h-4 w-4 mr-2" />
+              Clear Filters
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Performance Data Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Performance Data</CardTitle>
           <CardDescription>
-            {performances.length} matches found
+            {performances.length > 0 
+              ? `Showing ${performances.length} performance records` 
+              : "No performance data found"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : performances.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No performance data found
-            </div>
+          {performances.length === 0 ? (
+            <Alert>
+              <AlertDescription>
+                No performance data found. Try adjusting your filters or ensure data has been added.
+              </AlertDescription>
+            </Alert>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Date</TableHead>
                     <TableHead>Match #</TableHead>
+                    {!isPlayer && <TableHead>Player</TableHead>}
+                    {hasFullAccess && <TableHead>Team</TableHead>}
                     <TableHead>Map</TableHead>
                     <TableHead>Placement</TableHead>
                     <TableHead>Kills</TableHead>
                     <TableHead>Assists</TableHead>
                     <TableHead>Damage</TableHead>
                     <TableHead>Survival Time</TableHead>
-                    <TableHead>Player</TableHead>
-                    <TableHead>Team</TableHead>
                     <TableHead>Organizer</TableHead>
-                    <TableHead>Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {performances.map((performance, index) => (
                     <TableRow key={index}>
-                      <TableCell className="font-medium">{performance.match_number}</TableCell>
+                      <TableCell>{format(new Date(performance.created_at), 'MMM dd, yyyy')}</TableCell>
+                      <TableCell>{performance.match_number}</TableCell>
+                      {!isPlayer && <TableCell>{performance.player_name}</TableCell>}
+                      {hasFullAccess && <TableCell>{performance.team_name}</TableCell>}
                       <TableCell>{performance.map}</TableCell>
                       <TableCell>
-                        <Badge className={getPlacementBadge(performance.placement)}>
+                        <Badge variant={performance.placement <= 3 ? "default" : "secondary"}>
                           #{performance.placement}
                         </Badge>
                       </TableCell>
                       <TableCell>{performance.kills}</TableCell>
                       <TableCell>{performance.assists}</TableCell>
                       <TableCell>{performance.damage.toLocaleString()}</TableCell>
-                      <TableCell>{Math.round(performance.survival_time)}s</TableCell>
-                      <TableCell>{performance.player_name}</TableCell>
-                      <TableCell>{performance.team_name}</TableCell>
+                      <TableCell>{performance.survival_time}s</TableCell>
                       <TableCell>{performance.organizer}</TableCell>
-                      <TableCell>{format(new Date(performance.created_at), 'MMM dd, yyyy')}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
