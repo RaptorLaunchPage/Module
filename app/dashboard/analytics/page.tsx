@@ -159,12 +159,11 @@ export default function AnalyticsPage() {
     const totalKills = performances.reduce((sum, p) => sum + (p.kills || 0), 0)
     const totalDamage = performances.reduce((sum, p) => sum + (p.damage || 0), 0)
     const totalSurvival = performances.reduce((sum, p) => sum + (p.survival_time || 0), 0)
-    const totalDeaths = performances.reduce((sum, p) => sum + (p.deaths || 0), 0)
     const totalPlacement = performances.reduce((sum, p) => sum + (p.placement || 0), 0)
 
     const avgDamage = totalMatches > 0 ? totalDamage / totalMatches : 0
     const avgSurvival = totalMatches > 0 ? totalSurvival / totalMatches : 0
-    const kdRatio = totalDeaths > 0 ? totalKills / totalDeaths : totalKills
+    const kdRatio = totalMatches > 0 ? totalKills / totalMatches : 0
     const avgPlacement = totalMatches > 0 ? Math.round(totalPlacement / totalMatches) : 0
 
     // Calculate time-based matches

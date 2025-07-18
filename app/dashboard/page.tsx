@@ -158,7 +158,7 @@ export default function NewDashboardPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Dashboard Overview</h1>
           <p className="text-muted-foreground">
-            Welcome back, {profile.name || profile.email}! Here's your {roleInfo.displayName.toLowerCase()} overview.
+            Welcome back, {profile.name || profile.email}! Here's your {roleInfo.label.toLowerCase()} overview.
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">

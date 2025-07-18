@@ -79,12 +79,11 @@ export function PerformanceDashboard({
     const totalKills = filteredPerformances.reduce((sum, perf) => sum + (perf.kills || 0), 0)
     const totalDamage = filteredPerformances.reduce((sum, perf) => sum + (perf.damage || 0), 0)
     const totalSurvival = filteredPerformances.reduce((sum, perf) => sum + (perf.survival_time || 0), 0)
-    const totalDeaths = filteredPerformances.reduce((sum, perf) => sum + (perf.deaths || 0), 0)
     const totalPlacement = filteredPerformances.reduce((sum, perf) => sum + (perf.placement || 0), 0)
 
     const avgDamage = totalMatches > 0 ? totalDamage / totalMatches : 0
     const avgSurvival = totalMatches > 0 ? totalSurvival / totalMatches : 0
-    const kdRatio = totalDeaths > 0 ? totalKills / totalDeaths : totalKills
+    const kdRatio = totalMatches > 0 ? totalKills / totalMatches : 0
     const avgPlacement = totalMatches > 0 ? totalPlacement / totalMatches : 0
 
     // Calculate today's and week's matches
@@ -294,7 +293,6 @@ export function PerformanceDashboard({
                   <TableHead>Team</TableHead>
                   <TableHead>Map</TableHead>
                   <TableHead>Kills</TableHead>
-                  <TableHead>Deaths</TableHead>
                   <TableHead>Damage</TableHead>
                   <TableHead>Survival</TableHead>
                   <TableHead>Placement</TableHead>
@@ -312,7 +310,6 @@ export function PerformanceDashboard({
                     </TableCell>
                     <TableCell>{performance.map}</TableCell>
                     <TableCell>{performance.kills}</TableCell>
-                    <TableCell>{performance.deaths}</TableCell>
                     <TableCell>{performance.damage}</TableCell>
                     <TableCell>{performance.survival_time}min</TableCell>
                     <TableCell>

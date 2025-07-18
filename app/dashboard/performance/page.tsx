@@ -159,8 +159,7 @@ export default function PerformancePage() {
     avgSurvival: filteredPerformances.length > 0 ? 
       filteredPerformances.reduce((sum, p) => sum + (p.survival_time || 0), 0) / filteredPerformances.length : 0,
     kdRatio: filteredPerformances.length > 0 ? 
-      filteredPerformances.reduce((sum, p) => sum + (p.kills || 0), 0) / 
-      Math.max(filteredPerformances.reduce((sum, p) => sum + (p.deaths || 0), 0), 1) : 0,
+      filteredPerformances.reduce((sum, p) => sum + (p.kills || 0), 0) / filteredPerformances.length : 0,
     todayMatches: filteredPerformances.filter(p => {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
