@@ -155,6 +155,16 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
             <p className="text-xs text-muted-foreground">per match</p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">K/D Ratio</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{stats.avgKills.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">kills per match</p>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -171,8 +181,8 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                 <TableHead>Slot</TableHead>
                 <TableHead>Map</TableHead>
                 <TableHead>Placement</TableHead>
-                <TableHead>K/A</TableHead>
-                <TableHead>K/D</TableHead>
+                <TableHead>Kills</TableHead>
+                <TableHead>Assists</TableHead>
                 <TableHead>Damage</TableHead>
                 <TableHead>Survival</TableHead>
                 <TableHead>Date</TableHead>
@@ -208,19 +218,8 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                     <Badge variant="outline">{performance.map}</Badge>
                   </TableCell>
                   <TableCell>{performance.placement ? `#${performance.placement}` : "-"}</TableCell>
-                  <TableCell>
-                    {performance.kills}/{performance.assists}
-                  </TableCell>
-                  <TableCell>
-                    {(() => {
-                      // Calculate individual K/D: Total Kills by Player / Total Matches Played by Player
-                      const playerPerformances = performances.filter(p => p.player_id === performance.player_id)
-                      const playerTotalKills = playerPerformances.reduce((sum, p) => sum + p.kills, 0)
-                      const playerTotalMatches = playerPerformances.length
-                      const playerKD = playerTotalMatches > 0 ? playerTotalKills / playerTotalMatches : 0
-                      return playerKD.toFixed(2);
-                    })()}
-                  </TableCell>
+                  <TableCell>{performance.kills}</TableCell>
+                  <TableCell>{performance.assists}</TableCell>
                   <TableCell>{performance.damage.toFixed(0)}</TableCell>
                   <TableCell>{performance.survival_time.toFixed(1)}m</TableCell>
                   <TableCell>{new Date(performance.created_at).toLocaleDateString()}</TableCell>

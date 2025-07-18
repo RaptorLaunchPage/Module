@@ -294,6 +294,38 @@ export const ROLE_CONFIG = {
       viewAnalytics: false,
       systemConfiguration: false
     }
+  },
+  awaiting_approval: {
+    level: 10,
+    name: 'Awaiting Approval',
+    description: 'Temporary role, minimal access for onboarding and evaluation',
+    permissions: {
+      viewAllUsers: false,
+      updateUserRoles: false,
+      deleteUsers: false,
+      createUsers: false,
+      viewAllTeams: false,
+      createTeams: false,
+      updateTeams: false,
+      deleteTeams: false,
+      assignCoaches: false,
+      viewAllPerformance: false,
+      createPerformance: false,
+      updatePerformance: false,
+      deletePerformance: false,
+      viewAllScrims: false,
+      createScrims: false,
+      updateScrims: false,
+      deleteScrims: false,
+      viewAllFinances: false,
+      createFinances: false,
+      updateFinances: false,
+      deleteFinances: false,
+      viewAdminPanel: false,
+      viewReports: false,
+      viewAnalytics: false,
+      systemConfiguration: false
+    }
   }
 } as const
 
@@ -474,7 +506,8 @@ export const ROLES = {
   COACH: 'coach' as const,
   ANALYST: 'analyst' as const,
   PLAYER: 'player' as const,
-  PENDING: 'pending_player' as const
+  PENDING: 'pending_player' as const,
+  AWAITING_APPROVAL: 'awaiting_approval' as const
 }
 
 // Export role levels for easy access
@@ -484,5 +517,6 @@ export const ROLE_LEVELS = {
   COACH: 70,
   ANALYST: 60,
   PLAYER: 50,
-  PENDING: 10
+  PENDING: 10,
+  AWAITING_APPROVAL: 10
 } as const
