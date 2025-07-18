@@ -171,7 +171,7 @@ export class DashboardData {
         .from('performances')
         .select(`
           *,
-          users!inner(id, name, email, team_id),
+          users!player_id(id, name, email, team_id),
           teams!inner(id, name)
         `)
         .gte('created_at', timeframeDate.toISOString())
@@ -357,7 +357,7 @@ export class DashboardData {
         .from('performances')
         .select(`
           *,
-          users!inner(id, name, email),
+          users!player_id(id, name, email),
           teams!inner(id, name),
           slots(id, time_range, date)
         `)
@@ -463,7 +463,7 @@ export class DashboardData {
         .from('performances')
         .select(`
           *,
-          users!inner(id, name, email),
+          users!player_id(id, name, email),
           teams!inner(id, name),
           slots(id, time_range, date)
         `)
