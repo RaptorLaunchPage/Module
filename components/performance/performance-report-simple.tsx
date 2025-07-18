@@ -101,17 +101,87 @@ export function PerformanceReportSimple() {
             console.log('✅ Slots query successful:', slotsData?.length, 'records')
           }
           
+          // Test 6: Try simple joins (this is likely where the crash happens)
+          console.log('🔍 Testing: Simple join - performances with users')
+          
+          // Method 1: Manual join using separate queries (safe approach)
+          let joinResults = { method1: null, method2: null, method3: null }
+          
+          try {
+            // Get performances with player_id
+            const { data: perfWithPlayers, error: joinError1 } = await supabase
+              .from('performances')
+              .select('id, player_id, team_id, created_at')
+              .limit(3)
+            
+            if (joinError1) {
+              console.warn('⚠️ Performances for join failed:', joinError1.message)
+            } else {
+              console.log('✅ Performances for join successful:', perfWithPlayers?.length, 'records')
+              joinResults.method1 = perfWithPlayers?.length || 0
+            }
+          } catch (err) {
+            console.error('❌ Method 1 (manual join) failed:', err)
+          }
+          
+          // Test 7: Try PostgreSQL-style join (might work)
+          try {
+            console.log('🔍 Testing: PostgreSQL-style join with users table')
+            const { data: pgJoinData, error: pgJoinError } = await supabase
+              .from('performances')
+              .select(`
+                id,
+                player_id,
+                users!player_id (
+                  id,
+                  name
+                )
+              `)
+              .limit(2)
+            
+            if (pgJoinError) {
+              console.warn('⚠️ PostgreSQL join failed:', pgJoinError.message)
+            } else {
+              console.log('✅ PostgreSQL join successful:', pgJoinData?.length, 'records')
+              joinResults.method2 = pgJoinData?.length || 0
+            }
+          } catch (err) {
+            console.error('❌ Method 2 (PostgreSQL join) failed:', err)
+          }
+          
+          // Test 8: Try the broken foreign key syntax that was causing crashes
+          try {
+            console.log('🔍 Testing: The broken foreign key syntax (expect this to fail)')
+            const { data: brokenJoinData, error: brokenJoinError } = await supabase
+              .from('performances')
+              .select(`
+                *,
+                slots!performances_slot_fkey(organizer)
+              `)
+              .limit(1)
+            
+            if (brokenJoinError) {
+              console.warn('⚠️ Broken join failed as expected:', brokenJoinError.message)
+            } else {
+              console.log('✅ Broken join somehow worked:', brokenJoinData?.length, 'records')
+              joinResults.method3 = brokenJoinData?.length || 0
+            }
+          } catch (err) {
+            console.error('❌ Method 3 (broken join) failed as expected:', err)
+          }
+          
           setDbResults({
             totalCount: count,
             sampleRecords: perfData?.length || 0,
             firstRecord: perfData?.[0] || null,
             usersCount: usersData?.length || 0,
             teamsCount: teamsData?.length || 0,
-            slotsCount: slotsData?.length || 0
+            slotsCount: slotsData?.length || 0,
+            joinTests: joinResults
           })
           
-          setTestData('Multiple table queries completed successfully!')
-          console.log('✅ Multiple table database test completed')
+          setTestData('Join queries testing completed!')
+          console.log('✅ Join testing completed')
         } catch (err) {
           console.error('❌ Error in database test:', err)
           setError(err instanceof Error ? err.message : String(err))
@@ -180,7 +250,7 @@ export function PerformanceReportSimple() {
           </CardHeader>
           <CardContent>
             <p className="text-center py-8 text-muted-foreground">
-              Multiple table queries work! 🎉
+              Join query testing completed! 🔍
             </p>
             <div className="text-center text-sm text-muted-foreground space-y-2">
               <p><strong>Profile ID:</strong> {profile?.id || 'None'}</p>
@@ -192,6 +262,9 @@ export function PerformanceReportSimple() {
               <p><strong>Users Found:</strong> {dbResults?.usersCount ?? 'Unknown'}</p>
               <p><strong>Teams Found:</strong> {dbResults?.teamsCount ?? 'Unknown'}</p>
               <p><strong>Slots Found:</strong> {dbResults?.slotsCount ?? 'Unknown'}</p>
+              <p><strong>Manual Join:</strong> {dbResults?.joinTests?.method1 ?? 'Unknown'}</p>
+              <p><strong>PostgreSQL Join:</strong> {dbResults?.joinTests?.method2 ?? 'Unknown'}</p>
+              <p><strong>Broken Join:</strong> {dbResults?.joinTests?.method3 ?? 'Unknown'}</p>
               <p><strong>Loading:</strong> {loading ? 'Yes' : 'No'}</p>
               <p><strong>Error:</strong> {error || 'None'}</p>
             </div>
