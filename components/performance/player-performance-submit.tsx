@@ -179,7 +179,7 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
             </div>
             <div className="space-y-2">
               <Label htmlFor="assists">Assists</Label>
-              <Input id="assists" type="number" value={formData.assists} onChange={e => setFormData({ ...formData, assists: e.target.value })} required />
+              <Input id="assists" type="number" value={formData.assists} onChange={e => setFormData({ ...formData, assists: e.target.value })} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="damage">Damage</Label>

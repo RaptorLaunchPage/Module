@@ -335,47 +335,7 @@ export default function DashboardPage() {
           <p className="text-muted-foreground">Your team's performance and statistics</p>
         </div>
 
-        {/* Individual Player Stats Cards */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Your Individual Performance</h2>
-          <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Your Matches</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{playerStats.totalMatches}</div>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Your K/D Ratio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{playerStats.individualKD.toFixed(2)}</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Your Avg Placement</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">#{playerStats.avgPlacement.toFixed(1)}</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Your Avg Damage</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{playerStats.avgDamage.toFixed(0)}</div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
 
         {/* Team Stats Cards */}
         <div>
