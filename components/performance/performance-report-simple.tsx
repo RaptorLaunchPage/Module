@@ -89,21 +89,27 @@ export function PerformanceReportSimple() {
   }, [profile])
 
   const loadInitialData = async () => {
-    if (!profile) return
+    if (!profile) {
+      setLoading(false)
+      return
+    }
     
     setLoading(true)
     try {
-      await Promise.all([
-        loadFilterOptions(),
-        loadPerformanceData()
-      ])
+      // Load filter options first
+      await loadFilterOptions()
+      // Then load performance data
+      await loadPerformanceData()
     } catch (error) {
       console.error('Error loading initial data:', error)
       toast({
         title: "Error",
-        description: "Failed to load performance data",
+        description: `Failed to load performance data: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       })
+      // Set empty state on error
+      setPerformances([])
+      setSummaryStats(null)
     } finally {
       setLoading(false)
     }
@@ -113,40 +119,60 @@ export function PerformanceReportSimple() {
     try {
       // Load teams
       let teamsQuery = supabase.from('teams').select('id, name, coach_id')
-      if (isCoach) {
-        teamsQuery = teamsQuery.eq('coach_id', profile?.id)
+      if (isCoach && profile?.id) {
+        teamsQuery = teamsQuery.eq('coach_id', profile.id)
       }
-      const { data: teamsData } = await teamsQuery
-      setTeams(teamsData || [])
+      const { data: teamsData, error: teamsError } = await teamsQuery
+      if (teamsError) {
+        console.error('Error loading teams:', teamsError)
+        setTeams([])
+      } else {
+        setTeams(teamsData || [])
+      }
 
       // Load players  
       let playersQuery = supabase.from('users').select('id, name, team_id').neq('role', 'pending_player')
-      if (isPlayer) {
-        playersQuery = playersQuery.eq('id', profile?.id)
-      } else if (isCoach && teamsData) {
-        const coachTeams = teamsData.map(t => t.id) || []
+      if (isPlayer && profile?.id) {
+        playersQuery = playersQuery.eq('id', profile.id)
+      } else if (isCoach && teamsData && teamsData.length > 0) {
+        const coachTeams = teamsData.map(t => t.id).filter(Boolean)
         if (coachTeams.length > 0) {
           playersQuery = playersQuery.in('team_id', coachTeams)
         }
       }
-      const { data: playersData } = await playersQuery
-      setPlayers(playersData || [])
+      const { data: playersData, error: playersError } = await playersQuery
+      if (playersError) {
+        console.error('Error loading players:', playersError)
+        setPlayers([])
+      } else {
+        setPlayers(playersData || [])
+      }
 
       // Load maps
-      const { data: mapsData } = await supabase
+      const { data: mapsData, error: mapsError } = await supabase
         .from('performances')
         .select('map')
         .not('map', 'is', null)
-      const uniqueMaps = [...new Set(mapsData?.map(p => p.map) || [])]
-      setMaps(uniqueMaps)
+      if (mapsError) {
+        console.error('Error loading maps:', mapsError)
+        setMaps([])
+      } else {
+        const uniqueMaps = [...new Set(mapsData?.map(p => p.map).filter(Boolean) || [])]
+        setMaps(uniqueMaps)
+      }
 
     } catch (error) {
       console.error('Error loading filter options:', error)
+      // Set empty states on error
+      setTeams([])
+      setPlayers([])
+      setMaps([])
     }
   }
 
   const loadPerformanceData = async () => {
     try {
+      // First, load performances data
       let query = supabase
         .from('performances')
         .select(`
@@ -160,20 +186,30 @@ export function PerformanceReportSimple() {
           created_at,
           player_id,
           team_id,
-          slot,
-          users!performances_player_id_fkey(name),
-          teams!performances_team_id_fkey(name),
-          slots!performances_slot_fkey(organizer)
+          slot
         `)
         .order('created_at', { ascending: false })
 
       // Apply role-based filtering
-      if (isPlayer) {
-        query = query.eq('player_id', profile?.id)
-      } else if (isCoach) {
-        const coachTeams = teams.filter(t => t.coach_id === profile?.id).map(t => t.id)
-        if (coachTeams.length > 0) {
-          query = query.in('team_id', coachTeams)
+      if (isPlayer && profile?.id) {
+        query = query.eq('player_id', profile.id)
+      } else if (isCoach && profile?.id) {
+        // For coaches, we need to load their teams first to filter properly
+        const { data: coachTeams, error: coachTeamsError } = await supabase
+          .from('teams')
+          .select('id')
+          .eq('coach_id', profile.id)
+        
+        if (coachTeamsError) {
+          console.error('Error loading coach teams:', coachTeamsError)
+          setPerformances([])
+          setSummaryStats(null)
+          return
+        }
+        
+        const teamIds = coachTeams?.map(t => t.id) || []
+        if (teamIds.length > 0) {
+          query = query.in('team_id', teamIds)
         } else {
           // Coach has no teams, return empty
           setPerformances([])
@@ -202,27 +238,69 @@ export function PerformanceReportSimple() {
         query = query.lte('created_at', filters.dateTo + 'T23:59:59')
       }
 
-      const { data, error } = await query
+      const { data: performanceData, error } = await query
 
       if (error) throw error
 
-      // Transform data
-      const transformedData: PerformanceData[] = data?.map(p => ({
+      if (!performanceData || performanceData.length === 0) {
+        setPerformances([])
+        setSummaryStats(null)
+        return
+      }
+
+      // Get unique IDs for batch loading related data
+      const playerIds = [...new Set(performanceData.map(p => p.player_id).filter(Boolean))]
+      const teamIds = [...new Set(performanceData.map(p => p.team_id).filter(Boolean))]
+      const slotIds = [...new Set(performanceData.map(p => p.slot).filter(Boolean))]
+
+      // Load related data in parallel with error handling
+      const [usersData, teamsData, slotsData] = await Promise.allSettled([
+        // Load users
+        playerIds.length > 0 
+          ? supabase.from('users').select('id, name').in('id', playerIds)
+          : Promise.resolve({ data: [], error: null }),
+        // Load teams  
+        teamIds.length > 0
+          ? supabase.from('teams').select('id, name').in('id', teamIds)
+          : Promise.resolve({ data: [], error: null }),
+        // Load slots
+        slotIds.length > 0
+          ? supabase.from('slots').select('id, organizer').in('id', slotIds)
+          : Promise.resolve({ data: [], error: null })
+      ])
+
+      // Extract data with error handling
+      const users = usersData.status === 'fulfilled' ? (usersData.value.data || []) : []
+      const teams = teamsData.status === 'fulfilled' ? (teamsData.value.data || []) : []
+      const slots = slotsData.status === 'fulfilled' ? (slotsData.value.data || []) : []
+
+      // Log any errors
+      if (usersData.status === 'rejected') console.error('Error loading users:', usersData.reason)
+      if (teamsData.status === 'rejected') console.error('Error loading teams:', teamsData.reason)
+      if (slotsData.status === 'rejected') console.error('Error loading slots:', slotsData.reason)
+
+      // Create lookup maps for efficient joining
+      const usersMap = new Map(users.map(u => [u.id, u]))
+      const teamsMap = new Map(teams.map(t => [t.id, t]))
+      const slotsMap = new Map(slots.map(s => [s.id, s]))
+
+      // Transform data with proper joins
+      const transformedData: PerformanceData[] = performanceData.map(p => ({
         match_number: p.match_number,
         map: p.map,
-        placement: p.placement,
-        kills: p.kills,
-        assists: p.assists,
-        damage: p.damage,
-        survival_time: p.survival_time,
+        placement: p.placement || 0,
+        kills: p.kills || 0,
+        assists: p.assists || 0,
+        damage: p.damage || 0,
+        survival_time: p.survival_time || 0,
         created_at: p.created_at,
-        player_name: (p.users as any)?.name || 'Unknown',
-        team_name: (p.teams as any)?.name || 'Unknown',
-        organizer: (p.slots as any)?.organizer || 'Unknown',
+        player_name: usersMap.get(p.player_id)?.name || 'Unknown Player',
+        team_name: teamsMap.get(p.team_id)?.name || 'Unknown Team',
+        organizer: slotsMap.get(p.slot)?.organizer || 'Unknown Organizer',
         player_id: p.player_id,
-        team_id: p.team_id,
-        slot: p.slot
-      })) || []
+        team_id: p.team_id || '',
+        slot: p.slot || ''
+      }))
 
       setPerformances(transformedData)
       calculateSummaryStats(transformedData)

@@ -35,7 +35,7 @@ export default function PerformancePage() {
     if (!profile) return
 
     try {
-      let query = supabase.from("performances").select("*, slot:slot(id, time_range, date)")
+      let query = supabase.from("performances").select("*")
 
       // Apply role-based filtering
       if (profile.role === "player") {
