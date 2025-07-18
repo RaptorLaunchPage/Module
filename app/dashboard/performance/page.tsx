@@ -60,21 +60,61 @@ export default function PerformancePage() {
     try {
       const { data, error } = await supabase.from("users").select("*").order("name")
 
-      if (error) throw error
+      if (error) {
+        console.error("Database error fetching users:", error)
+        // Set empty array so component doesn't crash
+        setUsers([])
+        return
+      }
+      
+      console.log("Users fetched successfully:", data?.length || 0, "records")
       setUsers(data || [])
     } catch (error) {
       console.error("Error fetching users:", error)
+      // Set empty array so component doesn't crash
+      setUsers([])
     }
   }
 
   const canEdit = profile?.role && ["admin", "manager", "coach"].includes(profile.role.toLowerCase())
   const canViewDashboard = profile?.role && ["admin", "manager"].includes(profile.role.toLowerCase())
 
-  if (!profile || !users) {
-    return <div className="text-center py-8 text-muted-foreground">Loading user data...</div>;
+  if (!profile) {
+    return <div className="text-center py-8 text-muted-foreground">Loading user profile...</div>;
   }
-  if (users.length === 0) {
-    return <div className="text-center py-8 text-red-500">No user records found. Please contact support or ensure your player profile is set up.</div>;
+
+  // Only require users data for admin/manager functions
+  const requiresUsers = canEdit || canViewDashboard;
+  
+  if (requiresUsers && users.length === 0 && !loading) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-8 text-yellow-600">
+          <p>Unable to load user directory. Some features may be limited.</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Role: {profile.role} | User ID: {profile.id}
+          </p>
+        </div>
+        
+        {/* Still allow Performance Report access */}
+        <Tabs defaultValue="report" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="report">📊 Performance Report</TabsTrigger>
+            {profile?.role === "player" && <TabsTrigger value="submit">🎮 Submit Performance</TabsTrigger>}
+          </TabsList>
+
+          <TabsContent value="report">
+            <PerformanceReportSimple />
+          </TabsContent>
+
+          {profile?.role === "player" && (
+            <TabsContent value="submit">
+              <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />
+            </TabsContent>
+          )}
+        </Tabs>
+      </div>
+    );
   }
 
   return (
@@ -126,13 +166,25 @@ export default function PerformancePage() {
 
         {canEdit && (
           <TabsContent value="add">
-            <AddPerformance users={users} onPerformanceAdded={fetchPerformances} />
+            {users.length > 0 ? (
+              <AddPerformance users={users} onPerformanceAdded={fetchPerformances} />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading user data required for this feature...
+              </div>
+            )}
           </TabsContent>
         )}
 
         {canEdit && (
           <TabsContent value="ocr">
-            <OCRExtract users={users} onPerformanceAdded={fetchPerformances} />
+            {users.length > 0 ? (
+              <OCRExtract users={users} onPerformanceAdded={fetchPerformances} />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading user data required for this feature...
+              </div>
+            )}
           </TabsContent>
         )}
       </Tabs>
