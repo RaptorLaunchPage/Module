@@ -51,7 +51,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     title: 'Teams',
     description: 'Team management and roster',
     icon: 'Users',
-    path: '/dashboard/teams',
+    path: '/dashboard/team-management/teams',
     allowedRoles: ['admin', 'manager', 'coach'],
     showInNavigation: true,
     mobileOrder: 3
@@ -71,7 +71,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     title: 'Finance',
     description: 'Expenses, winnings, and financial reports',
     icon: 'DollarSign',
-    path: '/dashboard/finance',
+    path: '/dashboard/team-management/expenses',
     allowedRoles: ['admin', 'manager'],
     showInNavigation: true,
     mobileOrder: 5
@@ -81,7 +81,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     title: 'Users',
     description: 'User management and roles',
     icon: 'UserCheck',
-    path: '/dashboard/users',
+    path: '/dashboard/user-management',
     allowedRoles: ['admin'],
     showInNavigation: true,
     mobileOrder: 6
