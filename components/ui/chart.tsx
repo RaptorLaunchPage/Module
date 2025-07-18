@@ -67,6 +67,12 @@ const ChartContainer = React.forwardRef<
 })
 ChartContainer.displayName = "Chart"
 
+// Sanitize chart ID to prevent XSS attacks
+const sanitizeChartId = (id: string): string => {
+  // Only allow alphanumeric characters, hyphens, and underscores
+  return id.replace(/[^a-zA-Z0-9_-]/g, '')
+}
+
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([_, config]) => config.theme || config.color
@@ -76,13 +82,22 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null
   }
 
+  // Sanitize the ID to prevent XSS
+  const safeId = sanitizeChartId(id)
+  
+  // Validate that we have a safe ID after sanitization
+  if (!safeId || safeId.length === 0) {
+    console.warn(`Invalid chart ID provided: ${id}`)
+    return null
+  }
+
   return (
     <style
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
           .map(
             ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
+${prefix} [data-chart="${safeId}"] {
 ${colorConfig
   .map(([key, itemConfig]) => {
     const color =
