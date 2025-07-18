@@ -237,7 +237,10 @@ export default function PrizePoolPage() {
     }
   }
 
-  const canManage = profile?.role && ["admin", "manager", "coach"].includes(profile.role.toLowerCase())
+  const isAdmin = profile?.role === "admin"
+  const isManager = profile?.role === "manager"
+  const isAdminOrManager = isAdmin || isManager
+  // Use isAdminOrManager for all admin/manager logic
 
   // Check if user has access to team management
   if (!profile?.role || !["admin", "manager", "coach"].includes(profile.role.toLowerCase())) {
@@ -257,7 +260,7 @@ export default function PrizePoolPage() {
 
   return (
     <div className="space-y-6">
-      {canManage && (
+      {isAdminOrManager && (
         <Card>
           <CardHeader>
             <CardTitle>Create Prize Pool</CardTitle>
@@ -352,7 +355,7 @@ export default function PrizePoolPage() {
                 <TableHead>2nd</TableHead>
                 <TableHead>3rd</TableHead>
                 <TableHead>4th</TableHead>
-                {canManage && <TableHead>Actions</TableHead>}
+                {isAdminOrManager && <TableHead>Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -366,7 +369,7 @@ export default function PrizePoolPage() {
                   <TableCell>₹{(pool.breakdown as any)?.["2nd"] ?? 0}</TableCell>
                   <TableCell>₹{(pool.breakdown as any)?.["3rd"] ?? 0}</TableCell>
                   <TableCell>₹{(pool.breakdown as any)?.["4th"] ?? 0}</TableCell>
-                  {canManage && (
+                  {isAdminOrManager && (
                     <TableCell>
                       <Button size="sm" variant="destructive" onClick={() => handleDeletePrizePool(pool.id)}>
                         <Trash2 className="h-4 w-4" />
@@ -383,7 +386,7 @@ export default function PrizePoolPage() {
         </CardContent>
       </Card>
 
-      {canManage && (
+      {isAdminOrManager && (
         <Card>
           <CardHeader>
             <CardTitle>Assign Winning</CardTitle>
@@ -476,7 +479,7 @@ export default function PrizePoolPage() {
                 <TableHead>Position</TableHead>
                 <TableHead>Amount Won (₹)</TableHead>
                 <TableHead>Date</TableHead>
-                {canManage && <TableHead>Actions</TableHead>}
+                {isAdminOrManager && <TableHead>Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -495,7 +498,7 @@ export default function PrizePoolPage() {
                   </TableCell>
                   <TableCell>₹{winning.amount_won}</TableCell>
                   <TableCell>{new Date(winning.created_at).toLocaleDateString()}</TableCell>
-                  {canManage && (
+                  {isAdminOrManager && (
                     <TableCell>
                       <Button size="sm" variant="destructive" onClick={() => handleDeleteWinning(winning.id)}>
                         <Trash2 className="h-4 w-4" />

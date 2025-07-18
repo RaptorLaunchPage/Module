@@ -157,23 +157,25 @@ export default function TeamsPage() {
     setNewTeamStatus("active")
   }
 
-  const canManage = profile?.role && ["admin", "manager"].includes(profile.role.toLowerCase())
-
+  const isAdmin = profile?.role === "admin"
+  const isManager = profile?.role === "manager"
+  const isAdminOrManager = isAdmin || isManager
+  const isCoach = profile?.role === "coach"
+  const isAnalyst = profile?.role === "analyst"
+  const canManage = isAdminOrManager
+  const canEditOwnTeam = isCoach
+  const canView = isAdminOrManager || isCoach || isAnalyst
   // Check if user has access to team management
-  if (!profile?.role || !["admin", "manager", "coach"].includes(profile.role.toLowerCase())) {
-    return (
-      <div className="space-y-6">
-        <div className="p-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access team management.</p>
-        </div>
-      </div>
-    )
+  if (!canView) {
+    return null
   }
 
   if (loading) {
     return <div>Loading teams...</div>
   }
+
+  // For coach, only show their team
+  const visibleTeams = isCoach ? teams.filter(t => t.coach_id === profile.id) : teams
 
   return (
     <div className="space-y-6">
@@ -260,7 +262,6 @@ export default function TeamsPage() {
           </CardContent>
         </Card>
       )}
-
       <Card>
         <CardHeader>
           <CardTitle>All Teams</CardTitle>
@@ -274,11 +275,11 @@ export default function TeamsPage() {
                 <TableHead>Tier</TableHead>
                 <TableHead>Coach</TableHead>
                 <TableHead>Status</TableHead>
-                {canManage && <TableHead>Actions</TableHead>}
+                {(canManage || canEditOwnTeam) && <TableHead>Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {teams.map((team) => (
+              {visibleTeams.map((team) => (
                 <TableRow key={team.id}>
                   <TableCell className="font-medium">{team.name}</TableCell>
                   <TableCell>{team.tier}</TableCell>
@@ -289,15 +290,24 @@ export default function TeamsPage() {
                     })()}
                   </TableCell>
                   <TableCell>{team.status}</TableCell>
-                  {canManage && (
+                  {(canManage || (canEditOwnTeam && team.coach_id === profile.id)) && (
                     <TableCell>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => startEditing(team)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleDeleteTeam(team.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {canManage && (
+                          <>
+                            <Button size="sm" variant="outline" onClick={() => startEditing(team)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => handleDeleteTeam(team.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                        {canEditOwnTeam && team.coach_id === profile.id && !canManage && (
+                          <Button size="sm" variant="outline" onClick={() => startEditing(team)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   )}
@@ -305,7 +315,7 @@ export default function TeamsPage() {
               ))}
             </TableBody>
           </Table>
-          {teams.length === 0 && <div className="text-center py-8 text-muted-foreground">No teams found.</div>}
+          {visibleTeams.length === 0 && <div className="text-center py-8 text-muted-foreground">No teams found.</div>}
         </CardContent>
       </Card>
     </div>
