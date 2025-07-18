@@ -105,7 +105,7 @@ export function PerformanceReportSimple() {
           console.log('🔍 Testing: Simple join - performances with users')
           
           // Method 1: Manual join using separate queries (safe approach)
-          let joinResults = { method1: 0, method2: 0, method3: 0 }
+          let joinResults: { method1: number; method2: number; method3: number } = { method1: 0, method2: 0, method3: 0 }
           
           try {
             // Get performances with player_id
