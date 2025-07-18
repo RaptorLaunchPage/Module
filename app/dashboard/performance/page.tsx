@@ -37,7 +37,7 @@ export default function PerformancePage() {
     try {
       let query = supabase.from("performances").select("*")
 
-      // Apply role-based filtering
+      // Apply role-based filtering - admin and manager see ALL data
       if (profile.role === "player") {
         query = query.eq("player_id", profile.id)
       } else if (profile.role === "coach" && profile.team_id) {

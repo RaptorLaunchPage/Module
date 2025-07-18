@@ -53,11 +53,13 @@ export default function RosterPage() {
     try {
       let query = supabase.from("teams").select("*").order("name")
 
+      // Admin and manager can see all teams
       if (profile?.role === "coach") {
         query = query.eq("coach_id", profile.id)
       } else if (profile?.role === "player") {
         query = query.eq("id", profile.team_id!)
       }
+      // No filtering for admin/manager - they see all teams
 
       const { data, error } = await query
       if (error) throw error

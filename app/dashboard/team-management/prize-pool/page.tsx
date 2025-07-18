@@ -88,11 +88,13 @@ export default function PrizePoolPage() {
 
       // Fetch teams for winning assignment
       let teamsQuery = supabase.from("teams").select("*").order("name")
+      // Admin and manager can see all teams
       if (profile?.role === "coach") {
         teamsQuery = teamsQuery.eq("id", profile.team_id!)
       } else if (profile?.role === "player") {
         teamsQuery = teamsQuery.eq("id", profile.team_id!)
       }
+      // No filtering for admin/manager - they see all teams
       const { data: teamsData, error: teamsError } = await teamsQuery
       if (teamsError) throw teamsError
       setTeams(teamsData || [])

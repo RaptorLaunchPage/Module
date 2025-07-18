@@ -178,7 +178,7 @@ export default function PerformanceReportPage() {
         `)
         .order('created_at', { ascending: false })
 
-      // Apply role-based filtering
+      // Apply role-based filtering - admin and manager see ALL data
       if (isPlayer) {
         query = query.eq('player_id', profile?.id)
       } else if (isCoach) {
@@ -193,6 +193,7 @@ export default function PerformanceReportPage() {
           return
         }
       }
+      // Admin, manager, and analyst see all data without filtering
 
       // Apply filters
       if (appliedFilters.teamId) {

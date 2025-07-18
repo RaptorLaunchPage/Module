@@ -156,13 +156,13 @@ export default function DashboardPage() {
       // First, fetch performances with basic data
       let query = supabase.from("performances").select("*")
       
-      // For players, fetch team performances (not just their own)
+      // Apply role-based filtering - admin and manager see ALL data
       if (profile.role === "player" && profile.team_id) {
         query = query.eq("team_id", profile.team_id)
       } else if (profile.role === "coach" && profile.team_id) {
         query = query.eq("team_id", profile.team_id)
       }
-      // For other roles, fetch all performances
+      // For admin/manager, fetch all performances (no filtering)
       
       const { data: performanceData, error } = await query.order("created_at", { ascending: false })
       if (error) throw error
