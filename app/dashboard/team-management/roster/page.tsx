@@ -205,15 +205,22 @@ export default function RosterPage() {
     setNewDeviceInfo("")
   }
 
-  const canManage = profile?.role && ["admin", "manager", "coach"].includes(profile.role.toLowerCase())
+  const isAdmin = profile?.role === "admin"
+  const isManager = profile?.role === "manager"
+  const isCoach = profile?.role === "coach"
+  const isAnalyst = profile?.role === "analyst"
 
-  // Check if user has access to team management
-  if (!profile?.role || !["admin", "manager", "coach"].includes(profile.role.toLowerCase())) {
+  const canManage = isAdmin || isManager
+  const canEditOwnTeam = isCoach
+  const canView = isAdmin || isManager || isCoach || isAnalyst
+
+  // Check if user has access to roster management
+  if (!canView) {
     return (
       <div className="space-y-6">
         <div className="p-6 text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access team management.</p>
+          <p className="text-gray-600">You don't have permission to access roster management.</p>
         </div>
       </div>
     )
@@ -222,6 +229,13 @@ export default function RosterPage() {
   if (loading) {
     return <div>Loading roster...</div>
   }
+
+  // For coach, only show/select their teams
+  const visibleTeams = isCoach ? teams.filter(t => t.coach_id === profile.id) : teams
+  const selectableTeams = visibleTeams
+
+  // Only allow actions for own team if coach
+  const canEditSelectedTeam = canManage || (canEditOwnTeam && selectedTeamId && visibleTeams.some(t => t.id === selectedTeamId))
 
   return (
     <div className="space-y-6">
@@ -236,22 +250,21 @@ export default function RosterPage() {
               <SelectValue placeholder="Select a team" />
             </SelectTrigger>
             <SelectContent>
-              {teams.map((team) => (
+              {selectableTeams.map((team) => (
                 <SelectItem key={team.id} value={team.id}>
                   {team.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          {teams.length === 0 && (
+          {selectableTeams.length === 0 && (
             <p className="text-sm text-muted-foreground mt-2">No teams available for your role.</p>
           )}
         </CardContent>
       </Card>
-
       {selectedTeamId && (
         <>
-          {canManage && (
+          {canEditSelectedTeam && !isAnalyst && (
             <Card>
               <CardHeader>
                 <CardTitle>{editingRosterEntry ? "Edit Roster Entry" : "Add Player to Roster"}</CardTitle>
@@ -334,7 +347,6 @@ export default function RosterPage() {
               </CardContent>
             </Card>
           )}
-
           <Card>
             <CardHeader>
               <CardTitle>Current Roster for {teams.find((t) => t.id === selectedTeamId)?.name}</CardTitle>
@@ -349,7 +361,7 @@ export default function RosterPage() {
                     <TableHead>In-Game Role</TableHead>
                     <TableHead>Contact Info</TableHead>
                     <TableHead>Device Info</TableHead>
-                    {canManage && <TableHead>Actions</TableHead>}
+                    {canEditSelectedTeam && !isAnalyst && <TableHead>Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -360,7 +372,7 @@ export default function RosterPage() {
                       <TableCell>{entry.in_game_role || "N/A"}</TableCell>
                       <TableCell>{entry.contact_number || "N/A"}</TableCell>
                       <TableCell>{entry.device_info || "N/A"}</TableCell>
-                      {canManage && (
+                      {canEditSelectedTeam && !isAnalyst && (
                         <TableCell>
                           <div className="flex gap-2">
                             <Button size="sm" variant="outline" onClick={() => startEditing(entry)}>
