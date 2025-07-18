@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SmartSlotSelector } from "./smart-slot-selector"
 import { useToast } from "@/hooks/use-toast"
 
 const MAPS = ["Erangle", "Miramar", "Sanhok", "Vikendi", "Rondo"]
@@ -143,23 +144,11 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
               <Label htmlFor="match_number">Match Number</Label>
               <Input id="match_number" type="number" value={formData.match_number} onChange={e => setFormData({ ...formData, match_number: e.target.value })} required />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="slot">Slot</Label>
-              {slotsLoading ? (
-                <Input disabled value="Loading slots..." />
-              ) : teamSlots.length > 0 ? (
-                <Select value={formData.slot} onValueChange={val => setFormData({ ...formData, slot: val })} required>
-                  <SelectTrigger><SelectValue placeholder="Select slot" /></SelectTrigger>
-                  <SelectContent>
-                    {teamSlots.map(slot => (
-                      <SelectItem key={slot.id} value={slot.id}>{slot.time_range} ({slot.date})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="text-red-500 text-sm">No slots available. Please contact your coach or admin.</div>
-              )}
-            </div>
+            <SmartSlotSelector 
+              value={formData.slot} 
+              onValueChange={(val) => setFormData({ ...formData, slot: val })} 
+              required 
+            />
             <div className="space-y-2">
               <Label htmlFor="map">Map</Label>
               <Select value={formData.map} onValueChange={val => setFormData({ ...formData, map: val })} required>

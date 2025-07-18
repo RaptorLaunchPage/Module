@@ -20,7 +20,6 @@ import { ProfileFixer } from "@/lib/profile-fixer"
 import { AuthProfileSync } from "@/lib/auth-profile-sync"
 import { SecureProfileCreation } from "@/lib/secure-profile-creation"
 import { RoleAccess, ROLE_CONFIG } from "@/lib/role-system"
-import { DashboardPermissions } from "@/lib/dashboard-permissions"
 import { EmergencyAdminService, type EmergencyAdminResult } from "@/lib/emergency-admin-service"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -139,9 +138,8 @@ export default function UserManagementPage() {
   }
 
   useEffect(() => {
-    // Only fetch data for users with proper permissions
-    const userPermissions = DashboardPermissions.getDataPermissions(profile?.role as any, 'users')
-    if (!profile || !userPermissions.canView) {
+    // Only fetch data for admin users
+    if (profile?.role !== "admin") {
       return
     }
 
@@ -530,35 +528,15 @@ export default function UserManagementPage() {
     }
   }
 
-  // Check permissions using the unified permission system
-  const userPermissions = DashboardPermissions.getDataPermissions(profile?.role as any, 'users')
-  
-  // Debug logging
-  console.log('🔍 User Management Debug:', {
-    profileExists: !!profile,
-    profileRole: profile?.role,
-    userPermissions,
-    loading,
-    usersCount: users.length,
-    error
-  })
+  const isAdmin = profile?.role === "admin"
   
   // Only admin can access user management
   if (!profile) {
     return <div className="flex items-center justify-center h-64">Loading profile...</div>
   }
   
-  if (!userPermissions.canView) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <h2 className="text-lg font-semibold text-gray-900">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access user management.</p>
-          <p className="text-sm text-gray-500 mt-2">Current role: {profile?.role}</p>
-          <p className="text-sm text-gray-500">Permissions: {JSON.stringify(userPermissions)}</p>
-        </div>
-      </div>
-    )
+  if (!isAdmin) {
+    return null
   }
 
   if (loading) {

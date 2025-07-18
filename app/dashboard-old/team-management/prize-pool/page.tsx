@@ -13,7 +13,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast"
 import { Trash2 } from "lucide-react"
 import type { Database } from "@/lib/supabase"
-import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
 
 type Team = Database["public"]["Tables"]["teams"]["Row"]
 type Slot = Database["public"]["Tables"]["slots"]["Row"] & { team: Team | null }
@@ -240,22 +239,18 @@ export default function PrizePoolPage() {
     }
   }
 
-  // Role-based permissions using unified system
-  const userRole = profile?.role as UserRole
-  const financePermissions = DashboardPermissions.getDataPermissions(userRole, 'finance')
-  const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
-  const canManageFinance = financePermissions.canCreate || financePermissions.canEdit
-  const canViewFinance = financePermissions.canView
-  const isAdminOrManager = profile?.role === "admin" || profile?.role === "manager"
+  const isAdmin = profile?.role === "admin"
+  const isManager = profile?.role === "manager"
+  const isAdminOrManager = isAdmin || isManager
+  // Use isAdminOrManager for all admin/manager logic
 
-  // Check if user has access to prize pool management
-  if (!canViewFinance) {
+  // Check if user has access to team management
+  if (!profile?.role || !["admin", "manager", "coach"].includes(profile.role.toLowerCase())) {
     return (
       <div className="space-y-6">
         <div className="p-6 text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access prize pool management.</p>
-          <p className="text-sm text-gray-500 mt-2">Current role: {profile?.role}</p>
+          <p className="text-gray-600">You don't have permission to access team management.</p>
         </div>
       </div>
     )

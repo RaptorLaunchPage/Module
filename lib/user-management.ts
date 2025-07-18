@@ -1,5 +1,6 @@
 import { supabase } from "./supabase"
 import type { Database } from "./supabase"
+import { DashboardPermissions } from "./dashboard-permissions"
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 
@@ -159,7 +160,7 @@ export class UserManagementService {
         .eq("id", currentUser.user.id)
         .single()
       
-      return profile?.role === "admin"
+      return DashboardPermissions.getDataPermissions(profile?.role as any, 'users').canEdit
     } catch (error) {
       console.error("Permission check failed:", error)
       return false

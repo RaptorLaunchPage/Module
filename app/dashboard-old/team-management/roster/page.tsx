@@ -14,7 +14,6 @@ import { useToast } from "@/hooks/use-toast"
 import { Edit, Trash2 } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import type { Database } from "@/lib/supabase"
-import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
 
 type Team = Database["public"]["Tables"]["teams"]["Row"]
 type UserProfile = Database["public"]["Tables"]["users"]["Row"]
@@ -208,15 +207,14 @@ export default function RosterPage() {
     setNewDeviceInfo("")
   }
 
-  // Role-based permissions using unified system
-  const userRole = profile?.role as UserRole
-  const teamPermissions = DashboardPermissions.getDataPermissions(userRole, 'teams')
-  const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
-  const isAnalyst = profile?.role === "analyst"
+  const isAdmin = profile?.role === "admin"
+  const isManager = profile?.role === "manager"
+  const isAdminOrManager = isAdmin || isManager
   const isCoach = profile?.role === "coach"
-  const canManage = teamPermissions.canCreate || teamPermissions.canEdit
-  const canEditOwnTeam = userRole === 'coach'
-  const canView = teamPermissions.canView
+  const isAnalyst = profile?.role === "analyst"
+  const canManage = isAdminOrManager
+  const canEditOwnTeam = isCoach
+  const canView = isAdminOrManager || isCoach || isAnalyst
   
   // Check if user has access to roster management
   if (!profile) {

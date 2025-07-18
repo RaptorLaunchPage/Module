@@ -1,665 +1,595 @@
 "use client"
 
-import { useAuth } from "@/hooks/use-auth"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Users, User, BarChart3, Shield, DollarSign, CalendarCheck, Wallet, Trophy } from "lucide-react"
-import Link from "next/link"
-import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
-import type { Database } from "@/lib/supabase"
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
-import { PerformanceDashboard } from "@/components/performance/performance-dashboard"
-import { ErrorBoundary } from "react-error-boundary"
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/hooks/use-auth'
+import { DashboardData, type DashboardDataOptions } from '@/lib/dashboard-data'
+import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions'
 
-type Team = Database["public"]["Tables"]["teams"]["Row"]
-type SlotExpense = Database["public"]["Tables"]["slot_expenses"]["Row"]
-type Winning = Database["public"]["Tables"]["winnings"]["Row"]
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { 
+  Users, 
+  Target, 
+  Trophy, 
+  TrendingUp, 
+  Activity, 
+  Calendar,
+  DollarSign,
+  BarChart3,
+  Download,
+  RefreshCw,
+  Gamepad2,
+  Zap,
+  Shield,
+  Crosshair,
+  Medal,
+  Star,
+  Crown,
+  Flame
+} from 'lucide-react'
+import Link from 'next/link'
+import { PerformanceDashboard } from '@/components/performance/performance-dashboard'
 
-export default function DashboardPage() {
-  const { profile, loading } = useAuth()
-  const [teamStats, setTeamStats] = useState({
-    totalSlotsBooked: 0,
-    totalExpense: 0,
-    totalWinnings: 0,
-    netProfit: 0,
+interface DashboardStats {
+  totalMatches: number
+  totalKills: number
+  avgDamage: number
+  avgSurvival: number
+  kdRatio: number
+  totalExpense: number
+  totalProfitLoss: number
+  activeTeams: number
+  activePlayers: number
+  todayMatches: number
+  weekMatches: number
+  avgPlacement: number
+}
+
+interface TopPerformer {
+  id: string
+  name: string
+  value: number
+  metric: string
+  team?: string
+}
+
+interface TeamPerformance {
+  id: string
+  name: string
+  matches: number
+  kills: number
+  avgDamage: number
+  kdRatio: number
+  winRate: number
+}
+
+export default function NewDashboardPage() {
+  const { profile } = useAuth()
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [topPerformers, setTopPerformers] = useState<{
+    topTeam: TeamPerformance | null
+    topPlayer: TopPerformer | null
+    highestKills: TopPerformer | null
+    highestDamage: TopPerformer | null
+  }>({
+    topTeam: null,
+    topPlayer: null,
+    highestKills: null,
+    highestDamage: null
   })
-  const [teams, setTeams] = useState<Team[]>([])
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
-  const [performances, setPerformances] = useState<any[]>([])
-  const [users, setUsers] = useState<any[]>([])
-  const [debugOpen, setDebugOpen] = useState(false)
-  const [lastError, setLastError] = useState<any>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        return JSON.parse(localStorage.getItem('player_dashboard_debug_error') || 'null')
-      } catch {
-        return null
-      }
-    }
-    return null
-  })
-  const [team, setTeam] = useState<any>(null)
-  const [slots, setSlots] = useState<any[]>([])
+  const [recentPerformances, setRecentPerformances] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedTimeframe, setSelectedTimeframe] = useState('30')
+
+  const userRole = profile?.role as UserRole
+  const roleInfo = DashboardPermissions.getRoleInfo(userRole)
+  const canAccessFinance = DashboardPermissions.getDataPermissions(userRole, 'finance').canView
+  const canAccessUsers = DashboardPermissions.getDataPermissions(userRole, 'users').canView
+  const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
 
   useEffect(() => {
-    if (profile?.role === "player") {
-      fetchPerformances()
-      fetchUsers()
-      if (profile.team_id) {
-        fetchTeam()
-        fetchSlots()
-      }
-    } else {
-      fetchTeams()
-      fetchPerformances()
-      fetchUsers()
+    if (profile) {
+      loadDashboardData()
     }
-  }, [profile])
+  }, [profile, selectedTimeframe])
 
-  useEffect(() => {
-    if (selectedTeamId) {
-      fetchTeamStats(selectedTeamId)
-    }
-  }, [selectedTeamId])
-
-  const safeSelect = async <T,>(
-    table: string,
-    column: string,
-    teamId: string,
-  ): Promise<T[]> => {
-    try {
-      const { data, error } = await supabase
-        .from(table)
-        .select(column)
-        .eq("team_id", teamId)
-      if (error) {
-        if (error.code === "42P01") {
-          console.warn(`Table "${table}" does not exist – returning empty array`)
-          return [] as T[]
-        }
-        throw error
-      }
-      return (data || []) as T[]
-    } catch (err: any) {
-      if (err?.code === "42P01") {
-        console.warn(`Table "${table}" does not exist – returning empty array`)
-        return [] as T[]
-      }
-      throw err
-    }
-  }
-
-  const fetchTeams = async () => {
-    try {
-      const { data, error } = await supabase.from("teams").select("*").order("name")
-      if (error) throw error
-      setTeams(data || [])
-      if (data && data.length > 0 && !selectedTeamId) {
-        setSelectedTeamId(data[0].id)
-      }
-    } catch (error) {
-      console.error("Error fetching teams:", error)
-    }
-  }
-
-  const fetchTeamStats = async (teamId: string) => {
-    try {
-      // Slots count (uses head+count)
-      let slotsCount = 0
-      try {
-        const { count, error } = await supabase
-          .from("slots")
-          .select("*", { count: "exact", head: true })
-          .eq("team_id", teamId)
-        if (error) throw error
-        slotsCount = count || 0
-      } catch (err: any) {
-        if (err?.code === "42P01") {
-          console.warn('[Dashboard] Table "slots" missing – defaulting to 0')
-          slotsCount = 0
-        } else {
-          throw err
-        }
-      }
-
-      // Expenses & Winnings
-      const expenses = await safeSelect<Database["public"]["Tables"]["slot_expenses"]["Row"]>(
-        "slot_expenses",
-        "total",
-        teamId,
-      )
-      const winnings = await safeSelect<Database["public"]["Tables"]["winnings"]["Row"]>(
-        "winnings",
-        "amount_won",
-        teamId,
-      )
-
-      const totalExpense = expenses.reduce((sum, e) => sum + (e.total || 0), 0)
-      const totalWinnings = winnings.reduce((sum, w) => sum + (w.amount_won || 0), 0)
-
-      setTeamStats({
-        totalSlotsBooked: slotsCount,
-        totalExpense,
-        totalWinnings,
-        netProfit: totalWinnings - totalExpense,
-      })
-    } catch (error) {
-      console.error("Error fetching team stats:", error)
-    }
-  }
-
-  const fetchPerformances = async () => {
+  const loadDashboardData = async () => {
     if (!profile) return
+
+    setLoading(true)
+    setError(null)
+    
     try {
-      
-      // First, fetch performances with basic data
-      let query = supabase.from("performances").select("*")
-      
-      // Apply role-based filtering - admin and manager see ALL data
-      if (profile.role === "player" && profile.team_id) {
-        query = query.eq("team_id", profile.team_id)
-      } else if (profile.role === "coach" && profile.team_id) {
-        query = query.eq("team_id", profile.team_id)
+      const options: DashboardDataOptions = {
+        role: userRole,
+        userId: profile.id,
+        teamId: profile.team_id,
+        timeframe: selectedTimeframe,
+        includeFinance: canAccessFinance,
+        includeUsers: canAccessUsers
       }
-      // For admin/manager, fetch all performances (no filtering)
+
+      const dashboardData = new DashboardData(options)
       
-      const { data: performanceData, error } = await query.order("created_at", { ascending: false })
-      if (error) throw error
-      
-      // Now fetch slots data separately
-      const { data: slotsData, error: slotsError } = await supabase
-        .from("slots")
-        .select("id, time_range, date")
-      
-      if (slotsError) {
-        console.error("Error fetching slots:", slotsError)
-        setPerformances(performanceData || [])
-        return
-      }
-      
-      // Optimize: Create a Map for O(1) lookup instead of O(n) find operation
-      const slotsMap = new Map(
-        (slotsData || []).map(slot => [slot.id, slot])
-      )
-      
-      // Join performance data with slot data efficiently
-      const performancesWithSlots = (performanceData || []).map(performance => {
-        const slotInfo = slotsMap.get(performance.slot)
-        return {
-          ...performance,
-          slot: slotInfo || performance.slot // Use slot info if found, otherwise keep original
-        }
-      })
-      
-      setPerformances(performancesWithSlots)
-    } catch (error) {
-      console.error("Error fetching performances:", error)
+      const [
+        dashboardStats,
+        topPerformersData,
+        recentPerformancesData
+      ] = await Promise.all([
+        dashboardData.getOverviewStats(),
+        dashboardData.getTopPerformers(),
+        dashboardData.getRecentPerformances(10)
+      ])
+
+      setStats(dashboardStats)
+      setTopPerformers(topPerformersData)
+      setRecentPerformances(recentPerformancesData)
+    } catch (err) {
+      console.error('Error loading dashboard data:', err)
+      setError('Failed to load dashboard data')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const fetchUsers = async () => {
-    try {
-      const { data, error } = await supabase.from("users").select("*").order("name")
-      if (error) throw error
-      setUsers(data || [])
-    } catch (error) {
-      console.error("Error fetching users:", error)
-    }
-  }
-
-  const fetchTeam = async () => {
-    try {
-      const { data, error } = await supabase.from("teams").select("*").eq("id", profile.team_id).single()
-      if (!error) setTeam(data)
-      else setTeam(null)
-    } catch {
-      setTeam(null)
-    }
-  }
-  const fetchSlots = async () => {
-    try {
-      const { data, error } = await supabase.from("slots").select("*").eq("team_id", profile.team_id)
-      if (!error) setSlots(data || [])
-      else setSlots([])
-    } catch {
-      setSlots([])
-    }
-  }
-
-  const handleDebugError = (error: any) => {
-    setLastError(error)
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('player_dashboard_debug_error', JSON.stringify(error))
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-muted rounded w-48 mb-2"></div>
-          <div className="h-4 bg-muted rounded w-64"></div>
-        </div>
-      </div>
-    )
+  const handleRefresh = () => {
+    loadDashboardData()
   }
 
   if (!profile) {
     return (
-      <div className="space-y-6">
+      <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Loading your profile...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
     )
-  }
-
-  if (profile?.role === "player") {
-    // Filter users to only show team members
-    const teamUsers = users.filter(user => user.team_id === profile.team_id)
-    const usersEmpty = !teamUsers || teamUsers.length === 0
-
-    // Calculate team stats only
-    const teamPerformances = performances.filter(p => 
-      teamUsers.some(user => user.id === p.player_id)
-    )
-
-    // Calculate individual player stats
-    const playerPerformances = performances.filter(p => p.player_id === profile.id)
-    const playerStats = {
-      totalMatches: playerPerformances.length,
-      totalKills: playerPerformances.reduce((sum, p) => sum + (p.kills || 0), 0),
-      individualKD: playerPerformances.length > 0 ? 
-        playerPerformances.reduce((sum, p) => sum + (p.kills || 0), 0) / playerPerformances.length : 0,
-      avgPlacement: playerPerformances.length > 0 ? 
-        playerPerformances.reduce((sum, p) => sum + (p.placement || 0), 0) / playerPerformances.length : 0,
-      avgDamage: playerPerformances.length > 0 ? 
-        playerPerformances.reduce((sum, p) => sum + (p.damage || 0), 0) / playerPerformances.length : 0
-    }
-    
-
-    const calculateTeamStats = (perfs: any[]) => {
-      if (perfs.length === 0) return { 
-        totalMatches: 0, 
-        avgPlacement: 0, 
-        totalKills: 0, 
-        topFragger: "N/A", 
-        chickenCount: 0, 
-        mostPlayedMap: "N/A", 
-        overallKD: 0 
-      }
-      
-      const totalMatches = perfs.length
-      const totalKills = perfs.reduce((sum, p) => sum + (p.kills || 0), 0)
-      const avgPlacement = perfs.reduce((sum, p) => sum + (p.placement || 0), 0) / totalMatches
-      const chickenCount = perfs.filter(p => p.placement === 1).length
-      
-      // Calculate Team K/D ratio: Total Team Kills / Total Team Matches
-      const overallKD = totalMatches > 0 ? totalKills / totalMatches : 0
-      
-      // Find top fragger
-      const playerKills: Record<string, number> = {}
-      perfs.forEach(p => {
-        const playerName = teamUsers.find(u => u.id === p.player_id)?.name || "Unknown"
-        if (!playerKills[playerName]) playerKills[playerName] = 0
-        playerKills[playerName] += p.kills || 0
-      })
-      const topFragger = Object.keys(playerKills).reduce((a, b) => 
-        playerKills[a] > playerKills[b] ? a : b, "N/A"
-      )
-      
-      // Find most played map
-      const mapCounts: Record<string, number> = {}
-      perfs.forEach(p => {
-        if (!mapCounts[p.map]) mapCounts[p.map] = 0
-        mapCounts[p.map]++
-      })
-      const mostPlayedMap = Object.keys(mapCounts).reduce((a, b) => 
-        mapCounts[a] > mapCounts[b] ? a : b, "N/A"
-      )
-      
-      return { 
-        totalMatches, 
-        avgPlacement, 
-        totalKills, 
-        topFragger, 
-        chickenCount, 
-        mostPlayedMap, 
-        overallKD 
-      }
-    }
-
-    const teamStats = calculateTeamStats(teamPerformances)
-
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Player Dashboard</h1>
-          <p className="text-muted-foreground">Your team's performance and statistics</p>
-        </div>
-
-
-
-        {/* Team Stats Cards */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Team Performance</h2>
-          <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Matches</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{teamStats.totalMatches}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Avg Team Placement</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">#{teamStats.avgPlacement.toFixed(1)}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Team Kills</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{teamStats.totalKills}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Top Fragger</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-bold truncate">{teamStats.topFragger}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Chicken Count</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">🏆 {teamStats.chickenCount}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Most Played Map</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-bold truncate">{teamStats.mostPlayedMap}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Overall Team KD</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{teamStats.overallKD.toFixed(2)}</div>
-            </CardContent>
-          </Card>
-          </div>
-        </div>
-
-        {/* Performance History */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Performance History</CardTitle>
-            <CardDescription>Your team's recent performance data</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {usersEmpty ? (
-              <div className="text-red-600">Unable to load team data. Please contact admin.</div>
-            ) : (
-              <ErrorBoundary FallbackComponent={({error}) => { handleDebugError(error); return <div className="text-red-600">Error: {error.message}</div> }}>
-                <PerformanceDashboard performances={teamPerformances} users={teamUsers} currentUser={profile} />
-              </ErrorBoundary>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  const getRoleDescription = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "Full system access and user management"
-      case "manager":
-        return "Team management and performance oversight"
-      case "coach":
-        return "Team coaching and performance tracking"
-      case "player":
-        return "View personal performance and team stats"
-      case "analyst":
-        return "Performance analysis and reporting"
-      case "pending_player":
-      case "awaiting_approval":
-        return "Profile under review - awaiting approval"
-      default:
-        return "Standard user access"
-    }
-  }
-
-  const getAvailableModules = (role: string) => {
-    const modules = []
-
-    // Pending players have very limited access
-    if (["pending_player", "awaiting_approval"].includes(role?.toLowerCase())) {
-      modules.push({
-        title: "Profile Management",
-        description: "Update your personal information and settings",
-        icon: User,
-        href: "/dashboard/profile",
-      })
-      return modules // Return early, no other modules for pending players
-    }
-
-    if (role === "admin") {
-      modules.push({
-        title: "User Management",
-        description: "Manage users, roles, and team assignments",
-        icon: Users,
-        href: "/dashboard/user-management",
-      })
-    }
-
-    if (["admin", "manager", "coach"].includes(role)) {
-      modules.push({
-        title: "Team Management",
-        description: "Manage teams, rosters, slots, expenses, and prize pools",
-        icon: Shield,
-        href: "/dashboard/team-management",
-      })
-    }
-
-    modules.push({
-      title: "Profile Management",
-      description: "Update your personal information and settings",
-      icon: User,
-      href: "/dashboard/profile",
-    })
-
-    modules.push({
-      title: "Performance Tracking",
-      description: "Track and analyze performance metrics",
-      icon: BarChart3,
-      href: "/dashboard/performance",
-    })
-
-    return modules
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to Raptor Esports CRM</p>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard Overview</h1>
+          <p className="text-muted-foreground">
+            Welcome back, {profile.name || profile.email}! Here's your {roleInfo.label.toLowerCase()} overview.
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Select timeframe" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 3 months</SelectItem>
+              <SelectItem value="365">Last year</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={handleRefresh} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            Your Role: {["pending_player", "awaiting_approval"].includes(profile?.role?.toLowerCase()) ? "AWAITING APPROVAL" : profile?.role?.toUpperCase()}
-          </CardTitle>
-          <CardDescription>{getRoleDescription(profile?.role || "")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground">
-            <p>Name: {profile?.name || "Not set"}</p>
-            <p>Email: {profile?.email}</p>
-            {profile?.team_id && <p>Team: {teams.find((t) => t.id === profile.team_id)?.name || profile.team_id}</p>}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Pending Player Status Card */}
-      {["pending_player", "awaiting_approval"].includes(profile?.role?.toLowerCase()) && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-yellow-800">
-              <Shield className="h-5 w-5" />
-              Profile Under Review
-            </CardTitle>
-            <CardDescription className="text-yellow-700">
-              Thank you for completing your registration! Our team is reviewing your profile.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-yellow-800">
-            <div className="space-y-2">
-              <p className="text-sm">
-                <strong>What happens next?</strong>
-              </p>
-              <ul className="text-sm space-y-1 ml-4 list-disc">
-                <li>Our team will review your gaming profile and experience</li>
-                <li>You'll receive an email notification once approved (24-48 hours)</li>
-                <li>After approval, you'll have full access to team features</li>
-              </ul>
-              <div className="mt-4">
-                <p className="text-sm mb-2">
-                  <strong>Questions?</strong> Join our Discord community!
-                </p>
-                <Button 
-                  asChild 
-                  size="sm" 
-                  className="bg-[#5865F2] hover:bg-[#4752C4] text-white"
-                >
-                  <a 
-                    href="https://discord.gg/6986Kf3eG4" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                  >
-                    Join Discord Server
-                  </a>
-                </Button>
-              </div>
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-red-600">
+              <Activity className="h-4 w-4" />
+              <span>{error}</span>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {["admin", "manager", "coach", "player"].includes(profile?.role?.toLowerCase()) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Team Overview
-            </CardTitle>
-            <CardDescription>
-              <Select value={selectedTeamId || ""} onValueChange={setSelectedTeamId}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select Team" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teams.map((team) => (
-                    <SelectItem key={team.id} value={team.id}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {selectedTeamId ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Slots Booked</CardTitle>
-                    <CalendarCheck className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{teamStats.totalSlotsBooked}</div>
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-6">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            <span className="hidden sm:inline">Performance</span>
+          </TabsTrigger>
+          {canAccessFinance && (
+            <TabsTrigger value="finance" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              <span className="hidden sm:inline">Finance</span>
+            </TabsTrigger>
+          )}
+          {canAccessUsers && (
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Users</span>
+            </TabsTrigger>
+          )}
+          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            <span className="hidden sm:inline">Analytics</span>
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Reports</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(8)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="pt-6">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-8 bg-gray-200 rounded w-1/2"></div>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">₹{teamStats.totalExpense}</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Winnings</CardTitle>
-                    <Trophy className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">₹{teamStats.totalWinnings}</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-                    <Wallet className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div
-                      className={`text-2xl font-bold ${teamStats.netProfit >= 0 ? "text-green-500" : "text-red-500"}`}
-                    >
-                      ₹{teamStats.netProfit}
+              ))}
+            </div>
+          ) : (
+            <>
+              {/* Key Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-medium">Total Matches</p>
+                        <p className="text-2xl font-bold">{stats?.totalMatches || 0}</p>
+                      </div>
+                      <Gamepad2 className="h-8 w-8 text-blue-200" />
                     </div>
                   </CardContent>
                 </Card>
-              </div>
-            ) : (
-              <div className="text-center py-4 text-muted-foreground">Select a team to view its overview.</div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
-      <div>
-        <h2 className="text-2xl font-semibold mb-4">Available Modules</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {getAvailableModules(profile?.role || "").map((module) => (
-            <Link key={module.title} href={module.href}>
-              <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-red-100 text-sm font-medium">Total Kills</p>
+                        <p className="text-2xl font-bold">{stats?.totalKills || 0}</p>
+                      </div>
+                      <Crosshair className="h-8 w-8 text-red-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-orange-100 text-sm font-medium">Avg Damage</p>
+                        <p className="text-2xl font-bold">{stats?.avgDamage?.toFixed(0) || 0}</p>
+                      </div>
+                      <Zap className="h-8 w-8 text-orange-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm font-medium">K/D Ratio</p>
+                        <p className="text-2xl font-bold">{stats?.kdRatio?.toFixed(2) || '0.00'}</p>
+                      </div>
+                      <Target className="h-8 w-8 text-green-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-muted-foreground text-sm font-medium">Avg Survival</p>
+                        <p className="text-2xl font-bold">{stats?.avgSurvival?.toFixed(1) || '0.0'}min</p>
+                      </div>
+                      <Shield className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {canAccessFinance && (
+                  <>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-muted-foreground text-sm font-medium">Total Expense</p>
+                            <p className="text-2xl font-bold">₹{stats?.totalExpense || 0}</p>
+                          </div>
+                          <DollarSign className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-muted-foreground text-sm font-medium">Total P/L</p>
+                            <p className={`text-2xl font-bold ${(stats?.totalProfitLoss || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              ₹{stats?.totalProfitLoss || 0}
+                            </p>
+                          </div>
+                          <TrendingUp className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </>
+                )}
+
+                {shouldSeeAllData && (
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-muted-foreground text-sm font-medium">Active Teams</p>
+                          <p className="text-2xl font-bold">{stats?.activeTeams || 0}</p>
+                        </div>
+                        <Users className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+
+              {/* Top Performers Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Crown className="h-5 w-5 text-yellow-500" />
+                      Top Performing Team
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {topPerformers.topTeam ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold text-lg">{topPerformers.topTeam.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {topPerformers.topTeam.matches} matches • {topPerformers.topTeam.winRate.toFixed(1)}% win rate
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                            #{1}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Kills</p>
+                            <p className="font-semibold">{topPerformers.topTeam.kills}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Avg Damage</p>
+                            <p className="font-semibold">{topPerformers.topTeam.avgDamage.toFixed(0)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">K/D</p>
+                            <p className="font-semibold">{topPerformers.topTeam.kdRatio.toFixed(2)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">No team data available</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Star className="h-5 w-5 text-blue-500" />
+                      Top Performing Player
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {topPerformers.topPlayer ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold text-lg">{topPerformers.topPlayer.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {topPerformers.topPlayer.team && `Team: ${topPerformers.topPlayer.team}`}
+                            </p>
+                          </div>
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                            {topPerformers.topPlayer.metric}
+                          </Badge>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-2xl font-bold text-blue-600">{topPerformers.topPlayer.value}</p>
+                          <p className="text-sm text-muted-foreground">Performance Score</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">No player data available</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Records Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Flame className="h-5 w-5 text-red-500" />
+                      Highest Kills
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {topPerformers.highestKills ? (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold">{topPerformers.highestKills.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {topPerformers.highestKills.team && `Team: ${topPerformers.highestKills.team}`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-red-600">{topPerformers.highestKills.value}</p>
+                          <p className="text-sm text-muted-foreground">kills</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">No kills data available</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-orange-500" />
+                      Highest Damage
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {topPerformers.highestDamage ? (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold">{topPerformers.highestDamage.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {topPerformers.highestDamage.team && `Team: ${topPerformers.highestDamage.team}`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-orange-600">{topPerformers.highestDamage.value}</p>
+                          <p className="text-sm text-muted-foreground">damage</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">No damage data available</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Performance History */}
+              <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <module.icon className="h-5 w-5" />
-                    {module.title}
+                    <Activity className="h-5 w-5" />
+                    Performance History
                   </CardTitle>
-                  <CardDescription>{module.description}</CardDescription>
+                  <CardDescription>Recent match performances</CardDescription>
                 </CardHeader>
+                <CardContent>
+                  {recentPerformances.length > 0 ? (
+                    <PerformanceDashboard 
+                      performances={recentPerformances} 
+                      users={[]} 
+                      currentUser={profile}
+                      showFilters={false}
+                      compact={true}
+                    />
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8">No recent performance data available</p>
+                  )}
+                </CardContent>
               </Card>
-            </Link>
-          ))}
-        </div>
-      </div>
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="performance">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Performance Module</h3>
+                <p className="text-muted-foreground mb-4">
+                  Detailed performance tracking and analysis
+                </p>
+                <Link href="/dashboard/performance">
+                  <Button>
+                    Go to Performance
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {canAccessFinance && (
+          <TabsContent value="finance">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <DollarSign className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">Finance Module</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Manage expenses, prize pools, and financial reports
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <Link href="/dashboard/team-management/expenses">
+                      <Button variant="outline">
+                        Expenses
+                      </Button>
+                    </Link>
+                    <Link href="/dashboard/team-management/prize-pool">
+                      <Button variant="outline">
+                        Prize Pool
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        <TabsContent value="analytics">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <TrendingUp className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Analytics & Reports</h3>
+                <p className="text-muted-foreground mb-4">
+                  Advanced analytics and detailed reporting
+                </p>
+                <Link href="/dashboard/analytics">
+                  <Button>
+                    Go to Analytics
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <Download className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Reports</h3>
+                <p className="text-muted-foreground mb-4">
+                  Generate and download detailed reports
+                </p>
+                <Link href="/dashboard/performance-report">
+                  <Button>
+                    Performance Reports
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
