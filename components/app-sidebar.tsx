@@ -110,7 +110,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       (item.title === "Team Management" &&
                         pathname.startsWith("/dashboard/team-management")) ||
                       (item.title === "User Management" &&
-                        (pathname.startsWith("/dashboard/user-management") || pathname === "/dashboard/permissions"))
+                        pathname.startsWith("/dashboard/user-management"))
                     }
                   >
                     <Link href={item.url}>

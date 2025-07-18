@@ -24,6 +24,7 @@ import { EmergencyAdminService, type EmergencyAdminResult } from "@/lib/emergenc
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useRouter, useSearchParams } from "next/navigation"
+import { Switch } from "@/components/ui/switch"
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 type Team = Database["public"]["Tables"]["teams"]["Row"]
@@ -136,67 +137,6 @@ export default function UserManagementPage() {
     }
   }
 
-  const fetchPermissions = async () => {
-    if (activeTab !== 'permissions') return
-    setPermissionsLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from('permissions')
-        .select('*')
-        .order('created_at', { ascending: false })
-      
-      if (error) throw error
-      
-      // Convert to object for easier access
-      const permissionsObj = data.reduce((acc, perm) => {
-        acc[perm.permission_key] = perm.is_enabled
-        return acc
-      }, {})
-      
-      setPermissions(permissionsObj)
-    } catch (error) {
-      console.error('Error fetching permissions:', error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch permissions",
-        variant: "destructive",
-      })
-    } finally {
-      setPermissionsLoading(false)
-    }
-  }
-
-  const updatePermission = async (permissionKey: string, isEnabled: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('permissions')
-        .upsert({
-          permission_key: permissionKey,
-          is_enabled: isEnabled,
-          updated_at: new Date().toISOString()
-        })
-      
-      if (error) throw error
-      
-      setPermissions((prev: any) => ({
-        ...prev,
-        [permissionKey]: isEnabled
-      }))
-      
-      toast({
-        title: "Success",
-        description: `Permission ${isEnabled ? 'enabled' : 'disabled'} successfully`,
-      })
-    } catch (error) {
-      console.error('Error updating permission:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update permission",
-        variant: "destructive",
-      })
-    }
-  }
-
   useEffect(() => {
     if (profile?.role?.toLowerCase() !== "admin") {
       return
@@ -204,7 +144,6 @@ export default function UserManagementPage() {
 
     fetchUsers()
     fetchTeams()
-    fetchPermissions()
     
     // Set up real-time subscription for user changes
     const subscription = supabase
@@ -588,12 +527,10 @@ export default function UserManagementPage() {
     }
   }
 
-  if (profile?.role?.toLowerCase() !== "admin") {
-    return (
-      <Alert>
-        <AlertDescription>You don't have permission to access this page.</AlertDescription>
-      </Alert>
-    )
+  const isAdmin = profile?.role === "admin"
+  // Only admin can access user management
+  if (!isAdmin) {
+    return null
   }
 
   if (loading) {
@@ -602,11 +539,9 @@ export default function UserManagementPage() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-      <TabsList className="grid w-full grid-cols-2">
+      <TabsList className="grid w-full grid-cols-1">
         <TabsTrigger value="users">Users</TabsTrigger>
-        <TabsTrigger value="permissions">Permissions</TabsTrigger>
       </TabsList>
-
       <TabsContent value="users">
         {/* Tabs for All Users / Discord Users */}
         <div className="flex gap-2 mb-4">
@@ -652,7 +587,9 @@ export default function UserManagementPage() {
                       <TableCell>
                         <Badge variant={getRoleBadgeVariant(user?.role)}>{user?.role || "-"}</Badge>
                       </TableCell>
-                      <TableCell>{safeTeams.find((t) => t.id === user?.team_id)?.name || "No team"}</TableCell>
+                      <TableCell>
+                        {['admin', 'manager'].includes(user.role) ? <TableCell>-</TableCell> : <TableCell>{safeTeams.find((t) => t.id === user?.team_id)?.name || "No team"}</TableCell>}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" onClick={() => setEditingUser(user)}>
@@ -702,38 +639,44 @@ export default function UserManagementPage() {
 
                 <div className="space-y-2">
                   <Label>Team</Label>
-                  <Select
-                    value={editingUser.team_id || "none"}
-                    onValueChange={(value) =>
-                      setEditingUser({
-                        ...editingUser,
-                        team_id: value === "none" ? null : value,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select team" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No team</SelectItem>
-                      {teams.map((team) => (
-                        <SelectItem key={team.id} value={team.id}>
-                          {team.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {editingUser.role !== 'admin' && editingUser.role !== 'manager' && (
+                    <Select
+                      value={editingUser.team_id || "none"}
+                      onValueChange={(value) =>
+                        setEditingUser({
+                          ...editingUser,
+                          team_id: value === "none" ? null : value,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No team</SelectItem>
+                        {teams.map((team) => (
+                          <SelectItem key={team.id} value={team.id}>
+                            {team.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {editingUser.role === 'admin' || editingUser.role === 'manager' ? (
+                    <p className="text-muted-foreground text-sm">Team assignment restricted for admin/manager roles.</p>
+                  ) : null}
                 </div>
               </div>
 
               <div className="flex gap-2">
                 <Button
-                  onClick={() =>
-                    updateUser(editingUser.id, {
-                      role: editingUser.role,
-                      team_id: editingUser.team_id,
-                    })
-                  }
+                  onClick={() => {
+                    const updatedUser = { ...editingUser };
+                    if (updatedUser.role === 'admin' || updatedUser.role === 'manager') {
+                      updatedUser.team_id = null;
+                    }
+                    updateUser(editingUser.id, updatedUser);
+                  }}
                 >
                   Save Changes
                 </Button>
@@ -745,55 +688,6 @@ export default function UserManagementPage() {
           </Card>
         )}
         {error && <div className="text-red-500">{error}</div>}
-      </TabsContent>
-
-      <TabsContent value="permissions">
-        <Card>
-          <CardHeader>
-            <CardTitle>Manage Permissions</CardTitle>
-            <CardDescription>Enable or disable system-wide permissions.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Permission Key</TableHead>
-                  <TableHead>Enabled</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Object.entries(permissions).length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
-                      No permissions found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  Object.entries(permissions).map(([key, isEnabled]) => (
-                    <TableRow key={key}>
-                      <TableCell>{key}</TableCell>
-                      <TableCell>
-                        <Badge variant={isEnabled ? "default" : "outline"}>
-                          {isEnabled ? "Enabled" : "Disabled"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updatePermission(key, !isEnabled)}
-                        >
-                          {isEnabled ? <EyeOff className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
       </TabsContent>
     </Tabs>
   )

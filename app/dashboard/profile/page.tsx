@@ -32,7 +32,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const fetchTeamInfo = async () => {
-      if (profile?.team_id) {
+      if (profile?.team_id && !['admin', 'manager'].includes(profile.role)) {
         try {
           const { data, error } = await supabase
             .from("teams")
@@ -198,15 +198,9 @@ export default function ProfilePage() {
     )
   }
 
+  // All roles in menuItems can access profile, but if you want to restrict further, add logic here.
   if (!profile) {
-    return (
-      <div className="space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-          <p className="text-muted-foreground">Loading your profile...</p>
-        </div>
-      </div>
-    )
+    return null
   }
 
   // Format join date
