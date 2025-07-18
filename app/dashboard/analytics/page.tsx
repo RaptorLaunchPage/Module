@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { DashboardData, type DashboardDataOptions } from '@/lib/dashboard-data'
 import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions'
+import { supabase } from '@/lib/supabase'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -20,16 +21,47 @@ import {
   Calendar,
   PieChart,
   LineChart,
-  Activity
+  Activity,
+  Gamepad2,
+  Crosshair,
+  Zap,
+  Shield,
+  Trophy,
+  RefreshCw
 } from 'lucide-react'
+
+interface AnalyticsStats {
+  totalMatches: number
+  totalKills: number
+  avgDamage: number
+  avgSurvival: number
+  kdRatio: number
+  avgPlacement: number
+  todayMatches: number
+  weekMatches: number
+  monthMatches: number
+  topPlayer: {
+    name: string
+    kills: number
+    damage: number
+  } | null
+  topTeam: {
+    name: string
+    wins: number
+    matches: number
+  } | null
+}
 
 export default function AnalyticsPage() {
   const { profile } = useAuth()
-  const [performanceData, setPerformanceData] = useState<any[]>([])
-  const [teamData, setTeamData] = useState<any[]>([])
+  const [stats, setStats] = useState<AnalyticsStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedTimeframe, setSelectedTimeframe] = useState('30')
   const [selectedTeam, setSelectedTeam] = useState('all')
+  const [selectedMap, setSelectedMap] = useState('all')
+  const [teams, setTeams] = useState<any[]>([])
+  const [maps, setMaps] = useState<string[]>([])
 
   const userRole = profile?.role as UserRole
   const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
@@ -40,472 +72,587 @@ export default function AnalyticsPage() {
     if (profile) {
       loadAnalyticsData()
     }
-  }, [profile, selectedTimeframe, selectedTeam])
+  }, [profile, selectedTimeframe, selectedTeam, selectedMap])
 
   const loadAnalyticsData = async () => {
     if (!profile) return
 
     setLoading(true)
+    setError(null)
+    
     try {
-      const options: DashboardDataOptions = {
-        userRole: profile.role as UserRole,
-        userId: profile.id,
-        teamId: selectedTeam === 'all' ? undefined : selectedTeam || profile.team_id || undefined,
-        limit: 1000
+      // Calculate date range
+      const timeframeDate = new Date()
+      timeframeDate.setDate(timeframeDate.getDate() - parseInt(selectedTimeframe))
+      
+      // Build query with filters
+      let performanceQuery = supabase
+        .from('performances')
+        .select(`
+          *,
+          users!inner(id, name, email),
+          teams!inner(id, name)
+        `)
+        .gte('created_at', timeframeDate.toISOString())
+      
+      // Apply role-based filtering
+      if (profile.role === 'player') {
+        performanceQuery = performanceQuery.eq('player_id', profile.id)
+      } else if (profile.role === 'coach' && profile.team_id) {
+        performanceQuery = performanceQuery.eq('team_id', profile.team_id)
       }
-
-      const [performanceResult, teamResult] = await Promise.all([
-        DashboardData.getPerformances(options),
-        DashboardData.getTeams(options)
+      
+      // Apply user filters
+      if (selectedTeam !== 'all') {
+        performanceQuery = performanceQuery.eq('team_id', selectedTeam)
+      }
+      if (selectedMap !== 'all') {
+        performanceQuery = performanceQuery.eq('map', selectedMap)
+      }
+      
+      const { data: performances, error: perfError } = await performanceQuery.order('created_at', { ascending: false })
+      
+      if (perfError) throw perfError
+      
+      // Load teams and maps for filters
+      const [teamsResult, mapsResult] = await Promise.all([
+        supabase.from('teams').select('id, name').order('name'),
+        supabase.from('performances').select('map').not('map', 'is', null)
       ])
-
-      setPerformanceData(performanceResult.data || [])
-      setTeamData(teamResult.data || [])
-    } catch (error) {
-      console.error('Analytics data loading error:', error)
+      
+      if (teamsResult.data) setTeams(teamsResult.data)
+      if (mapsResult.data) {
+        const uniqueMaps = [...new Set(mapsResult.data.map(p => p.map).filter(Boolean))]
+        setMaps(uniqueMaps)
+      }
+      
+      // Calculate analytics stats
+      const calculatedStats = calculateAnalyticsStats(performances || [])
+      setStats(calculatedStats)
+      
+    } catch (err: any) {
+      console.error('Error loading analytics data:', err)
+      setError(err.message || 'Failed to load analytics data')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleExport = async (dataType: 'performance' | 'teams', format: 'csv' | 'json' = 'csv') => {
+  const calculateAnalyticsStats = (performances: any[]): AnalyticsStats => {
+    if (!performances || performances.length === 0) {
+      return {
+        totalMatches: 0,
+        totalKills: 0,
+        avgDamage: 0,
+        avgSurvival: 0,
+        kdRatio: 0,
+        avgPlacement: 0,
+        todayMatches: 0,
+        weekMatches: 0,
+        monthMatches: 0,
+        topPlayer: null,
+        topTeam: null
+      }
+    }
+
+    const totalMatches = performances.length
+    const totalKills = performances.reduce((sum, p) => sum + (p.kills || 0), 0)
+    const totalDamage = performances.reduce((sum, p) => sum + (p.damage || 0), 0)
+    const totalSurvival = performances.reduce((sum, p) => sum + (p.survival_time || 0), 0)
+    const totalDeaths = performances.reduce((sum, p) => sum + (p.deaths || 0), 0)
+    const totalPlacement = performances.reduce((sum, p) => sum + (p.placement || 0), 0)
+
+    const avgDamage = totalMatches > 0 ? totalDamage / totalMatches : 0
+    const avgSurvival = totalMatches > 0 ? totalSurvival / totalMatches : 0
+    const kdRatio = totalDeaths > 0 ? totalKills / totalDeaths : totalKills
+    const avgPlacement = totalMatches > 0 ? Math.round(totalPlacement / totalMatches) : 0
+
+    // Calculate time-based matches
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+
+    const todayMatches = performances.filter(p => new Date(p.created_at) >= today).length
+    const weekMatches = performances.filter(p => new Date(p.created_at) >= weekAgo).length
+    const monthMatches = performances.filter(p => new Date(p.created_at) >= monthAgo).length
+
+    // Find top player
+    const playerStats = new Map()
+    performances.forEach(perf => {
+      const playerId = perf.users?.id
+      const playerName = perf.users?.name || perf.users?.email
+      
+      if (!playerId || !playerName) return
+      
+      if (!playerStats.has(playerId)) {
+        playerStats.set(playerId, {
+          name: playerName,
+          kills: 0,
+          damage: 0,
+          matches: 0
+        })
+      }
+      
+      const stats = playerStats.get(playerId)
+      stats.kills += perf.kills || 0
+      stats.damage += perf.damage || 0
+      stats.matches += 1
+    })
+
+    let topPlayer = null
+    let maxScore = 0
+    for (const [playerId, stats] of playerStats) {
+      const score = stats.kills + (stats.damage / 100) // Simple scoring
+      if (score > maxScore) {
+        maxScore = score
+        topPlayer = {
+          name: stats.name,
+          kills: stats.kills,
+          damage: Math.round(stats.damage / stats.matches)
+        }
+      }
+    }
+
+    // Find top team
+    const teamStats = new Map()
+    performances.forEach(perf => {
+      const teamId = perf.teams?.id
+      const teamName = perf.teams?.name
+      
+      if (!teamId || !teamName) return
+      
+      if (!teamStats.has(teamId)) {
+        teamStats.set(teamId, {
+          name: teamName,
+          wins: 0,
+          matches: 0
+        })
+      }
+      
+      const stats = teamStats.get(teamId)
+      stats.matches += 1
+      if (perf.placement === 1) stats.wins += 1
+    })
+
+    let topTeam = null
+    let maxWinRate = 0
+    for (const [teamId, stats] of teamStats) {
+      const winRate = stats.matches > 0 ? stats.wins / stats.matches : 0
+      if (winRate > maxWinRate && stats.matches >= 3) { // Minimum 3 matches
+        maxWinRate = winRate
+        topTeam = {
+          name: stats.name,
+          wins: stats.wins,
+          matches: stats.matches
+        }
+      }
+    }
+
+    return {
+      totalMatches,
+      totalKills,
+      avgDamage,
+      avgSurvival,
+      kdRatio,
+      avgPlacement,
+      todayMatches,
+      weekMatches,
+      monthMatches,
+      topPlayer,
+      topTeam
+    }
+  }
+
+  const handleExport = async (dataType: 'performance' | 'teams') => {
     if (!profile) return
 
     try {
       const options: DashboardDataOptions = {
-        userRole: profile.role as UserRole,
+        role: userRole,
         userId: profile.id,
-        teamId: selectedTeam === 'all' ? undefined : selectedTeam || profile.team_id || undefined
+        teamId: profile.team_id,
+        timeframe: selectedTimeframe
       }
 
-      const exportData = await DashboardData.exportData(dataType, options, format)
+      const csvData = await DashboardData.exportData(dataType, options, 'csv')
       
-      const blob = new Blob([exportData], { 
-        type: format === 'csv' ? 'text/csv' : 'application/json' 
-      })
+      // Create and download file
+      const blob = new Blob([csvData], { type: 'text/csv' })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `analytics-${dataType}-${new Date().toISOString().split('T')[0]}.${format}`
+      a.download = `${dataType}-analytics-${new Date().toISOString().split('T')[0]}.csv`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (error: any) {
       console.error('Export error:', error)
-      alert('Export failed: ' + error.message)
+      setError('Export failed: ' + error.message)
     }
   }
 
-  // Calculate analytics metrics
-  const analytics = {
-    totalMatches: performanceData.length,
-    avgKills: performanceData.length > 0 ? 
-      performanceData.reduce((sum, p) => sum + (p.kills || 0), 0) / performanceData.length : 0,
-    avgDamage: performanceData.length > 0 ? 
-      performanceData.reduce((sum, p) => sum + (p.damage || 0), 0) / performanceData.length : 0,
-    avgPlacement: performanceData.length > 0 ? 
-      performanceData.reduce((sum, p) => sum + (p.placement || 0), 0) / performanceData.length : 0,
-    topPerformers: performanceData
-      .reduce((acc: any[], p) => {
-        const existing = acc.find(item => item.playerId === p.player_id)
-        if (existing) {
-          existing.totalKills += p.kills || 0
-          existing.totalDamage += p.damage || 0
-          existing.matches += 1
-        } else {
-          acc.push({
-            playerId: p.player_id,
-            playerName: p.users?.name || 'Unknown',
-            totalKills: p.kills || 0,
-            totalDamage: p.damage || 0,
-            matches: 1
-          })
-        }
-        return acc
-      }, [])
-      .sort((a, b) => b.totalKills - a.totalKills)
-      .slice(0, 5),
-    mapStats: performanceData
-      .reduce((acc: any, p) => {
-        if (!acc[p.map]) {
-          acc[p.map] = { matches: 0, totalKills: 0, totalDamage: 0 }
-        }
-        acc[p.map].matches += 1
-        acc[p.map].totalKills += p.kills || 0
-        acc[p.map].totalDamage += p.damage || 0
-        return acc
-      }, {})
+  const handleRefresh = () => {
+    loadAnalyticsData()
   }
 
   if (!profile) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading analytics...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Analytics & Reports</h1>
-            <p className="text-gray-600">
-              Performance insights and data exports
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Badge variant="outline">
-              {performanceData.length} records
-            </Badge>
-          </div>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Analytics & Reports</h1>
+          <p className="text-muted-foreground">
+            Advanced analytics and performance insights
+          </p>
         </div>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button onClick={handleRefresh} variant="outline" size="sm" disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          {canExportPerformance && (
+            <Button onClick={() => handleExport('performance')} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export Data
+            </Button>
+          )}
+        </div>
+      </div>
 
-        {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filters
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="text-sm font-medium">Timeframe</label>
-                <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="7">Last 7 days</SelectItem>
-                    <SelectItem value="30">Last 30 days</SelectItem>
-                    <SelectItem value="90">Last 90 days</SelectItem>
-                    <SelectItem value="365">Last year</SelectItem>
-                    <SelectItem value="all">All time</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {shouldSeeAllData && (
-                <div>
-                  <label className="text-sm font-medium">Team</label>
-                  <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Teams</SelectItem>
-                      {teamData.map(team => (
-                        <SelectItem key={team.id} value={team.id}>
-                          {team.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="flex items-end">
-                <Button onClick={loadAnalyticsData} variant="outline" disabled={loading}>
-                  <Activity className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                  {loading ? 'Loading...' : 'Refresh'}
-                </Button>
-              </div>
+      {/* Error Display */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-red-600">
+              <Activity className="h-4 w-4" />
+              <span>{error}</span>
             </div>
           </CardContent>
         </Card>
+      )}
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Matches</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics.totalMatches}</div>
-              <p className="text-xs text-muted-foreground">
-                Performance entries
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Kills</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{analytics.avgKills.toFixed(1)}</div>
-              <p className="text-xs text-muted-foreground">
-                Per match
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Damage</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{Math.round(analytics.avgDamage)}</div>
-              <p className="text-xs text-muted-foreground">
-                Per match
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Placement</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">#{analytics.avgPlacement.toFixed(1)}</div>
-              <p className="text-xs text-muted-foreground">
-                Average rank
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Analytics Tabs */}
-        <Tabs defaultValue="performance" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="performance">Performance Analysis</TabsTrigger>
-            <TabsTrigger value="players">Player Rankings</TabsTrigger>
-            <TabsTrigger value="maps">Map Statistics</TabsTrigger>
-            <TabsTrigger value="export">Data Export</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="performance" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Performance Trends</CardTitle>
-                  <CardDescription>
-                    {performanceData.length} matches analyzed
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {performanceData.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <LineChart className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                      <p>No performance data available</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-600">Best Match</p>
-                          <p className="font-semibold">
-                            {Math.max(...performanceData.map(p => p.kills || 0))} kills
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600">Best Placement</p>
-                          <p className="font-semibold">
-                            #{Math.min(...performanceData.map(p => p.placement || 99))}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600">Total Kills</p>
-                          <p className="font-semibold">
-                            {performanceData.reduce((sum, p) => sum + (p.kills || 0), 0)}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-600">Total Damage</p>
-                          <p className="font-semibold">
-                            {performanceData.reduce((sum, p) => sum + (p.damage || 0), 0).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Matches</CardTitle>
-                  <CardDescription>Latest performance entries</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {performanceData.slice(0, 5).map((match, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">
-                            {match.users?.name || 'Unknown'} 
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {match.map} • {new Date(match.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-semibold">{match.kills} kills</p>
-                          <p className="text-xs text-gray-500">#{match.placement}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-5 w-5" />
+            Filters
+          </CardTitle>
+          <CardDescription>Customize your analytics view</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Time Period</label>
+              <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">Last 7 days</SelectItem>
+                  <SelectItem value="30">Last 30 days</SelectItem>
+                  <SelectItem value="90">Last 3 months</SelectItem>
+                  <SelectItem value="365">Last year</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </TabsContent>
 
-          <TabsContent value="players" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Performers</CardTitle>
-                <CardDescription>Ranked by total kills</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {analytics.topPerformers.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Users className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                    <p>No player data available</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {analytics.topPerformers.map((player, index) => (
-                      <div key={player.playerId} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <Badge variant={index < 3 ? 'default' : 'outline'}>
-                            #{index + 1}
-                          </Badge>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Team</label>
+              <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Teams" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Teams</SelectItem>
+                  {teams.map(team => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Map</label>
+              <Select value={selectedMap} onValueChange={setSelectedMap}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Maps" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Maps</SelectItem>
+                  {maps.map(map => (
+                    <SelectItem key={map} value={map}>
+                      {map}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Analytics Content */}
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="flex items-center gap-2">
+            <Target className="h-4 w-4" />
+            <span className="hidden sm:inline">Performance</span>
+          </TabsTrigger>
+          <TabsTrigger value="teams" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Teams</span>
+          </TabsTrigger>
+          <TabsTrigger value="trends" className="flex items-center gap-2">
+            <TrendingUp className="h-4 w-4" />
+            <span className="hidden sm:inline">Trends</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(8)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardContent className="pt-6">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <>
+              {/* Key Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-100 text-sm font-medium">Total Matches</p>
+                        <p className="text-2xl font-bold">{stats?.totalMatches || 0}</p>
+                      </div>
+                      <Gamepad2 className="h-8 w-8 text-blue-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-red-100 text-sm font-medium">Total Kills</p>
+                        <p className="text-2xl font-bold">{stats?.totalKills || 0}</p>
+                      </div>
+                      <Crosshair className="h-8 w-8 text-red-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-orange-100 text-sm font-medium">Avg Damage</p>
+                        <p className="text-2xl font-bold">{stats?.avgDamage?.toFixed(0) || 0}</p>
+                      </div>
+                      <Zap className="h-8 w-8 text-orange-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm font-medium">K/D Ratio</p>
+                        <p className="text-2xl font-bold">{stats?.kdRatio?.toFixed(2) || '0.00'}</p>
+                      </div>
+                      <Target className="h-8 w-8 text-green-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-muted-foreground text-sm font-medium">Avg Survival</p>
+                        <p className="text-2xl font-bold">{stats?.avgSurvival?.toFixed(1) || '0.0'}min</p>
+                      </div>
+                      <Shield className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-muted-foreground text-sm font-medium">Avg Placement</p>
+                        <p className="text-2xl font-bold">#{stats?.avgPlacement || 0}</p>
+                      </div>
+                      <Trophy className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-muted-foreground text-sm font-medium">Today</p>
+                        <p className="text-2xl font-bold">{stats?.todayMatches || 0}</p>
+                      </div>
+                      <Calendar className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-muted-foreground text-sm font-medium">This Week</p>
+                        <p className="text-2xl font-bold">{stats?.weekMatches || 0}</p>
+                      </div>
+                      <Calendar className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Top Performers */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-yellow-500" />
+                      Top Player
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {stats?.topPlayer ? (
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold">{stats.topPlayer.name}</span>
+                          <Badge variant="secondary">MVP</Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
                           <div>
-                            <p className="font-medium">{player.playerName}</p>
-                            <p className="text-sm text-gray-500">{player.matches} matches</p>
+                            <p className="text-muted-foreground">Total Kills</p>
+                            <p className="font-semibold">{stats.topPlayer.kills}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Avg Damage</p>
+                            <p className="font-semibold">{stats.topPlayer.damage}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold">{player.totalKills} kills</p>
-                          <p className="text-sm text-gray-500">
-                            {Math.round(player.totalDamage / player.matches)} avg dmg
-                          </p>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">No player data available</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-blue-500" />
+                      Top Team
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {stats?.topTeam ? (
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold">{stats.topTeam.name}</span>
+                          <Badge variant="secondary">
+                            {((stats.topTeam.wins / stats.topTeam.matches) * 100).toFixed(1)}% WR
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Wins</p>
+                            <p className="font-semibold">{stats.topTeam.wins}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Matches</p>
+                            <p className="font-semibold">{stats.topTeam.matches}</p>
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    ) : (
+                      <p className="text-muted-foreground">No team data available</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
+        </TabsContent>
 
-          <TabsContent value="maps" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Map Performance</CardTitle>
-                <CardDescription>Statistics by map</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {Object.keys(analytics.mapStats).length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <PieChart className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-                    <p>No map data available</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {Object.entries(analytics.mapStats).map(([map, stats]: [string, any]) => (
-                      <div key={map} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-medium">{map}</p>
-                          <p className="text-sm text-gray-500">{stats.matches} matches</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold">{stats.totalKills} total kills</p>
-                          <p className="text-sm text-gray-500">
-                            {Math.round(stats.totalKills / stats.matches)} avg kills
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+        <TabsContent value="performance">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Performance Analytics</h3>
+                <p className="text-muted-foreground">
+                  Detailed performance metrics and trends coming soon
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent value="export" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Data Export</CardTitle>
-                <CardDescription>
-                  Download analytics data in various formats
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {canExportPerformance && (
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Performance Data</h4>
-                      <div className="flex space-x-2">
-                        <Button 
-                          onClick={() => handleExport('performance', 'csv')}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          CSV
-                        </Button>
-                        <Button 
-                          onClick={() => handleExport('performance', 'json')}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          JSON
-                        </Button>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {performanceData.length} performance records
-                      </p>
-                    </div>
-                  )}
+        <TabsContent value="teams">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Team Analytics</h3>
+                <p className="text-muted-foreground">
+                  Team performance comparison and analysis coming soon
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                  {canExportTeams && (
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Team Data</h4>
-                      <div className="flex space-x-2">
-                        <Button 
-                          onClick={() => handleExport('teams', 'csv')}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          CSV
-                        </Button>
-                        <Button 
-                          onClick={() => handleExport('teams', 'json')}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          JSON
-                        </Button>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {teamData.length} team records
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-4 border-t">
-                  <h4 className="font-medium mb-2">Export Info</h4>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <p>• CSV files can be opened in Excel or Google Sheets</p>
-                    <p>• JSON files are suitable for technical analysis</p>
-                    <p>• All exports respect your role-based data access permissions</p>
-                    <p>• Large datasets may take a moment to prepare</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+        <TabsContent value="trends">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-center py-8">
+                <TrendingUp className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Trend Analysis</h3>
+                <p className="text-muted-foreground">
+                  Historical trends and predictive analytics coming soon
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   )
 }
