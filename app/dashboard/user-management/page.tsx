@@ -527,11 +527,16 @@ export default function UserManagementPage() {
     }
   }
 
-  if (profile?.role?.toLowerCase() !== "admin") {
+  const isAdmin = profile?.role === "admin"
+  // Only admin can access user management
+  if (!isAdmin) {
     return (
-      <Alert>
-        <AlertDescription>You don't have permission to access this page.</AlertDescription>
-      </Alert>
+      <div className="space-y-6">
+        <div className="p-6 text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600">You don't have permission to access user management.</p>
+        </div>
+      </div>
     )
   }
 
