@@ -207,11 +207,12 @@ export default function RosterPage() {
 
   const isAdmin = profile?.role === "admin"
   const isManager = profile?.role === "manager"
+  const isAdminOrManager = isAdmin || isManager
   const isCoach = profile?.role === "coach"
   const isAnalyst = profile?.role === "analyst"
-  const canManage = isAdmin || isManager
+  const canManage = isAdminOrManager
   const canEditOwnTeam = isCoach
-  const canView = isAdmin || isManager || isCoach || isAnalyst
+  const canView = isAdminOrManager || isCoach || isAnalyst
   // Check if user has access to roster management
   if (!canView) {
     return null

@@ -79,12 +79,13 @@ export default function PerformancePage() {
   // Role-based tab logic
   const isAdmin = profile?.role === "admin"
   const isManager = profile?.role === "manager"
+  const isAdminOrManager = isAdmin || isManager
   const isCoach = profile?.role === "coach"
   const isPlayer = profile?.role === "player"
   const isAnalyst = profile?.role === "analyst"
-  const canViewDashboard = isAdmin || isManager || isCoach || isAnalyst
-  const canAddPerformance = isAdmin || isManager || isCoach
-  const canUseOCR = isAdmin || isManager || isCoach
+  const canViewDashboard = isAdminOrManager || isCoach || isAnalyst
+  const canAddPerformance = isAdminOrManager || isCoach
+  const canUseOCR = isAdminOrManager || isCoach
   const canSubmitPerformance = isPlayer
   const canViewReport = true // All roles can view report
   const requiresUsers = canViewDashboard || canAddPerformance || canUseOCR;

@@ -137,8 +137,12 @@ export default function SlotExpensesPage() {
     return filteredExpenses.reduce((sum, expense) => sum + (expense.total || 0), 0)
   }
 
-  // Check if user has access to team management
-  if (!profile?.role || !["admin", "manager", "coach"].includes(profile.role.toLowerCase())) {
+  const isAdmin = profile?.role === "admin"
+  const isManager = profile?.role === "manager"
+  const isAdminOrManager = isAdmin || isManager
+  // Use isAdminOrManager for all admin/manager logic
+
+  if (!isAdminOrManager) {
     return (
       <div className="space-y-6">
         <div className="p-6 text-center">
