@@ -213,9 +213,7 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                   </TableCell>
                   <TableCell>
                     {(() => {
-                      // Calculate K/D ratio
-                      // If no deaths data is available, we'll use placement as a proxy
-                      // For BGMI: 1st place = 0 deaths, 2nd-4th = 1 death, 5th+ = 2+ deaths
+                      // Calculate K/D ratio based on placement (unified logic)
                       let deaths = 1; // Default to 1 death
                       
                       if (performance.placement) {

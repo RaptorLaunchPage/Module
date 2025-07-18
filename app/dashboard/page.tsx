@@ -277,7 +277,16 @@ export default function DashboardPage() {
       const totalKills = perfs.reduce((sum, p) => sum + (p.kills || 0), 0)
       const avgPlacement = perfs.reduce((sum, p) => sum + (p.placement || 0), 0) / totalMatches
       const chickenCount = perfs.filter(p => p.placement === 1).length
-      const overallKD = totalMatches > 0 ? totalKills / totalMatches : 0
+      
+      // Calculate K/D ratio based on placement (since BGMI doesn't track deaths directly)
+      const totalDeaths = perfs.reduce((sum, p) => {
+        if (!p.placement) return sum + 1; // Default to 1 death if no placement
+        if (p.placement === 1) return sum + 0; // Winner gets 0 deaths
+        if (p.placement <= 4) return sum + 1; // Top 4 gets 1 death
+        return sum + 2; // Others get 2 deaths
+      }, 0)
+      
+      const overallKD = totalDeaths > 0 ? totalKills / totalDeaths : totalKills
       
       // Find top fragger
       const playerKills: Record<string, number> = {}
