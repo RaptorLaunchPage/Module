@@ -19,6 +19,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Database } from "@/lib/supabase"
+import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
 
 type Team = Database["public"]["Tables"]["teams"]["Row"]
 type Slot = Database["public"]["Tables"]["slots"]["Row"] & { team: Team | null }
@@ -67,15 +68,20 @@ export default function SlotsPage() {
 
   const fetchTeams = async () => {
     try {
+      const userRole = profile?.role as UserRole
+      const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
+      
       let query = supabase.from("teams").select("*").order("name")
 
-      // Admin and manager can see all teams
-      if (profile?.role === "coach") {
-        query = query.eq("coach_id", profile.id)
-      } else if (profile?.role === "player") {
-        query = query.eq("id", profile.team_id!)
+      // Filter teams based on role permissions
+      if (!shouldSeeAllData) {
+        if (userRole === "coach") {
+          query = query.eq("coach_id", profile.id)
+        } else if (userRole === "player") {
+          query = query.eq("id", profile.team_id!)
+        }
       }
-      // No filtering for admin/manager - they see all teams
+      // Admin and manager see all teams (no filtering)
 
       const { data, error } = await query
       if (error) throw error
@@ -99,13 +105,18 @@ export default function SlotsPage() {
   const fetchSlots = async () => {
     setLoading(true)
     try {
+      const userRole = profile?.role as UserRole
+      const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
+      
       let query = supabase.from("slots").select("*, team:team_id(name, tier)").order("date", { ascending: false })
 
-      if (profile?.role === "coach") {
-        query = query.eq("team_id", profile.team_id!)
-      } else if (profile?.role === "player") {
-        query = query.eq("team_id", profile.team_id!)
+      // Filter slots based on role permissions  
+      if (!shouldSeeAllData) {
+        if (userRole === "coach" || userRole === "player") {
+          query = query.eq("team_id", profile.team_id!)
+        }
       }
+      // Admin and manager see all slots (no filtering)
 
       const { data, error } = await query
       if (error) throw error

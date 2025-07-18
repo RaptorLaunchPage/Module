@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import type { Database } from "@/lib/supabase"
+import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
 
 type Team = Database["public"]["Tables"]["teams"]["Row"]
 type SlotExpense = Database["public"]["Tables"]["slot_expenses"]["Row"] & {
@@ -139,17 +140,20 @@ export default function SlotExpensesPage() {
     return filteredExpenses.reduce((sum, expense) => sum + (expense.total || 0), 0)
   }
 
-  const isAdmin = profile?.role === "admin"
-  const isManager = profile?.role === "manager"
-  const isAdminOrManager = isAdmin || isManager
-  // Use isAdminOrManager for all admin/manager logic
+  // Role-based permissions using unified system
+  const userRole = profile?.role as UserRole
+  const financePermissions = DashboardPermissions.getDataPermissions(userRole, 'finance')
+  const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
+  const canManageFinance = financePermissions.canCreate || financePermissions.canEdit
+  const canViewFinance = financePermissions.canView
 
-  if (!isAdminOrManager) {
+  if (!canViewFinance) {
     return (
       <div className="space-y-6">
         <div className="p-6 text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access team management.</p>
+          <p className="text-gray-600">You don't have permission to access expense management.</p>
+          <p className="text-sm text-gray-500 mt-2">Current role: {profile?.role}</p>
         </div>
       </div>
     )

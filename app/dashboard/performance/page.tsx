@@ -10,6 +10,7 @@ import { PerformanceDashboard } from "@/components/performance/performance-dashb
 import { PlayerPerformanceSubmit } from "@/components/performance/player-performance-submit"
 import { PerformanceReportSimple } from "@/components/performance/performance-report-simple"
 import type { Database } from "@/lib/supabase"
+import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
 
 type Performance = Database["public"]["Tables"]["performances"]["Row"] & {
   slot?: {
@@ -76,18 +77,16 @@ export default function PerformancePage() {
     }
   }
 
-  // Role-based tab logic
-  const isAdmin = profile?.role === "admin"
-  const isManager = profile?.role === "manager"
-  const isAdminOrManager = isAdmin || isManager
-  const isCoach = profile?.role === "coach"
-  const isPlayer = profile?.role === "player"
-  const isAnalyst = profile?.role === "analyst"
-  const canViewDashboard = isAdminOrManager || isCoach || isAnalyst
-  const canAddPerformance = isAdminOrManager || isCoach
-  const canUseOCR = isAdminOrManager || isCoach
-  const canSubmitPerformance = isPlayer
-  const canViewReport = true // All roles can view report
+  // Role-based permissions using unified system
+  const userRole = profile?.role as UserRole
+  const performancePermissions = DashboardPermissions.getDataPermissions(userRole, 'performance')
+  const roleInfo = DashboardPermissions.getRoleInfo(userRole)
+  
+  const canViewDashboard = performancePermissions.canView
+  const canAddPerformance = performancePermissions.canCreate
+  const canUseOCR = performancePermissions.canCreate && ['admin', 'manager', 'coach'].includes(userRole)
+  const canSubmitPerformance = userRole === 'player'
+  const canViewReport = performancePermissions.canView
   const requiresUsers = canViewDashboard || canAddPerformance || canUseOCR;
   // If user has no access to any tab, render nothing
   if (!canViewDashboard && !canAddPerformance && !canUseOCR && !canSubmitPerformance && !canViewReport) {
