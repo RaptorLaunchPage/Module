@@ -246,6 +246,7 @@ export default function PrizePoolPage() {
   const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
   const canManageFinance = financePermissions.canCreate || financePermissions.canEdit
   const canViewFinance = financePermissions.canView
+  const isAdminOrManager = profile?.role === "admin" || profile?.role === "manager"
 
   // Check if user has access to prize pool management
   if (!canViewFinance) {

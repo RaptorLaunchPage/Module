@@ -82,6 +82,7 @@ export default function PerformancePage() {
   const performancePermissions = DashboardPermissions.getDataPermissions(userRole, 'performance')
   const roleInfo = DashboardPermissions.getRoleInfo(userRole)
   
+  const isAnalyst = profile?.role === "analyst"
   const canViewDashboard = performancePermissions.canView
   const canAddPerformance = performancePermissions.canCreate
   const canUseOCR = performancePermissions.canCreate && ['admin', 'manager', 'coach'].includes(userRole)
