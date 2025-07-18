@@ -18,24 +18,23 @@ window.location.replace('https://dev.raptorofficial.in')
 - `hooks/use-auth.tsx` - Updated both redirect instances in the signOut function
 
 ### 2. 📊 K/D Logic Implementation - FIXED
-**Problem**: K/D was incorrectly calculated as `totalKills / totalMatches`.
+**Problem**: K/D calculation logic needed clarification and proper implementation.
 
-**Solution**: Implemented proper K/D calculation based on placement (since BGMI doesn't track deaths directly):
+**Solution**: Implemented correct K/D calculation logic as specified:
+- **Team K/D**: Total Team Kills / Total Team Matches
+- **Individual K/D**: Total Kills by Player / Total Matches Played by Player
+
 ```javascript
-// New K/D calculation logic
-const totalDeaths = perfs.reduce((sum, p) => {
-  if (!p.placement) return sum + 1; // Default to 1 death if no placement
-  if (p.placement === 1) return sum + 0; // Winner gets 0 deaths
-  if (p.placement <= 4) return sum + 1; // Top 4 gets 1 death
-  return sum + 2; // Others get 2 deaths
-}, 0)
+// Team K/D calculation
+const overallKD = totalMatches > 0 ? totalKills / totalMatches : 0
 
-const overallKD = totalDeaths > 0 ? totalKills / totalDeaths : totalKills
+// Individual K/D calculation
+const playerKD = playerTotalMatches > 0 ? playerTotalKills / playerTotalMatches : 0
 ```
 
 **Files Modified**:
-- `app/dashboard/page.tsx` - Updated K/D calculation in team stats
-- `components/performance/performance-dashboard.tsx` - Unified K/D calculation logic
+- `app/dashboard/page.tsx` - Updated K/D calculation for both team and individual stats
+- `components/performance/performance-dashboard.tsx` - Updated individual K/D calculation in performance history
 
 ### 3. 📈 K/D Stat Card in Performance History - ALREADY IMPLEMENTED
 **Status**: The "Overall Team KD" card is already present in the team performance section and now uses the corrected K/D calculation.
@@ -85,11 +84,18 @@ Created `update_user_profile_complete()` function that handles all profile field
 ## 🔧 Implementation Details
 
 ### K/D Calculation Logic
-The unified K/D calculation is now used across:
-- Player's own overview section ✅
-- Team overview section ✅  
-- Performance history rows ✅
-- Team's recent performance card ✅
+The correct K/D calculation is now implemented across:
+- **Player's own overview section** ✅ - Shows individual K/D (Total Kills / Total Matches)
+- **Team overview section** ✅ - Shows team K/D (Total Team Kills / Total Team Matches)
+- **Performance history rows** ✅ - Shows individual K/D for each player
+- **Team's recent performance card** ✅ - Shows team K/D ratio
+
+### Individual Player Dashboard
+Added dedicated individual performance section for players showing:
+- Your Matches (total matches played)
+- Your K/D Ratio (total kills / total matches)
+- Your Avg Placement
+- Your Avg Damage
 
 ### Profile Form Structure
 The profile page correctly uses separate forms for different sections:

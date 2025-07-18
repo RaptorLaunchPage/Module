@@ -213,21 +213,12 @@ export function PerformanceDashboard({ performances, users, currentUser }: Perfo
                   </TableCell>
                   <TableCell>
                     {(() => {
-                      // Calculate K/D ratio based on placement (unified logic)
-                      let deaths = 1; // Default to 1 death
-                      
-                      if (performance.placement) {
-                        if (performance.placement === 1) {
-                          deaths = 0; // Winner gets 0 deaths
-                        } else if (performance.placement <= 4) {
-                          deaths = 1; // Top 4 gets 1 death
-                        } else {
-                          deaths = 2; // Others get 2 deaths
-                        }
-                      }
-                      
-                      const kd = deaths === 0 ? performance.kills : (performance.kills / deaths);
-                      return kd.toFixed(2);
+                      // Calculate individual K/D: Total Kills by Player / Total Matches Played by Player
+                      const playerPerformances = performances.filter(p => p.player_id === performance.player_id)
+                      const playerTotalKills = playerPerformances.reduce((sum, p) => sum + p.kills, 0)
+                      const playerTotalMatches = playerPerformances.length
+                      const playerKD = playerTotalMatches > 0 ? playerTotalKills / playerTotalMatches : 0
+                      return playerKD.toFixed(2);
                     })()}
                   </TableCell>
                   <TableCell>{performance.damage.toFixed(0)}</TableCell>

@@ -260,6 +260,19 @@ export default function DashboardPage() {
     const teamPerformances = performances.filter(p => 
       teamUsers.some(user => user.id === p.player_id)
     )
+
+    // Calculate individual player stats
+    const playerPerformances = performances.filter(p => p.player_id === profile.id)
+    const playerStats = {
+      totalMatches: playerPerformances.length,
+      totalKills: playerPerformances.reduce((sum, p) => sum + (p.kills || 0), 0),
+      individualKD: playerPerformances.length > 0 ? 
+        playerPerformances.reduce((sum, p) => sum + (p.kills || 0), 0) / playerPerformances.length : 0,
+      avgPlacement: playerPerformances.length > 0 ? 
+        playerPerformances.reduce((sum, p) => sum + (p.placement || 0), 0) / playerPerformances.length : 0,
+      avgDamage: playerPerformances.length > 0 ? 
+        playerPerformances.reduce((sum, p) => sum + (p.damage || 0), 0) / playerPerformances.length : 0
+    }
     
 
     const calculateTeamStats = (perfs: any[]) => {
@@ -278,15 +291,8 @@ export default function DashboardPage() {
       const avgPlacement = perfs.reduce((sum, p) => sum + (p.placement || 0), 0) / totalMatches
       const chickenCount = perfs.filter(p => p.placement === 1).length
       
-      // Calculate K/D ratio based on placement (since BGMI doesn't track deaths directly)
-      const totalDeaths = perfs.reduce((sum, p) => {
-        if (!p.placement) return sum + 1; // Default to 1 death if no placement
-        if (p.placement === 1) return sum + 0; // Winner gets 0 deaths
-        if (p.placement <= 4) return sum + 1; // Top 4 gets 1 death
-        return sum + 2; // Others get 2 deaths
-      }, 0)
-      
-      const overallKD = totalDeaths > 0 ? totalKills / totalDeaths : totalKills
+      // Calculate Team K/D ratio: Total Team Kills / Total Team Matches
+      const overallKD = totalMatches > 0 ? totalKills / totalMatches : 0
       
       // Find top fragger
       const playerKills: Record<string, number> = {}
@@ -329,8 +335,52 @@ export default function DashboardPage() {
           <p className="text-muted-foreground">Your team's performance and statistics</p>
         </div>
 
+        {/* Individual Player Stats Cards */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Your Individual Performance</h2>
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Your Matches</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{playerStats.totalMatches}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Your K/D Ratio</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">{playerStats.individualKD.toFixed(2)}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Your Avg Placement</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">#{playerStats.avgPlacement.toFixed(1)}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Your Avg Damage</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{playerStats.avgDamage.toFixed(0)}</div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
         {/* Team Stats Cards */}
-        <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Team Performance</h2>
+          <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Matches</CardTitle>
@@ -393,6 +443,7 @@ export default function DashboardPage() {
               <div className="text-2xl font-bold">{teamStats.overallKD.toFixed(2)}</div>
             </CardContent>
           </Card>
+          </div>
         </div>
 
         {/* Performance History */}
