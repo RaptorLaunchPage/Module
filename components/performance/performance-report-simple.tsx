@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, BarChart3, Trophy, Target, Zap, Calendar, Filter, X } from "lucide-react"
+import { Loader2, BarChart3, Calendar, Filter, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 
@@ -32,15 +32,6 @@ interface PerformanceData {
   slot: string
 }
 
-interface SummaryStats {
-  totalMatches: number
-  totalKills: number
-  totalDamage: number
-  avgPlacement: number
-  avgKills: number
-  avgDamage: number
-}
-
 interface FilterState {
   teamId: string
   playerId: string
@@ -59,7 +50,6 @@ export function PerformanceReportSimple() {
     console.log('🎯 PerformanceReportSimple rendering, profile:', profile)
 
     const [performances, setPerformances] = useState<PerformanceData[]>([])
-    const [summaryStats, setSummaryStats] = useState<SummaryStats | null>(null)
     const [loading, setLoading] = useState(true)
     const [teams, setTeams] = useState<any[]>([])
     const [players, setPlayers] = useState<any[]>([])
@@ -150,7 +140,6 @@ export function PerformanceReportSimple() {
         
         // Set empty states on error
         setPerformances([])
-        setSummaryStats(null)
         setTeams([])
         setPlayers([])
         setMaps([])
@@ -264,7 +253,6 @@ export function PerformanceReportSimple() {
           if (coachTeamsError) {
             console.error('❌ Error loading coach teams:', coachTeamsError)
             setPerformances([])
-            setSummaryStats(null)
             return
           }
           
@@ -277,7 +265,6 @@ export function PerformanceReportSimple() {
             // Coach has no teams, return empty
             console.log('⚠️ Coach has no teams')
             setPerformances([])
-            setSummaryStats(null)
             return
           }
         }
@@ -315,7 +302,6 @@ export function PerformanceReportSimple() {
         if (!performanceData || performanceData.length === 0) {
           console.log('📭 No performance data found')
           setPerformances([])
-          setSummaryStats(null)
           return
         }
 
@@ -380,38 +366,11 @@ export function PerformanceReportSimple() {
         console.log('🎯 Data transformation complete:', transformedData.length, 'records')
 
         setPerformances(transformedData)
-        calculateSummaryStats(transformedData)
 
         console.log('✅ Performance data loading complete')
       } catch (err) {
         console.error('❌ Error in loadPerformanceData:', err)
         throw err // Re-throw to be handled by parent
-      }
-    }
-
-    const calculateSummaryStats = (data: PerformanceData[]) => {
-      console.log('📈 Calculating summary stats for', data.length, 'records')
-      
-      try {
-        if (data.length === 0) {
-          setSummaryStats(null)
-          return
-        }
-
-        const stats: SummaryStats = {
-          totalMatches: data.length,
-          totalKills: data.reduce((sum, p) => sum + (p.kills || 0), 0),
-          totalDamage: data.reduce((sum, p) => sum + (p.damage || 0), 0),
-          avgPlacement: data.reduce((sum, p) => sum + (p.placement || 0), 0) / data.length,
-          avgKills: data.reduce((sum, p) => sum + (p.kills || 0), 0) / data.length,
-          avgDamage: data.reduce((sum, p) => sum + (p.damage || 0), 0) / data.length,
-        }
-
-        console.log('📊 Summary stats calculated:', stats)
-        setSummaryStats(stats)
-      } catch (err) {
-        console.error('❌ Error calculating summary stats:', err)
-        setSummaryStats(null)
       }
     }
 
@@ -510,63 +469,10 @@ export function PerformanceReportSimple() {
               Performance Report
             </CardTitle>
             <CardDescription>
-              Comprehensive analysis of team and player performance data
+              Detailed performance data and match history
             </CardDescription>
           </CardHeader>
         </Card>
-
-        {/* Summary Stats */}
-        {summaryStats && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Matches</p>
-                    <p className="text-2xl font-bold">{summaryStats.totalMatches}</p>
-                  </div>
-                  <Target className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Kills</p>
-                    <p className="text-2xl font-bold">{summaryStats.totalKills}</p>
-                  </div>
-                  <Zap className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Avg Placement</p>
-                    <p className="text-2xl font-bold">{summaryStats.avgPlacement.toFixed(1)}</p>
-                  </div>
-                  <Trophy className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Total Damage</p>
-                    <p className="text-2xl font-bold">{summaryStats.totalDamage.toLocaleString()}</p>
-                  </div>
-                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
 
         {/* Filters */}
         <Card>
@@ -690,6 +596,9 @@ export function PerformanceReportSimple() {
             {performances.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground">No performance data found</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Try adjusting your filters or add some performance data
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
