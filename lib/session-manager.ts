@@ -57,7 +57,8 @@ export class SessionManager {
     }
 
     const timeSinceActivity = Date.now() - parseInt(lastActivity)
-    return timeSinceActivity < this.SESSION_DURATION
+    // Extended session duration to 8 hours to reduce aggressive logouts
+    return timeSinceActivity < (8 * 60 * 60 * 1000)
   }
 
   /**
@@ -95,10 +96,10 @@ export class SessionManager {
       clearInterval(this.activityTimer)
     }
 
-    // Check every 5 minutes instead of every minute
+    // Check every 10 minutes instead of every minute to reduce aggressive checks
     this.activityTimer = setInterval(() => {
       this.checkSession()
-    }, 300000) // 5 minutes
+          }, 600000) // 10 minutes
   }
 
   /**

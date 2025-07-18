@@ -78,6 +78,8 @@ export default function ProfilePage() {
 
     setUpdating(true)
     try {
+      console.log('🔄 Updating profile...', formData)
+      
       const { error } = await supabase
         .from("users")
         .update({
@@ -93,13 +95,23 @@ export default function ProfilePage() {
         })
         .eq("id", profile.id)
 
-      if (error) throw error
+      if (error) {
+        console.error("❌ Profile update error:", error)
+        throw error
+      }
 
+      console.log('✅ Profile updated successfully')
       toast.success("Profile updated successfully!")
+      
+      // Refresh profile data
       await refreshProfile()
-    } catch (error) {
-      console.error("Error updating profile:", error)
-      toast.error("Failed to update profile")
+      
+      // Stay on the same page - don't redirect
+      console.log('✅ Profile refresh completed')
+      
+    } catch (error: any) {
+      console.error("❌ Error updating profile:", error)
+      toast.error(error.message || "Failed to update profile")
     } finally {
       setUpdating(false)
     }
@@ -123,22 +135,25 @@ export default function ProfilePage() {
 
     setUploading(true)
     try {
+      console.log('🔄 Starting avatar upload...')
+      
       // Delete existing avatar if it exists
       if (profile.avatar_url) {
         try {
           const oldFileName = profile.avatar_url.split('/').pop()
           if (oldFileName && oldFileName !== 'undefined') {
+            console.log('🗑️ Deleting old avatar:', oldFileName)
             const { error: deleteError } = await supabase.storage
               .from('avatars')
               .remove([`${profile.id}/${oldFileName}`])
             
             if (deleteError) {
-              console.warn('Warning: Could not delete old avatar:', deleteError)
+              console.warn('⚠️ Warning: Could not delete old avatar:', deleteError)
               // Continue with upload even if deletion fails
             }
           }
         } catch (deleteErr) {
-          console.warn('Warning: Error during old avatar deletion:', deleteErr)
+          console.warn('⚠️ Warning: Error during old avatar deletion:', deleteErr)
           // Continue with upload even if deletion fails
         }
       }
@@ -148,15 +163,18 @@ export default function ProfilePage() {
       const fileName = `${Date.now()}.${fileExt}`
       const filePath = `${profile.id}/${fileName}`
 
+      console.log('📤 Uploading to path:', filePath)
       const { error: uploadError, data: uploadData } = await supabase.storage
         .from('avatars')
         .upload(filePath, file)
 
       if (uploadError) {
-        console.error('Upload error details:', uploadError)
+        console.error('❌ Upload error details:', uploadError)
         throw new Error(`Upload failed: ${uploadError.message}`)
       }
 
+      console.log('✅ Upload successful, getting public URL...')
+      
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
@@ -166,6 +184,8 @@ export default function ProfilePage() {
         throw new Error('Failed to get public URL for uploaded image')
       }
 
+      console.log('🔗 Public URL generated:', publicUrl)
+
       // Update user profile with new avatar URL
       const { error: updateError } = await supabase
         .from('users')
@@ -173,14 +193,23 @@ export default function ProfilePage() {
         .eq('id', profile.id)
 
       if (updateError) {
-        console.error('Database update error:', updateError)
+        console.error('❌ Database update error:', updateError)
         throw new Error(`Database update failed: ${updateError.message}`)
       }
 
+      console.log('✅ Avatar updated successfully!')
       toast.success("Avatar updated successfully!")
+      
+      // Refresh profile data without redirecting
       await refreshProfile()
+      
+      // Clear the file input
+      if (event.target) {
+        event.target.value = ''
+      }
+      
     } catch (error: any) {
-      console.error("Error uploading avatar:", error)
+      console.error("❌ Error uploading avatar:", error)
       toast.error(error.message || "Failed to upload avatar")
     } finally {
       setUploading(false)

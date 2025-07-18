@@ -141,7 +141,8 @@ export default function RosterPage() {
           toast({ title: "Error", description: "Please select a player.", variant: "destructive" })
           return
         }
-        const { error } = await supabase.from("rosters").insert({
+        // Use transaction to update both roster and user's team_id
+        const { error: rosterError } = await supabase.from("rosters").insert({
           team_id: selectedTeamId,
           user_id: newPlayerUserId,
           in_game_role: newInGameRole,
@@ -149,7 +150,19 @@ export default function RosterPage() {
           device_info: newDeviceInfo,
         })
 
-        if (error) throw error
+        if (rosterError) throw rosterError
+        
+        // Update the user's team_id to match the roster assignment
+        const { error: userUpdateError } = await supabase
+          .from("users")
+          .update({ team_id: selectedTeamId })
+          .eq("id", newPlayerUserId)
+        
+        if (userUpdateError) {
+          console.warn("Warning: Failed to update user's team_id:", userUpdateError)
+          // Don't throw error here as roster was successfully added
+        }
+
         toast({ title: "Success", description: "Player added to roster successfully." })
       }
       resetForm()
@@ -173,8 +186,32 @@ export default function RosterPage() {
     }
     setFormLoading(true)
     try {
-      const { error } = await supabase.from("rosters").delete().eq("id", rosterId)
-      if (error) throw error
+      // First get the roster entry to find the user_id
+      const { data: rosterEntry, error: fetchError } = await supabase
+        .from("rosters")
+        .select("user_id")
+        .eq("id", rosterId)
+        .single()
+      
+      if (fetchError) throw fetchError
+      
+      // Delete the roster entry
+      const { error: deleteError } = await supabase.from("rosters").delete().eq("id", rosterId)
+      if (deleteError) throw deleteError
+      
+      // Clear the user's team_id
+      if (rosterEntry?.user_id) {
+        const { error: userUpdateError } = await supabase
+          .from("users")
+          .update({ team_id: null })
+          .eq("id", rosterEntry.user_id)
+        
+        if (userUpdateError) {
+          console.warn("Warning: Failed to clear user's team_id:", userUpdateError)
+          // Don't throw error here as roster was successfully removed
+        }
+      }
+      
       toast({ title: "Success", description: "Player removed from roster." })
       if (selectedTeamId) {
         fetchRoster(selectedTeamId)
