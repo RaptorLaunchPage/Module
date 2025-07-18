@@ -183,17 +183,21 @@ export default function UserManagementPage() {
       let hasError = false
       
       try {
-        // First try: UserManagementService
-        const userMgmtResult = await UserManagementService.getAllUsers()
-        if (userMgmtResult.success && userMgmtResult.users) {
-          fetchedUsers = Array.isArray(userMgmtResult.users) ? userMgmtResult.users : []
-          console.log('✅ UserManagementService fetch successful:', fetchedUsers.length)
+        // First try: Direct Supabase query (most reliable)
+        const { data: directData, error: directError } = await supabase
+          .from("users")
+          .select("*")
+          .order("created_at", { ascending: false })
+        
+        if (directData && !directError) {
+          fetchedUsers = Array.isArray(directData) ? directData : []
+          console.log('✅ Direct query successful:', fetchedUsers.length)
         } else {
-          console.warn('⚠️ UserManagementService failed:', userMgmtResult.error)
+          console.warn('⚠️ Direct query failed:', directError)
           hasError = true
         }
-      } catch (userMgmtError) {
-        console.warn('⚠️ UserManagementService error:', userMgmtError)
+      } catch (directError) {
+        console.warn('⚠️ Direct query error:', directError)
         hasError = true
       }
       
@@ -213,27 +217,27 @@ export default function UserManagementPage() {
         }
       }
       
-      // Third try: Direct Supabase query as fallback
-      if (hasError || fetchedUsers.length === 0) {
-        try {
-          const { data: directData, error: directError } = await supabase
-            .from("users")
-            .select("*")
-            .order("created_at", { ascending: false })
-          
-          if (directData && !directError) {
-            fetchedUsers = Array.isArray(directData) ? directData : []
-            console.log('✅ Direct query successful:', fetchedUsers.length)
-            hasError = false
-          } else {
-            console.error('❌ Direct query failed:', directError)
-            setError(directError?.message || 'Failed to fetch users')
-          }
-        } catch (directError) {
-          console.error('❌ Direct query error:', directError)
-          setError('Database connection error')
-        }
-      }
+             // Third try: Limited query as emergency fallback
+       if (hasError || fetchedUsers.length === 0) {
+         try {
+           const { data: emergencyData, error: emergencyError } = await supabase
+             .from("users")
+             .select("*")
+             .limit(100)
+           
+           if (emergencyData && !emergencyError) {
+             fetchedUsers = Array.isArray(emergencyData) ? emergencyData : []
+             console.log('✅ Emergency query successful:', fetchedUsers.length)
+             hasError = false
+           } else {
+             console.error('❌ Emergency query failed:', emergencyError)
+             setError(emergencyError?.message || 'Failed to fetch users')
+           }
+         } catch (emergencyError) {
+           console.error('❌ Emergency query error:', emergencyError)
+           setError('Database connection error')
+         }
+       }
       
       // Set the users (ensure it's always an array)
       setUsers(Array.isArray(fetchedUsers) ? fetchedUsers : [])
