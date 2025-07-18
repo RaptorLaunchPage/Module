@@ -8,7 +8,7 @@ import { AddPerformance } from "@/components/performance/add-performance"
 import { OCRExtract } from "@/components/performance/ocr-extract"
 import { PerformanceDashboard } from "@/components/performance/performance-dashboard"
 import { PlayerPerformanceSubmit } from "@/components/performance/player-performance-submit"
-import { PerformanceReport } from "@/components/performance/performance-report"
+import { PerformanceReportSimple } from "@/components/performance/performance-report-simple"
 import type { Database } from "@/lib/supabase"
 
 type Performance = Database["public"]["Tables"]["performances"]["Row"] & {
@@ -108,7 +108,7 @@ export default function PerformancePage() {
         )}
 
         <TabsContent value="report">
-          <PerformanceReport />
+          <PerformanceReportSimple />
         </TabsContent>
 
         {profile?.role === "player" && (

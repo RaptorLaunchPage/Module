@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo, useCallback } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, BarChart3, Trophy, Target, Zap, Users, Calendar, Filter, X } from "lucide-react"
+import { Loader2, BarChart3, Trophy, Target, Zap, Calendar, Filter, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 
@@ -39,21 +39,18 @@ interface SummaryStats {
   avgPlacement: number
   avgKills: number
   avgDamage: number
-  topKillPlayer: { name: string; kills: number }
-  topDamagePlayer: { name: string; damage: number }
 }
 
 interface FilterState {
   teamId: string
   playerId: string
   map: string
-  slotId: string
   matchNumber: string
   dateFrom: string
   dateTo: string
 }
 
-export function PerformanceReport() {
+export function PerformanceReportSimple() {
   const { profile } = useAuth()
   const { toast } = useToast()
 
@@ -63,21 +60,10 @@ export function PerformanceReport() {
   const [teams, setTeams] = useState<any[]>([])
   const [players, setPlayers] = useState<any[]>([])
   const [maps, setMaps] = useState<string[]>([])
-  const [slots, setSlots] = useState<any[]>([])
   const [filters, setFilters] = useState<FilterState>({
     teamId: '',
     playerId: '',
     map: '',
-    slotId: '',
-    matchNumber: '',
-    dateFrom: '',
-    dateTo: ''
-  })
-  const [appliedFilters, setAppliedFilters] = useState<FilterState>({
-    teamId: '',
-    playerId: '',
-    map: '',
-    slotId: '',
     matchNumber: '',
     dateFrom: '',
     dateTo: ''
@@ -88,8 +74,42 @@ export function PerformanceReport() {
   const isCoach = profile?.role?.toLowerCase() === "coach"
   const isPlayer = profile?.role?.toLowerCase() === "player"
 
-  // Define functions first
-  const loadFilterOptions = useCallback(async () => {
+  useEffect(() => {
+    if (!profile?.role || !["admin", "manager", "coach", "analyst", "player"].includes(profile.role.toLowerCase())) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access this page",
+        variant: "destructive",
+      })
+      return
+    }
+    
+    // Load data once when component mounts
+    loadInitialData()
+  }, [profile])
+
+  const loadInitialData = async () => {
+    if (!profile) return
+    
+    setLoading(true)
+    try {
+      await Promise.all([
+        loadFilterOptions(),
+        loadPerformanceData()
+      ])
+    } catch (error) {
+      console.error('Error loading initial data:', error)
+      toast({
+        title: "Error",
+        description: "Failed to load performance data",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadFilterOptions = async () => {
     try {
       // Load teams
       let teamsQuery = supabase.from('teams').select('id, name, coach_id')
@@ -99,12 +119,12 @@ export function PerformanceReport() {
       const { data: teamsData } = await teamsQuery
       setTeams(teamsData || [])
 
-      // Load players
+      // Load players  
       let playersQuery = supabase.from('users').select('id, name, team_id').neq('role', 'pending_player')
       if (isPlayer) {
         playersQuery = playersQuery.eq('id', profile?.id)
-      } else if (isCoach) {
-        const coachTeams = teamsData?.map(t => t.id) || []
+      } else if (isCoach && teamsData) {
+        const coachTeams = teamsData.map(t => t.id) || []
         if (coachTeams.length > 0) {
           playersQuery = playersQuery.in('team_id', coachTeams)
         }
@@ -120,20 +140,12 @@ export function PerformanceReport() {
       const uniqueMaps = [...new Set(mapsData?.map(p => p.map) || [])]
       setMaps(uniqueMaps)
 
-      // Load slots
-      const { data: slotsData } = await supabase
-        .from('slots')
-        .select('id, organizer, date, time_range')
-        .order('date', { ascending: false })
-      setSlots(slotsData || [])
-
     } catch (error) {
       console.error('Error loading filter options:', error)
     }
-  }, [isCoach, isPlayer, profile?.id])
+  }
 
-  const loadPerformanceData = useCallback(async () => {
-    setLoading(true)
+  const loadPerformanceData = async () => {
     try {
       let query = supabase
         .from('performances')
@@ -166,164 +178,89 @@ export function PerformanceReport() {
           // Coach has no teams, return empty
           setPerformances([])
           setSummaryStats(null)
-          setLoading(false)
           return
         }
       }
 
       // Apply filters
-      if (appliedFilters.teamId) {
-        query = query.eq('team_id', appliedFilters.teamId)
+      if (filters.teamId) {
+        query = query.eq('team_id', filters.teamId)
       }
-      if (appliedFilters.playerId) {
-        query = query.eq('player_id', appliedFilters.playerId)
+      if (filters.playerId) {
+        query = query.eq('player_id', filters.playerId)
       }
-      if (appliedFilters.map) {
-        query = query.eq('map', appliedFilters.map)
+      if (filters.map) {
+        query = query.eq('map', filters.map)
       }
-      if (appliedFilters.slotId) {
-        query = query.eq('slot', appliedFilters.slotId)
+      if (filters.matchNumber) {
+        query = query.eq('match_number', parseInt(filters.matchNumber))
       }
-      if (appliedFilters.matchNumber) {
-        query = query.eq('match_number', parseInt(appliedFilters.matchNumber))
+      if (filters.dateFrom) {
+        query = query.gte('created_at', filters.dateFrom)
       }
-      if (appliedFilters.dateFrom) {
-        query = query.gte('created_at', appliedFilters.dateFrom)
-      }
-      if (appliedFilters.dateTo) {
-        query = query.lte('created_at', appliedFilters.dateTo + 'T23:59:59')
+      if (filters.dateTo) {
+        query = query.lte('created_at', filters.dateTo + 'T23:59:59')
       }
 
       const { data, error } = await query
 
       if (error) throw error
 
-      // Optimize: Transform data efficiently with reduced object creation
-      const transformedData: PerformanceData[] = data?.map(p => {
-        // Destructure to avoid repeated property access
-        const { 
-          match_number, map, placement, kills, assists, damage, 
-          survival_time, created_at, player_id, team_id, slot,
-          users, teams, slots 
-        } = p
-        
-        return {
-          match_number,
-          map,
-          placement,
-          kills,
-          assists,
-          damage,
-          survival_time,
-          created_at,
-          player_name: (users as any)?.name || 'Unknown',
-          team_name: (teams as any)?.name || 'Unknown',
-          organizer: (slots as any)?.organizer || 'Unknown',
-          player_id,
-          team_id,
-          slot
-        }
-      }) || []
+      // Transform data
+      const transformedData: PerformanceData[] = data?.map(p => ({
+        match_number: p.match_number,
+        map: p.map,
+        placement: p.placement,
+        kills: p.kills,
+        assists: p.assists,
+        damage: p.damage,
+        survival_time: p.survival_time,
+        created_at: p.created_at,
+        player_name: (p.users as any)?.name || 'Unknown',
+        team_name: (p.teams as any)?.name || 'Unknown',
+        organizer: (p.slots as any)?.organizer || 'Unknown',
+        player_id: p.player_id,
+        team_id: p.team_id,
+        slot: p.slot
+      })) || []
 
       setPerformances(transformedData)
+      calculateSummaryStats(transformedData)
 
     } catch (error) {
       console.error('Error loading performance data:', error)
-      toast({
-        title: "Error",
-        description: "Failed to load performance data",
-        variant: "destructive",
-      })
-    } finally {
-      setLoading(false)
     }
-  }, [teams, isPlayer, isCoach, profile?.id, appliedFilters, toast])
+  }
 
-  // UseEffect hooks after function definitions
-  // Redirect if no access
-  useEffect(() => {
-    if (!profile?.role || !["admin", "manager", "coach", "analyst", "player"].includes(profile.role.toLowerCase())) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to access this page",
-        variant: "destructive",
-      })
+  const calculateSummaryStats = (data: PerformanceData[]) => {
+    if (data.length === 0) {
+      setSummaryStats(null)
       return
     }
-  }, [profile, toast])
 
-  // Load filter options
-  useEffect(() => {
-    if (profile) {
-      loadFilterOptions()
-    }
-  }, [profile, loadFilterOptions])
-
-  // Load performance data - depends on teams being loaded
-  useEffect(() => {
-    if (profile && teams.length >= 0) { // Allow empty array for coaches with no teams
-      loadPerformanceData()
-    }
-  }, [profile, teams, loadPerformanceData])
-
-  // Memoize expensive calculations to prevent unnecessary recomputation
-  const calculatedSummaryStats = useMemo(() => {
-    if (performances.length === 0) {
-      return null
-    }
-
-    const totalMatches = performances.length
-    // Optimize: Use a single pass to calculate multiple statistics
-    let totalKills = 0
-    let totalDamage = 0
-    let totalPlacement = 0
-    const playerStats = {} as Record<string, { name: string; kills: number; damage: number }>
-
-    for (const p of performances) {
-      totalKills += p.kills
-      totalDamage += p.damage
-      totalPlacement += p.placement
-
-      if (!playerStats[p.player_id]) {
-        playerStats[p.player_id] = { name: p.player_name, kills: 0, damage: 0 }
-      }
-      playerStats[p.player_id].kills += p.kills
-      playerStats[p.player_id].damage += p.damage
-    }
-
-    const avgPlacement = totalPlacement / totalMatches
+    const totalMatches = data.length
+    const totalKills = data.reduce((sum, p) => sum + p.kills, 0)
+    const totalDamage = data.reduce((sum, p) => sum + p.damage, 0)
+    const avgPlacement = data.reduce((sum, p) => sum + p.placement, 0) / totalMatches
     const avgKills = totalKills / totalMatches
     const avgDamage = totalDamage / totalMatches
 
-    const topKillPlayer = Object.values(playerStats).reduce((max, player) => 
-      player.kills > max.kills ? player : max, { name: 'N/A', kills: 0 })
-    
-    const topDamagePlayer = Object.values(playerStats).reduce((max, player) => 
-      player.damage > max.damage ? player : max, { name: 'N/A', damage: 0 })
-
-    return {
+    setSummaryStats({
       totalMatches,
       totalKills,
       totalDamage,
       avgPlacement: Math.round(avgPlacement * 100) / 100,
       avgKills: Math.round(avgKills * 100) / 100,
-      avgDamage: Math.round(avgDamage),
-      topKillPlayer: { name: topKillPlayer.name, kills: topKillPlayer.kills },
-      topDamagePlayer: { name: topDamagePlayer.name, damage: Math.round(topDamagePlayer.damage) }
-    }
-  }, [performances]) // Dependency array for useMemo
-
-  // Update summaryStats state when the memoized value changes
-  useEffect(() => {
-    setSummaryStats(calculatedSummaryStats)
-  }, [calculatedSummaryStats])
+      avgDamage: Math.round(avgDamage)
+    })
+  }
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
   }
 
   const applyFilters = () => {
-    setAppliedFilters(filters)
+    loadPerformanceData()
   }
 
   const clearFilters = () => {
@@ -331,20 +268,12 @@ export function PerformanceReport() {
       teamId: '',
       playerId: '',
       map: '',
-      slotId: '',
       matchNumber: '',
       dateFrom: '',
       dateTo: ''
     })
-    setAppliedFilters({
-      teamId: '',
-      playerId: '',
-      map: '',
-      slotId: '',
-      matchNumber: '',
-      dateFrom: '',
-      dateTo: ''
-    })
+    // Reload data without filters
+    loadPerformanceData()
   }
 
   if (loading) {
