@@ -539,11 +539,9 @@ export default function UserManagementPage() {
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-      <TabsList className="grid w-full grid-cols-2">
+      <TabsList className="grid w-full grid-cols-1">
         <TabsTrigger value="users">Users</TabsTrigger>
-        <TabsTrigger value="permissions">Permissions</TabsTrigger>
       </TabsList>
-
       <TabsContent value="users">
         {/* Tabs for All Users / Discord Users */}
         <div className="flex gap-2 mb-4">
@@ -682,46 +680,6 @@ export default function UserManagementPage() {
           </Card>
         )}
         {error && <div className="text-red-500">{error}</div>}
-      </TabsContent>
-
-      <TabsContent value="permissions">
-        <Card>
-          <CardHeader>
-            <CardTitle>Manage Permissions</CardTitle>
-            <CardDescription>Enable or disable system-wide permissions.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Permission Key</TableHead>
-                  <TableHead>Enabled</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Object.entries(permissions).length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
-                      No permissions found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  Object.entries(permissions).map(([key, isEnabled]) => (
-                    <TableRow key={key}>
-                      <TableCell>{key}</TableCell>
-                      <TableCell>
-                        <Badge variant={isEnabled ? "default" : "outline"}>
-                          {isEnabled ? "Enabled" : "Disabled"}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
       </TabsContent>
     </Tabs>
   )
