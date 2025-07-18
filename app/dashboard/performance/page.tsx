@@ -72,7 +72,7 @@ export default function PerformancePage() {
         .from("performances")
         .select(`
           *,
-          users!inner(id, name, email),
+          users!player_id(id, name, email),
           teams!inner(id, name),
           slots(id, time_range, date)
         `)

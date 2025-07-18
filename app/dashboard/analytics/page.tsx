@@ -90,7 +90,7 @@ export default function AnalyticsPage() {
         .from('performances')
         .select(`
           *,
-          users!inner(id, name, email),
+          users!player_id(id, name, email),
           teams!inner(id, name)
         `)
         .gte('created_at', timeframeDate.toISOString())
