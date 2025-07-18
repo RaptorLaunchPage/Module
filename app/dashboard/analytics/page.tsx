@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { DashboardData, type DashboardDataOptions } from '@/lib/dashboard-data'
 import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions'
-import { NewDashboardLayout } from '@/components/dashboard/new-dashboard-layout'
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -143,8 +143,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <NewDashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div>
@@ -508,6 +507,5 @@ export default function AnalyticsPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </NewDashboardLayout>
   )
 }
