@@ -212,6 +212,8 @@ export default function RosterPage() {
   const userRole = profile?.role as UserRole
   const teamPermissions = DashboardPermissions.getDataPermissions(userRole, 'teams')
   const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
+  const isAnalyst = profile?.role === "analyst"
+  const isCoach = profile?.role === "coach"
   const canManage = teamPermissions.canCreate || teamPermissions.canEdit
   const canEditOwnTeam = userRole === 'coach'
   const canView = teamPermissions.canView

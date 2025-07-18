@@ -7,33 +7,399 @@ import { supabase } from './supabase'
 import { DashboardPermissions, type UserRole } from './dashboard-permissions'
 
 export interface DashboardDataOptions {
-  userRole: UserRole
+  role: UserRole
   userId: string
   teamId?: string
+  timeframe?: string
+  includeFinance?: boolean
+  includeUsers?: boolean
   limit?: number
   offset?: number
 }
 
 export class DashboardData {
+  private options: DashboardDataOptions
+
+  constructor(options: DashboardDataOptions) {
+    this.options = options
+  }
+
+  /**
+   * Get comprehensive overview stats for the dashboard
+   */
+  async getOverviewStats() {
+    const { role, userId, teamId, timeframe = '30', includeFinance = false } = this.options
+    
+    try {
+      const timeframeDate = new Date()
+      timeframeDate.setDate(timeframeDate.getDate() - parseInt(timeframe))
+      
+      // Base performance query with role filtering
+      let performanceQuery = supabase
+        .from('performances')
+        .select('*')
+        .gte('created_at', timeframeDate.toISOString())
+      
+      // Apply role-based filtering
+      if (role === 'player') {
+        performanceQuery = performanceQuery.eq('player_id', userId)
+      } else if (role === 'coach' && teamId) {
+        performanceQuery = performanceQuery.eq('team_id', teamId)
+      }
+      // Admin, manager, and analyst see all data
+      
+      const { data: performances, error: perfError } = await performanceQuery
+      
+      if (perfError) throw perfError
+      
+      // Calculate stats
+      const totalMatches = performances?.length || 0
+      const totalKills = performances?.reduce((sum, p) => sum + (p.kills || 0), 0) || 0
+      const totalDamage = performances?.reduce((sum, p) => sum + (p.damage || 0), 0) || 0
+      const totalSurvival = performances?.reduce((sum, p) => sum + (p.survival_time || 0), 0) || 0
+      
+      const avgDamage = totalMatches > 0 ? totalDamage / totalMatches : 0
+      const avgSurvival = totalMatches > 0 ? totalSurvival / totalMatches : 0
+      const kdRatio = totalMatches > 0 ? totalKills / totalMatches : 0
+      
+      // Get today's and week's matches
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const weekAgo = new Date()
+      weekAgo.setDate(weekAgo.getDate() - 7)
+      
+      const todayMatches = performances?.filter(p => new Date(p.created_at) >= today).length || 0
+      const weekMatches = performances?.filter(p => new Date(p.created_at) >= weekAgo).length || 0
+      
+      // Calculate average placement
+      const placements = performances?.map(p => p.placement).filter(p => p > 0) || []
+      const avgPlacement = placements.length > 0 ? Math.round(placements.reduce((sum, p) => sum + p, 0) / placements.length) : 0
+      
+      // Get financial data if allowed
+      let totalExpense = 0
+      let totalProfitLoss = 0
+      
+      if (includeFinance) {
+        try {
+          const { data: expenses } = await supabase
+            .from('expenses')
+            .select('amount')
+            .gte('created_at', timeframeDate.toISOString())
+          
+          const { data: winnings } = await supabase
+            .from('winnings')
+            .select('amount_won')
+            .gte('created_at', timeframeDate.toISOString())
+          
+          totalExpense = expenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0
+          const totalWinnings = winnings?.reduce((sum, w) => sum + (w.amount_won || 0), 0) || 0
+          totalProfitLoss = totalWinnings - totalExpense
+        } catch (error) {
+          console.warn('Error fetching financial data:', error)
+        }
+      }
+      
+      // Get active teams and players count
+      let activeTeams = 0
+      let activePlayers = 0
+      
+      if (DashboardPermissions.shouldSeeAllData(role)) {
+        try {
+          const { data: teams } = await supabase
+            .from('teams')
+            .select('id')
+            .eq('status', 'active')
+          
+          const { data: users } = await supabase
+            .from('users')
+            .select('id')
+            .neq('role', 'pending')
+            .neq('role', 'awaiting')
+          
+          activeTeams = teams?.length || 0
+          activePlayers = users?.length || 0
+        } catch (error) {
+          console.warn('Error fetching team/user counts:', error)
+        }
+      }
+      
+      return {
+        totalMatches,
+        totalKills,
+        avgDamage,
+        avgSurvival,
+        kdRatio,
+        totalExpense,
+        totalProfitLoss,
+        activeTeams,
+        activePlayers,
+        todayMatches,
+        weekMatches,
+        avgPlacement
+      }
+    } catch (error: any) {
+      console.error('Error getting overview stats:', error)
+      return {
+        totalMatches: 0,
+        totalKills: 0,
+        avgDamage: 0,
+        avgSurvival: 0,
+        kdRatio: 0,
+        totalExpense: 0,
+        totalProfitLoss: 0,
+        activeTeams: 0,
+        activePlayers: 0,
+        todayMatches: 0,
+        weekMatches: 0,
+        avgPlacement: 0
+      }
+    }
+  }
+
+  /**
+   * Get top performers data
+   */
+  async getTopPerformers() {
+    const { role, userId, teamId, timeframe = '30' } = this.options
+    
+    try {
+      const timeframeDate = new Date()
+      timeframeDate.setDate(timeframeDate.getDate() - parseInt(timeframe))
+      
+      // Get performances with user and team data
+      let performanceQuery = supabase
+        .from('performances')
+        .select(`
+          *,
+          users!inner(id, name, email, team_id),
+          teams!inner(id, name)
+        `)
+        .gte('created_at', timeframeDate.toISOString())
+      
+      // Apply role-based filtering
+      if (role === 'player') {
+        performanceQuery = performanceQuery.eq('player_id', userId)
+      } else if (role === 'coach' && teamId) {
+        performanceQuery = performanceQuery.eq('team_id', teamId)
+      }
+      
+      const { data: performances, error } = await performanceQuery
+      
+      if (error) throw error
+      
+      // Calculate top performing team
+      const teamStats = new Map()
+      
+      performances?.forEach(perf => {
+        const teamId = perf.teams?.id
+        const teamName = perf.teams?.name
+        
+        if (!teamId || !teamName) return
+        
+        if (!teamStats.has(teamId)) {
+          teamStats.set(teamId, {
+            id: teamId,
+            name: teamName,
+            matches: 0,
+            kills: 0,
+            damage: 0,
+            wins: 0,
+            totalPlacement: 0
+          })
+        }
+        
+        const stats = teamStats.get(teamId)
+        stats.matches += 1
+        stats.kills += perf.kills || 0
+        stats.damage += perf.damage || 0
+        stats.totalPlacement += perf.placement || 0
+        if (perf.placement === 1) stats.wins += 1
+      })
+      
+      // Find top team
+      let topTeam = null
+      let bestScore = 0
+      
+      for (const [teamId, stats] of teamStats) {
+        if (stats.matches === 0) continue
+        
+        const avgDamage = stats.damage / stats.matches
+        const kdRatio = stats.kills / Math.max(stats.matches, 1)
+        const winRate = (stats.wins / stats.matches) * 100
+        
+        // Performance score calculation
+        const score = (avgDamage * 0.3) + (kdRatio * 20) + (winRate * 2)
+        
+        if (score > bestScore) {
+          bestScore = score
+          topTeam = {
+            id: teamId,
+            name: stats.name,
+            matches: stats.matches,
+            kills: stats.kills,
+            avgDamage,
+            kdRatio,
+            winRate
+          }
+        }
+      }
+      
+      // Calculate top performing player
+      const playerStats = new Map()
+      
+      performances?.forEach(perf => {
+        const playerId = perf.users?.id
+        const playerName = perf.users?.name || perf.users?.email
+        const teamName = perf.teams?.name
+        
+        if (!playerId || !playerName) return
+        
+        if (!playerStats.has(playerId)) {
+          playerStats.set(playerId, {
+            id: playerId,
+            name: playerName,
+            team: teamName,
+            matches: 0,
+            kills: 0,
+            damage: 0,
+            wins: 0
+          })
+        }
+        
+        const stats = playerStats.get(playerId)
+        stats.matches += 1
+        stats.kills += perf.kills || 0
+        stats.damage += perf.damage || 0
+        if (perf.placement === 1) stats.wins += 1
+      })
+      
+      // Find top player
+      let topPlayer = null
+      let bestPlayerScore = 0
+      
+      for (const [playerId, stats] of playerStats) {
+        if (stats.matches === 0) continue
+        
+        const avgDamage = stats.damage / stats.matches
+        const kdRatio = stats.kills / Math.max(stats.matches, 1)
+        const winRate = (stats.wins / stats.matches) * 100
+        
+        const score = (avgDamage * 0.3) + (kdRatio * 20) + (winRate * 2)
+        
+        if (score > bestPlayerScore) {
+          bestPlayerScore = score
+          topPlayer = {
+            id: playerId,
+            name: stats.name,
+            team: stats.team,
+            value: Math.round(score),
+            metric: 'Score'
+          }
+        }
+      }
+      
+      // Find highest kills and damage
+      let highestKills: { id: string; name: string; team: string | null | undefined; value: number; metric: string } | null = null
+      let highestDamage: { id: string; name: string; team: string | null | undefined; value: number; metric: string } | null = null
+      
+      performances?.forEach(perf => {
+        const playerName = perf.users?.name || perf.users?.email
+        const teamName = perf.teams?.name
+        
+        if (!playerName) return
+        
+        if (!highestKills || (perf.kills || 0) > highestKills.value) {
+          highestKills = {
+            id: perf.users?.id || '',
+            name: playerName,
+            team: teamName,
+            value: perf.kills || 0,
+            metric: 'Kills'
+          }
+        }
+        
+        if (!highestDamage || (perf.damage || 0) > highestDamage.value) {
+          highestDamage = {
+            id: perf.users?.id || '',
+            name: playerName,
+            team: teamName,
+            value: perf.damage || 0,
+            metric: 'Damage'
+          }
+        }
+      })
+      
+      return {
+        topTeam,
+        topPlayer,
+        highestKills,
+        highestDamage
+      }
+    } catch (error: any) {
+      console.error('Error getting top performers:', error)
+      return {
+        topTeam: null,
+        topPlayer: null,
+        highestKills: null,
+        highestDamage: null
+      }
+    }
+  }
+
+  /**
+   * Get recent performances
+   */
+  async getRecentPerformances(limit = 10) {
+    const { role, userId, teamId } = this.options
+    
+    try {
+      let query = supabase
+        .from('performances')
+        .select(`
+          *,
+          users!inner(id, name, email),
+          teams!inner(id, name),
+          slots(id, time_range, date)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+      
+      // Apply role-based filtering
+      if (role === 'player') {
+        query = query.eq('player_id', userId)
+      } else if (role === 'coach' && teamId) {
+        query = query.eq('team_id', teamId)
+      }
+      
+      const { data, error } = await query
+      
+      if (error) throw error
+      return data || []
+    } catch (error: any) {
+      console.error('Error getting recent performances:', error)
+      return []
+    }
+  }
+
   /**
    * Fetch users with proper role-based filtering
    */
   static async getUsers(options: DashboardDataOptions) {
-    const { userRole, userId, limit } = options
+    const { role, userId, limit } = options
     
     try {
       let query = supabase.from('users').select('*')
       
       // Apply role-based filtering
-      if (userRole === 'admin') {
+      if (role === 'admin') {
         // Admin sees all users
-      } else if (userRole === 'manager') {
+      } else if (role === 'manager') {
         // Manager sees all users except sensitive admin data
         query = query.neq('role', 'admin')
-      } else if (userRole === 'coach' && options.teamId) {
+      } else if (role === 'coach' && options.teamId) {
         // Coach sees only team members
         query = query.eq('team_id', options.teamId)
-      } else if (userRole === 'player') {
+      } else if (role === 'player') {
         // Player sees only themselves and team members
         query = query.or(`id.eq.${userId},team_id.eq.${options.teamId}`)
       } else {
@@ -48,7 +414,6 @@ export class DashboardData {
       if (error) throw error
       return { data: data || [], error: null }
     } catch (error: any) {
-      console.error('Error fetching users:', error)
       return { data: [], error: error.message }
     }
   }
@@ -57,33 +422,32 @@ export class DashboardData {
    * Fetch teams with proper role-based filtering
    */
   static async getTeams(options: DashboardDataOptions) {
-    const { userRole, userId, teamId, limit } = options
+    const { role, userId, teamId, limit } = options
     
     try {
       let query = supabase.from('teams').select('*')
       
       // Apply role-based filtering
-      if (DashboardPermissions.shouldSeeAllData(userRole)) {
-        // Admin and Manager see all teams
-      } else if (userRole === 'coach') {
-        // Coach sees only teams they coach
-        query = query.eq('coach_id', userId)
-      } else if (userRole === 'player' && teamId) {
+      if (role === 'admin' || role === 'manager') {
+        // Admin/Manager sees all teams
+      } else if (role === 'coach' && teamId) {
+        // Coach sees only their team
+        query = query.eq('id', teamId)
+      } else if (role === 'player' && teamId) {
         // Player sees only their team
         query = query.eq('id', teamId)
       } else {
         // Default: no teams
-        return { data: [], error: null }
+        query = query.eq('id', 'none')
       }
       
       if (limit) query = query.limit(limit)
       
-      const { data, error } = await query.order('name')
+      const { data, error } = await query.order('created_at', { ascending: false })
       
       if (error) throw error
       return { data: data || [], error: null }
     } catch (error: any) {
-      console.error('Error fetching teams:', error)
       return { data: [], error: error.message }
     }
   }
@@ -92,201 +456,144 @@ export class DashboardData {
    * Fetch performances with proper role-based filtering
    */
   static async getPerformances(options: DashboardDataOptions) {
-    const { userRole, userId, teamId, limit } = options
+    const { role, userId, teamId, limit } = options
     
     try {
       let query = supabase
         .from('performances')
         .select(`
           *,
-          users!performances_player_id_fkey(name, email),
-          teams!performances_team_id_fkey(name),
-          slots!performances_slot_fkey(organizer, date, time_range)
+          users!inner(id, name, email),
+          teams!inner(id, name),
+          slots(id, time_range, date)
         `)
       
-      // Apply role-based filtering - THIS IS THE KEY FIX
-      if (DashboardPermissions.shouldSeeAllData(userRole)) {
-        // Admin and Manager see ALL performances - no filtering
-        console.log(`🔍 Dashboard Data - ${userRole} accessing ALL performance data`)
-      } else if (userRole === 'coach' && teamId) {
-        // Coach sees only their team's performances
-        query = query.eq('team_id', teamId)
-        console.log(`🔍 Dashboard Data - Coach accessing team ${teamId} performance data`)
-      } else if (userRole === 'player') {
-        // Player sees only their own performances
+      // Apply role-based filtering
+      if (role === 'player') {
         query = query.eq('player_id', userId)
-        console.log(`🔍 Dashboard Data - Player accessing own performance data`)
-      } else if (userRole === 'analyst' && teamId) {
-        // Analyst sees team performances
+      } else if (role === 'coach' && teamId) {
         query = query.eq('team_id', teamId)
-        console.log(`🔍 Dashboard Data - Analyst accessing team ${teamId} performance data`)
-      } else {
-        // Default: no data
-        console.log(`🔍 Dashboard Data - Role ${userRole} has no performance access`)
-        return { data: [], error: null }
       }
+      // Admin, manager, and analyst see all performances
       
       if (limit) query = query.limit(limit)
       
       const { data, error } = await query.order('created_at', { ascending: false })
       
       if (error) throw error
-      
-      console.log(`📊 Dashboard Data - Fetched ${data?.length || 0} performance records for ${userRole}`)
       return { data: data || [], error: null }
     } catch (error: any) {
-      console.error('Error fetching performances:', error)
       return { data: [], error: error.message }
     }
   }
 
   /**
-   * Fetch financial data (expenses, winnings, slots)
+   * Get overview statistics
    */
-  static async getFinancialData(options: DashboardDataOptions) {
-    const { userRole, limit } = options
-    
-    // Only admin and manager can access financial data
-    if (!['admin', 'manager'].includes(userRole)) {
-      return { 
-        slots: [], 
-        expenses: [], 
-        winnings: [], 
-        error: 'Access denied' 
-      }
-    }
+  static async getOverviewStats(options: DashboardDataOptions) {
+    const { role, userId, teamId } = options
     
     try {
-      const [slotsResult, expensesResult, winningsResult] = await Promise.allSettled([
-        supabase.from('slots').select('*').limit(limit || 100),
-        supabase.from('slot_expenses').select('*').limit(limit || 100),
-        supabase.from('winnings').select('*').limit(limit || 100)
-      ])
+      // Get counts based on role permissions
+      let totalUsers = 0
+      let totalTeams = 0
+      let totalPerformances = 0
+      let totalMatches = 0
+      let personalPerformances = 0
+      
+      // Users count
+      if (DashboardPermissions.getDataPermissions(role, 'users').canView) {
+        const usersResult = await this.getUsers(options)
+        totalUsers = usersResult.data.length
+      }
+      
+      // Teams count
+      if (DashboardPermissions.getDataPermissions(role, 'teams').canView) {
+        const teamsResult = await this.getTeams(options)
+        totalTeams = teamsResult.data.length
+      }
+      
+      // Performances count
+      if (DashboardPermissions.getDataPermissions(role, 'performance').canView) {
+        const performancesResult = await this.getPerformances(options)
+        totalPerformances = performancesResult.data.length
+        totalMatches = totalPerformances // For now, assuming 1 performance = 1 match
+        
+        // Personal performances for players
+        if (role === 'player') {
+          personalPerformances = totalPerformances
+        }
+      }
       
       return {
-        slots: slotsResult.status === 'fulfilled' ? slotsResult.value.data || [] : [],
-        expenses: expensesResult.status === 'fulfilled' ? expensesResult.value.data || [] : [],
-        winnings: winningsResult.status === 'fulfilled' ? winningsResult.value.data || [] : [],
+        data: {
+          totalUsers,
+          totalTeams,
+          totalPerformances,
+          totalMatches,
+          personalPerformances: role === 'player' ? personalPerformances : undefined,
+          recentActivity: []
+        },
         error: null
       }
     } catch (error: any) {
-      console.error('Error fetching financial data:', error)
-      return { slots: [], expenses: [], winnings: [], error: error.message }
-    }
-  }
-
-  /**
-   * Get dashboard overview statistics
-   */
-  static async getOverviewStats(options: DashboardDataOptions) {
-    const { userRole, userId, teamId } = options
-    
-    try {
-      // Get basic counts based on role
-      const stats: any = {
-        totalUsers: 0,
-        totalTeams: 0,
-        totalPerformances: 0,
-        totalMatches: 0,
-        recentActivity: []
-      }
-      
-      // Fetch data based on role permissions
-      if (DashboardPermissions.shouldSeeAllData(userRole)) {
-        // Admin/Manager get full statistics
-        const [usersCount, teamsCount, performancesCount] = await Promise.allSettled([
-          supabase.from('users').select('*', { count: 'exact', head: true }),
-          supabase.from('teams').select('*', { count: 'exact', head: true }),
-          supabase.from('performances').select('*', { count: 'exact', head: true })
-        ])
-        
-        stats.totalUsers = usersCount.status === 'fulfilled' ? usersCount.value.count || 0 : 0
-        stats.totalTeams = teamsCount.status === 'fulfilled' ? teamsCount.value.count || 0 : 0
-        stats.totalPerformances = performancesCount.status === 'fulfilled' ? performancesCount.value.count || 0 : 0
-      } else {
-        // Limited statistics for other roles
-        if (teamId) {
-          const teamPerformances = await supabase
-            .from('performances')
-            .select('*', { count: 'exact', head: true })
-            .eq('team_id', teamId)
-          
-          stats.totalPerformances = teamPerformances.count || 0
-        }
-        
-        if (userRole === 'player') {
-          const playerPerformances = await supabase
-            .from('performances')
-            .select('*', { count: 'exact', head: true })
-            .eq('player_id', userId)
-          
-          stats.personalPerformances = playerPerformances.count || 0
-        }
-      }
-      
-      return { data: stats, error: null }
-    } catch (error: any) {
-      console.error('Error fetching overview stats:', error)
       return { data: null, error: error.message }
     }
   }
 
   /**
-   * Export data to CSV/Excel format
+   * Export data to CSV format
    */
-  static async exportData(
-    dataType: 'users' | 'teams' | 'performance' | 'finance',
-    options: DashboardDataOptions,
-    format: 'csv' | 'json' = 'csv'
-  ) {
-    const permissions = DashboardPermissions.getDataPermissions(options.userRole, dataType)
-    
-    if (!permissions.canExport) {
-      throw new Error('Export permission denied')
+  static async exportData(dataType: 'performance' | 'teams' | 'users', options: DashboardDataOptions, format: 'csv' | 'json' = 'csv') {
+    try {
+      let data: any[] = []
+      
+      switch (dataType) {
+        case 'performance':
+          const performancesResult = await this.getPerformances(options)
+          data = performancesResult.data
+          break
+        case 'teams':
+          const teamsResult = await this.getTeams(options)
+          data = teamsResult.data
+          break
+        case 'users':
+          const usersResult = await this.getUsers(options)
+          data = usersResult.data
+          break
+      }
+      
+      if (format === 'csv') {
+        return this.convertToCSV(data)
+      } else {
+        return JSON.stringify(data, null, 2)
+      }
+    } catch (error: any) {
+      throw new Error(`Export failed: ${error.message}`)
     }
-    
-    let data: any[] = []
-    
-    switch (dataType) {
-      case 'users':
-        const usersResult = await this.getUsers(options)
-        data = usersResult.data
-        break
-      case 'teams':
-        const teamsResult = await this.getTeams(options)
-        data = teamsResult.data
-        break
-      case 'performance':
-        const performancesResult = await this.getPerformances(options)
-        data = performancesResult.data
-        break
-      case 'finance':
-        const financeResult = await this.getFinancialData(options)
-        data = [...financeResult.slots, ...financeResult.expenses, ...financeResult.winnings]
-        break
-    }
-    
-    if (format === 'csv') {
-      return this.convertToCSV(data)
-    }
-    
-    return JSON.stringify(data, null, 2)
   }
-  
+
+  /**
+   * Convert data to CSV format
+   */
   private static convertToCSV(data: any[]): string {
     if (data.length === 0) return ''
     
     const headers = Object.keys(data[0])
-    const csvContent = [
-      headers.join(','),
-      ...data.map(row => 
-        headers.map(header => {
-          const value = row[header]
-          return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value
-        }).join(',')
-      )
-    ].join('\n')
+    const csvHeaders = headers.join(',')
     
-    return csvContent
+    const csvRows = data.map(row => {
+      return headers.map(header => {
+        const value = row[header]
+        // Handle nested objects and arrays
+        if (typeof value === 'object' && value !== null) {
+          return JSON.stringify(value).replace(/"/g, '""')
+        }
+        // Escape commas and quotes
+        return `"${String(value).replace(/"/g, '""')}"`
+      }).join(',')
+    })
+    
+    return [csvHeaders, ...csvRows].join('\n')
   }
 }
