@@ -79,13 +79,30 @@ export default function PerformancePage() {
   const canEdit = profile?.role && ["admin", "manager", "coach"].includes(profile.role.toLowerCase())
   const canViewDashboard = profile?.role && ["admin", "manager"].includes(profile.role.toLowerCase())
 
+  // Role-based tab logic
+  const isAdmin = profile?.role === "admin"
+  const isManager = profile?.role === "manager"
+  const isCoach = profile?.role === "coach"
+  const isPlayer = profile?.role === "player"
+  const isAnalyst = profile?.role === "analyst"
+
+  // Tab permissions
+  const canViewDashboard = isAdmin || isManager || isCoach || isAnalyst
+  const canAddPerformance = isAdmin || isManager || isCoach
+  const canUseOCR = isAdmin || isManager || isCoach
+  const canSubmitPerformance = isPlayer
+  const canViewReport = true // All roles can view report
+
+  // For coach, dashboard/add/ocr are filtered to their team only (handled in fetch)
+  // For analyst, dashboard/report are read-only (no add/ocr/submit)
+
+  // Only require users data for admin/manager/coach/analyst dashboard
+  const requiresUsers = canViewDashboard || canAddPerformance || canUseOCR;
+
   if (!profile) {
     return <div className="text-center py-8 text-muted-foreground">Loading user profile...</div>;
   }
 
-  // Only require users data for admin/manager functions
-  const requiresUsers = canEdit || canViewDashboard;
-  
   if (requiresUsers && users.length === 0 && !loading) {
     return (
       <div className="space-y-4">
@@ -95,19 +112,23 @@ export default function PerformancePage() {
             Role: {profile.role} | User ID: {profile.id}
           </p>
         </div>
-        
-        {/* Still allow Performance Report access */}
         <Tabs defaultValue="report" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="report">📊 Performance Report</TabsTrigger>
-            {profile?.role === "player" && <TabsTrigger value="submit">🎮 Submit Performance</TabsTrigger>}
+            {canViewDashboard && <TabsTrigger value="dashboard">📈 Dashboard</TabsTrigger>}
+            {canViewReport && <TabsTrigger value="report">📊 Performance Report</TabsTrigger>}
+            {canSubmitPerformance && <TabsTrigger value="submit">🎮 Submit Performance</TabsTrigger>}
           </TabsList>
-
-          <TabsContent value="report">
-            <PerformanceReportSimple />
-          </TabsContent>
-
-          {profile?.role === "player" && (
+          {canViewDashboard && (
+            <TabsContent value="dashboard">
+              <div className="text-center py-8 text-muted-foreground">No user data found.</div>
+            </TabsContent>
+          )}
+          {canViewReport && (
+            <TabsContent value="report">
+              <PerformanceReportSimple />
+            </TabsContent>
+          )}
+          {canSubmitPerformance && (
             <TabsContent value="submit">
               <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />
             </TabsContent>
@@ -123,16 +144,14 @@ export default function PerformancePage() {
         <h1 className="text-3xl font-bold tracking-tight">Performance Tracking</h1>
         <p className="text-muted-foreground">Track and analyze match performance data</p>
       </div>
-
-      <Tabs defaultValue={canViewDashboard ? "dashboard" : profile?.role === "player" ? "submit" : canEdit ? "add" : undefined} className="space-y-4">
+      <Tabs defaultValue={canViewDashboard ? "dashboard" : canSubmitPerformance ? "submit" : canAddPerformance ? "add" : undefined} className="space-y-4">
         <TabsList>
           {canViewDashboard && <TabsTrigger value="dashboard">📈 Dashboard</TabsTrigger>}
-          <TabsTrigger value="report">📊 Performance Report</TabsTrigger>
-          {profile?.role === "player" && <TabsTrigger value="submit">🎮 Submit Performance</TabsTrigger>}
-          {canEdit && <TabsTrigger value="add">➕ Add Performance</TabsTrigger>}
-          {canEdit && <TabsTrigger value="ocr">📷 OCR Extract</TabsTrigger>}
+          {canViewReport && <TabsTrigger value="report">📊 Performance Report</TabsTrigger>}
+          {canSubmitPerformance && <TabsTrigger value="submit">🎮 Submit Performance</TabsTrigger>}
+          {canAddPerformance && !isAnalyst && <TabsTrigger value="add">➕ Add Performance</TabsTrigger>}
+          {canUseOCR && !isAnalyst && <TabsTrigger value="ocr">📷 OCR Extract</TabsTrigger>}
         </TabsList>
-
         {canViewDashboard && (
           <TabsContent value="dashboard">
             {loading ? (
@@ -146,14 +165,13 @@ export default function PerformancePage() {
             )}
           </TabsContent>
         )}
-
-        <TabsContent value="report">
-          <PerformanceReportSimple />
-        </TabsContent>
-
-        {profile?.role === "player" && (
+        {canViewReport && (
+          <TabsContent value="report">
+            <PerformanceReportSimple />
+          </TabsContent>
+        )}
+        {canSubmitPerformance && (
           <TabsContent value="submit">
-            {/* Robust null check for profile and team/slots */}
             {profile && (() => {
               try {
                 return <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />
@@ -163,8 +181,7 @@ export default function PerformancePage() {
             })()}
           </TabsContent>
         )}
-
-        {canEdit && (
+        {canAddPerformance && !isAnalyst && (
           <TabsContent value="add">
             {users.length > 0 ? (
               <AddPerformance users={users} onPerformanceAdded={fetchPerformances} />
@@ -175,8 +192,7 @@ export default function PerformancePage() {
             )}
           </TabsContent>
         )}
-
-        {canEdit && (
+        {canUseOCR && !isAnalyst && (
           <TabsContent value="ocr">
             {users.length > 0 ? (
               <OCRExtract users={users} onPerformanceAdded={fetchPerformances} />
