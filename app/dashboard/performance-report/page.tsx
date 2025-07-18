@@ -84,10 +84,16 @@ export default function PerformanceReportPage() {
   })
 
   // Check role-based access - ensure profile is loaded first
+  console.log('Performance Report - Profile:', profile)
+  console.log('Performance Report - Profile Role:', profile?.role)
+  
   const hasFullAccess = profile?.role && ["admin", "manager", "analyst"].includes(profile.role.toLowerCase())
   const isCoach = profile?.role?.toLowerCase() === "coach"
   const isPlayer = profile?.role?.toLowerCase() === "player"
   
+  console.log('Performance Report - hasFullAccess:', hasFullAccess)
+  console.log('Performance Report - isCoach:', isCoach)
+  console.log('Performance Report - isPlayer:', isPlayer)
 
 
   // Redirect if no access

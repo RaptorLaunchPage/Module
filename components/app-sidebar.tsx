@@ -87,7 +87,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
   const { state } = useSidebar();
 
-  const filteredMenuItems = menuItems.filter((item) => profile?.role && item.roles.includes(profile.role.toLowerCase()))
+  console.log('Sidebar - Profile:', profile)
+  console.log('Sidebar - Profile Role:', profile?.role)
+  
+  const filteredMenuItems = menuItems.filter((item) => {
+    const hasAccess = profile?.role && item.roles.includes(profile.role.toLowerCase())
+    console.log(`Sidebar - ${item.title}: hasAccess=${hasAccess}, required roles:`, item.roles)
+    return hasAccess
+  })
+  
+  console.log('Sidebar - Filtered menu items:', filteredMenuItems.map(item => item.title))
 
   return (
     <Sidebar 
