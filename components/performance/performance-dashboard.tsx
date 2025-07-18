@@ -171,8 +171,8 @@ export function PerformanceDashboard({
                   <TableCell>{performance.kills}</TableCell>
                   <TableCell>{performance.damage}</TableCell>
                   <TableCell>
-                    <Badge variant={performance.placement <= 3 ? "default" : "secondary"}>
-                      #{performance.placement}
+                    <Badge variant={performance.placement && performance.placement <= 3 ? "default" : "secondary"}>
+                      #{performance.placement || 'N/A'}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -313,8 +313,8 @@ export function PerformanceDashboard({
                     <TableCell>{performance.damage}</TableCell>
                     <TableCell>{performance.survival_time}min</TableCell>
                     <TableCell>
-                      <Badge variant={performance.placement <= 3 ? "default" : "secondary"}>
-                        #{performance.placement}
+                      <Badge variant={performance.placement && performance.placement <= 3 ? "default" : "secondary"}>
+                        #{performance.placement || 'N/A'}
                       </Badge>
                     </TableCell>
                     <TableCell>

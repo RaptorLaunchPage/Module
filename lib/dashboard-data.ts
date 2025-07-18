@@ -299,8 +299,8 @@ export class DashboardData {
       }
       
       // Find highest kills and damage
-      let highestKills = null
-      let highestDamage = null
+      let highestKills: { id: string; name: string; team: string | null | undefined; value: number; metric: string } | null = null
+      let highestDamage: { id: string; name: string; team: string | null | undefined; value: number; metric: string } | null = null
       
       performances?.forEach(perf => {
         const playerName = perf.users?.name || perf.users?.email

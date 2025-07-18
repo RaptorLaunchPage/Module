@@ -240,10 +240,13 @@ export default function PerformancePage() {
                         Enter performance data manually
                       </DialogDescription>
                     </DialogHeader>
-                    <AddPerformance onPerformanceAdded={() => {
-                      fetchPerformances()
-                      setAddPerformanceOpen(false)
-                    }} />
+                    <AddPerformance 
+                      users={users}
+                      onPerformanceAdded={() => {
+                        fetchPerformances()
+                        setAddPerformanceOpen(false)
+                      }} 
+                    />
                   </DialogContent>
                 </Dialog>
                 
@@ -262,10 +265,13 @@ export default function PerformancePage() {
                           Upload a screenshot to extract performance data automatically
                         </DialogDescription>
                       </DialogHeader>
-                      <OCRExtract onPerformanceAdded={() => {
-                        fetchPerformances()
-                        setAddPerformanceOpen(false)
-                      }} />
+                      <OCRExtract 
+                        users={users}
+                        onPerformanceAdded={() => {
+                          fetchPerformances()
+                          setAddPerformanceOpen(false)
+                        }} 
+                      />
                     </DialogContent>
                   </Dialog>
                 )}
