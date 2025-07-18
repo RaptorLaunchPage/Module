@@ -178,9 +178,14 @@ export default function DashboardPage() {
         return
       }
       
-      // Join performance data with slot data
+      // Optimize: Create a Map for O(1) lookup instead of O(n) find operation
+      const slotsMap = new Map(
+        (slotsData || []).map(slot => [slot.id, slot])
+      )
+      
+      // Join performance data with slot data efficiently
       const performancesWithSlots = (performanceData || []).map(performance => {
-        const slotInfo = slotsData?.find(slot => slot.id === performance.slot)
+        const slotInfo = slotsMap.get(performance.slot)
         return {
           ...performance,
           slot: slotInfo || performance.slot // Use slot info if found, otherwise keep original

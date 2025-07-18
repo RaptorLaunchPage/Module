@@ -2,9 +2,16 @@ import { supabase } from "./supabase"
 import { createClient } from "@supabase/supabase-js"
 import type { User } from "@supabase/supabase-js"
 
-// This would ideally use a service role key, but we'll work with what we have
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://ydjrngnnuxxswmhxwxzf.supabase.co"
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkanJuZ25udXh4c3dtaHh3eHpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5MTcxMjgsImV4cCI6MjA2NzQ5MzEyOH0.XDsxnQRhHDttB8hRCcSADIYJ6D_-_gcoWToJbWjXn-w"
+// Use service role key from environment variables only - no fallback for security
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+// Validate required environment variables
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error(
+    "Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"
+  )
+}
 
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {

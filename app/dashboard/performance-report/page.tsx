@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -221,26 +221,34 @@ export default function PerformanceReportPage() {
 
       if (error) throw error
 
-      // Transform data
-      const transformedData: PerformanceData[] = data?.map(p => ({
-        match_number: p.match_number,
-        map: p.map,
-        placement: p.placement,
-        kills: p.kills,
-        assists: p.assists,
-        damage: p.damage,
-        survival_time: p.survival_time,
-        created_at: p.created_at,
-        player_name: (p.users as any)?.name || 'Unknown',
-        team_name: (p.teams as any)?.name || 'Unknown',
-        organizer: (p.slots as any)?.organizer || 'Unknown',
-        player_id: p.player_id,
-        team_id: p.team_id,
-        slot: p.slot
-      })) || []
+      // Optimize: Transform data efficiently with reduced object creation
+      const transformedData: PerformanceData[] = data?.map(p => {
+        // Destructure to avoid repeated property access
+        const { 
+          match_number, map, placement, kills, assists, damage, 
+          survival_time, created_at, player_id, team_id, slot,
+          users, teams, slots 
+        } = p
+        
+        return {
+          match_number,
+          map,
+          placement,
+          kills,
+          assists,
+          damage,
+          survival_time,
+          created_at,
+          player_name: (users as any)?.name || 'Unknown',
+          team_name: (teams as any)?.name || 'Unknown',
+          organizer: (slots as any)?.organizer || 'Unknown',
+          player_id,
+          team_id,
+          slot
+        }
+      }) || []
 
       setPerformances(transformedData)
-      calculateSummaryStats(transformedData)
 
     } catch (error) {
       console.error('Error loading performance data:', error)
@@ -254,28 +262,34 @@ export default function PerformanceReportPage() {
     }
   }
 
-  const calculateSummaryStats = (data: PerformanceData[]) => {
-    if (data.length === 0) {
-      setSummaryStats(null)
-      return
+  // Memoize expensive calculations to prevent unnecessary recomputation
+  const summaryStats = useMemo(() => {
+    if (performances.length === 0) {
+      return null
     }
 
-    const totalMatches = data.length
-    const totalKills = data.reduce((sum, p) => sum + p.kills, 0)
-    const totalDamage = data.reduce((sum, p) => sum + p.damage, 0)
-    const avgPlacement = data.reduce((sum, p) => sum + p.placement, 0) / totalMatches
+    const totalMatches = performances.length
+    // Optimize: Use a single pass to calculate multiple statistics
+    let totalKills = 0
+    let totalDamage = 0
+    let totalPlacement = 0
+    const playerStats = {} as Record<string, { name: string; kills: number; damage: number }>
+
+    for (const p of performances) {
+      totalKills += p.kills
+      totalDamage += p.damage
+      totalPlacement += p.placement
+
+      if (!playerStats[p.player_id]) {
+        playerStats[p.player_id] = { name: p.player_name, kills: 0, damage: 0 }
+      }
+      playerStats[p.player_id].kills += p.kills
+      playerStats[p.player_id].damage += p.damage
+    }
+
+    const avgPlacement = totalPlacement / totalMatches
     const avgKills = totalKills / totalMatches
     const avgDamage = totalDamage / totalMatches
-
-    // Find top performers
-    const playerStats = data.reduce((acc, p) => {
-      if (!acc[p.player_id]) {
-        acc[p.player_id] = { name: p.player_name, kills: 0, damage: 0 }
-      }
-      acc[p.player_id].kills += p.kills
-      acc[p.player_id].damage += p.damage
-      return acc
-    }, {} as Record<string, { name: string; kills: number; damage: number }>)
 
     const topKillPlayer = Object.values(playerStats).reduce((max, player) => 
       player.kills > max.kills ? player : max, { name: 'N/A', kills: 0 })
@@ -283,7 +297,7 @@ export default function PerformanceReportPage() {
     const topDamagePlayer = Object.values(playerStats).reduce((max, player) => 
       player.damage > max.damage ? player : max, { name: 'N/A', damage: 0 })
 
-    setSummaryStats({
+    return {
       totalMatches,
       totalKills,
       totalDamage,
@@ -292,8 +306,13 @@ export default function PerformanceReportPage() {
       avgDamage: Math.round(avgDamage),
       topKillPlayer: { name: topKillPlayer.name, kills: topKillPlayer.kills },
       topDamagePlayer: { name: topDamagePlayer.name, damage: Math.round(topDamagePlayer.damage) }
-    })
-  }
+    }
+  }, [performances]) // Dependency array for useMemo
+
+  // Update summaryStats state when the memoized value changes
+  useEffect(() => {
+    setSummaryStats(summaryStats)
+  }, [summaryStats])
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
