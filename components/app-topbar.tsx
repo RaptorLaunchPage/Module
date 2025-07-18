@@ -68,6 +68,12 @@ const menuItems = [
     roles: ["admin", "manager", "coach", "player", "analyst"],
   },
   {
+    title: "Performance Report",
+    url: "/dashboard/performance-report",
+    icon: "🏆",
+    roles: ["admin", "manager", "coach", "player", "analyst"],
+  },
+  {
     title: "Profile",
     url: "/dashboard/profile",
     icon: "👤",

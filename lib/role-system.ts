@@ -495,6 +495,7 @@ export const routeAccess = {
   '/dashboard/user-management': (role: UserRole) => RoleAccess.hasPermission(role, 'viewAllUsers'),
   '/dashboard/team-management': (role: UserRole) => RoleAccess.hasPermission(role, 'viewAllTeams') || role === 'coach',
   '/dashboard/performance': (role: UserRole) => RoleAccess.hasPermission(role, 'viewAllPerformance') || role === 'player' || role === 'coach',
+  '/dashboard/performance-report': (role: UserRole) => RoleAccess.hasPermission(role, 'viewAllPerformance') || role === 'player' || role === 'coach',
   '/dashboard/profile': () => true, // Always accessible
   '/dashboard': () => true, // Always accessible
 } as const
