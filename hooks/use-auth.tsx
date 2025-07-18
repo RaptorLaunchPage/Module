@@ -370,7 +370,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (typeof window !== 'undefined') {
         // Use setTimeout to ensure state updates are processed
         setTimeout(() => {
-          window.location.replace('/')
+          window.location.replace('https://dev.raptorofficial.in')
         }, 100)
       }
     } catch (err: any) {
@@ -391,7 +391,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Force immediate redirect to homepage regardless of errors
         setTimeout(() => {
-          window.location.replace('/')
+          window.location.replace('https://dev.raptorofficial.in')
         }, 100)
       }
     }
