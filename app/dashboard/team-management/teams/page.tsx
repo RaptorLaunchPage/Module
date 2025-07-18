@@ -43,11 +43,13 @@ export default function TeamsPage() {
     try {
       let query = supabase.from("teams").select("*, coach:coach_id(name, email)").order("name")
 
+      // Admin and manager can see all teams
       if (profile?.role === "coach") {
         query = query.eq("coach_id", profile.id)
       } else if (profile?.role === "player") {
         query = query.eq("id", profile.team_id!)
       }
+      // No filtering for admin/manager - they see all teams
 
       const { data, error } = await query
 
@@ -165,7 +167,12 @@ export default function TeamsPage() {
   const canManage = isAdminOrManager
   const canEditOwnTeam = isCoach
   const canView = isAdminOrManager || isCoach || isAnalyst
+  
   // Check if user has access to team management
+  if (!profile) {
+    return <div className="flex items-center justify-center h-64">Loading profile...</div>
+  }
+  
   if (!canView) {
     return null
   }

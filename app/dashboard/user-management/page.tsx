@@ -138,7 +138,8 @@ export default function UserManagementPage() {
   }
 
   useEffect(() => {
-    if (profile?.role?.toLowerCase() !== "admin") {
+    // Only fetch data for admin users
+    if (profile?.role !== "admin") {
       return
     }
 
@@ -528,7 +529,12 @@ export default function UserManagementPage() {
   }
 
   const isAdmin = profile?.role === "admin"
+  
   // Only admin can access user management
+  if (!profile) {
+    return <div className="flex items-center justify-center h-64">Loading profile...</div>
+  }
+  
   if (!isAdmin) {
     return null
   }

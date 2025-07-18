@@ -83,10 +83,11 @@ export default function PerformanceReportPage() {
     dateTo: ''
   })
 
-  // Check role-based access
+  // Check role-based access - ensure profile is loaded first
   const hasFullAccess = profile?.role && ["admin", "manager", "analyst"].includes(profile.role.toLowerCase())
   const isCoach = profile?.role?.toLowerCase() === "coach"
   const isPlayer = profile?.role?.toLowerCase() === "player"
+
 
   // Redirect if no access
   useEffect(() => {
@@ -108,9 +109,14 @@ export default function PerformanceReportPage() {
   // Load performance data
   useEffect(() => {
     if (profile) {
+      const currentIsCoach = profile?.role?.toLowerCase() === "coach"
+      // For coach role, wait for teams to be loaded
+      if (currentIsCoach && teams.length === 0) {
+        return // Don't load performance data yet for coaches until teams are loaded
+      }
       loadPerformanceData()
     }
-  }, [profile, appliedFilters])
+  }, [profile, appliedFilters, teams])
 
   const loadFilterOptions = async () => {
     try {
@@ -178,10 +184,12 @@ export default function PerformanceReportPage() {
         `)
         .order('created_at', { ascending: false })
 
-      // Apply role-based filtering
-      if (isPlayer) {
+      // Apply role-based filtering - admin and manager see ALL data
+      const currentRole = profile?.role?.toLowerCase()
+      
+      if (currentRole === 'player') {
         query = query.eq('player_id', profile?.id)
-      } else if (isCoach) {
+      } else if (currentRole === 'coach') {
         const coachTeams = teams.filter(t => t.coach_id === profile?.id).map(t => t.id)
         if (coachTeams.length > 0) {
           query = query.in('team_id', coachTeams)
@@ -193,6 +201,7 @@ export default function PerformanceReportPage() {
           return
         }
       }
+      // Admin, manager, and analyst see all data without filtering
 
       // Apply filters
       if (appliedFilters.teamId) {

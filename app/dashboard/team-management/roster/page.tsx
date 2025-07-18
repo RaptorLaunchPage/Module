@@ -53,11 +53,13 @@ export default function RosterPage() {
     try {
       let query = supabase.from("teams").select("*").order("name")
 
+      // Admin and manager can see all teams
       if (profile?.role === "coach") {
         query = query.eq("coach_id", profile.id)
       } else if (profile?.role === "player") {
         query = query.eq("id", profile.team_id!)
       }
+      // No filtering for admin/manager - they see all teams
 
       const { data, error } = await query
       if (error) throw error
@@ -213,7 +215,12 @@ export default function RosterPage() {
   const canManage = isAdminOrManager
   const canEditOwnTeam = isCoach
   const canView = isAdminOrManager || isCoach || isAnalyst
+  
   // Check if user has access to roster management
+  if (!profile) {
+    return <div className="flex items-center justify-center h-64">Loading profile...</div>
+  }
+  
   if (!canView) {
     return null
   }

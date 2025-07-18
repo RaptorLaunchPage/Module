@@ -87,9 +87,11 @@ export default function SlotExpensesPage() {
     try {
       let query = supabase.from("teams").select("*").order("name")
 
+      // Admin and manager can see all teams
       if (profile?.role === "coach" || profile?.role === "player") {
         query = query.eq("id", profile.team_id!)
       }
+      // No filtering for admin/manager - they see all teams
 
       const { data, error } = await query
       if (error) throw error
