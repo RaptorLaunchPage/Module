@@ -129,17 +129,17 @@ export function PerformanceReportSimple() {
           }
           
           console.log('✅ Performance report loaded successfully')
-        } catch (err) {
-          console.error('❌ Error in database test:', err)
+                } catch (err) {
+          console.error('❌ Error loading performance data:', err)
           setError(err instanceof Error ? err.message : String(err))
         } finally {
           setLoading(false)
-          console.log('✅ Loading state set to false')
+          console.log('✅ Performance data loaded')
         }
       }
       
-              loadPerformanceReport()
-    }, [profile?.id]) // Test dependency array
+      loadPerformanceReport()
+    }, [profile?.id])
     
     console.log('✅ useEffect hook setup successfully')
     
