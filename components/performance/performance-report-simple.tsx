@@ -15,8 +15,10 @@ export function PerformanceReportSimple() {
     
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [testData, setTestData] = useState<string>('Initial state')
-    const [dbResults, setDbResults] = useState<any>(null)
+    const [performances, setPerformances] = useState<any[]>([])
+    const [users, setUsers] = useState<any[]>([])
+    const [teams, setTeams] = useState<any[]>([])
+    const [stats, setStats] = useState<any>(null)
     
     console.log('✅ useState hooks initialized successfully')
 
@@ -29,212 +31,104 @@ export function PerformanceReportSimple() {
           setLoading(true)
           setError(null)
           
-          if (!profile) {
+                    if (!profile) {
             console.log('⏸️ No profile yet, waiting...')
-            setTestData('Waiting for user profile...')
             return
           }
           
           console.log('👤 Profile loaded:', profile.id, profile.role)
           
-          // Test 1: Simple count query (safest)
-          console.log('🔍 Testing: Simple count query on performances table')
-          const { count, error: countError } = await supabase
-            .from('performances')
-            .select('*', { count: 'exact', head: true })
+          // Load real performance data
+          console.log('📊 Loading performance data...')
           
-          if (countError) {
-            throw new Error(`Count query failed: ${countError.message}`)
+          // Get all performances (with role-based filtering)
+          let performancesQuery = supabase.from('performances').select('*')
+          
+          if (profile.role === 'player') {
+            performancesQuery = performancesQuery.eq('player_id', profile.id)
+          } else if (profile.role === 'coach' && profile.team_id) {
+            performancesQuery = performancesQuery.eq('team_id', profile.team_id)
           }
           
-          console.log('✅ Count query successful:', count, 'total performances')
-          
-          // Test 2: Simple select without joins
-          console.log('🔍 Testing: Simple select on performances table')
-          const { data: perfData, error: perfError } = await supabase
-            .from('performances')
-            .select('id, player_id, team_id, created_at')
-            .limit(5)
+          const { data: performancesData, error: perfError } = await performancesQuery
+            .order('created_at', { ascending: false })
+            .limit(50)
           
           if (perfError) {
-            throw new Error(`Simple select failed: ${perfError.message}`)
+            console.error('Error loading performances:', perfError)
+          } else {
+            console.log('✅ Loaded', performancesData?.length || 0, 'performances')
+            setPerformances(performancesData || [])
           }
           
-          console.log('✅ Simple select successful:', perfData?.length, 'records')
-          
-          // Test 3: Query other tables individually
-          console.log('🔍 Testing: Simple query on users table')
+          // Load users data
           const { data: usersData, error: usersError } = await supabase
             .from('users')
-            .select('id, name, role')
-            .limit(5)
+            .select('id, name, email, role')
+            .order('name')
           
           if (usersError) {
-            console.warn('⚠️ Users query failed:', usersError.message)
+            console.warn('Warning loading users:', usersError)
           } else {
-            console.log('✅ Users query successful:', usersData?.length, 'records')
+            console.log('✅ Loaded', usersData?.length || 0, 'users')
+            setUsers(usersData || [])
           }
           
-          // Test 4: Query teams table
-          console.log('🔍 Testing: Simple query on teams table')
+          // Load teams data
           const { data: teamsData, error: teamsError } = await supabase
             .from('teams')
             .select('id, name')
-            .limit(5)
+            .order('name')
           
           if (teamsError) {
-            console.warn('⚠️ Teams query failed:', teamsError.message)
+            console.warn('Warning loading teams:', teamsError)
           } else {
-            console.log('✅ Teams query successful:', teamsData?.length, 'records')
+            console.log('✅ Loaded', teamsData?.length || 0, 'teams')
+            setTeams(teamsData || [])
           }
           
-          // Test 5: Query slots table
-          console.log('🔍 Testing: Simple query on slots table')
-          const { data: slotsData, error: slotsError } = await supabase
-            .from('slots')
-            .select('id, time_range, date')
-            .limit(5)
-          
-          if (slotsError) {
-            console.warn('⚠️ Slots query failed:', slotsError.message)
-          } else {
-            console.log('✅ Slots query successful:', slotsData?.length, 'records')
-          }
-          
-          // Test 6: Try simple joins (this is likely where the crash happens)
-          console.log('🔍 Testing: Simple join - performances with users')
-          
-          // Method 1: Manual join using separate queries (safe approach)
-          let joinResults: { method1: number; method2: number; method3: number } = { method1: 0, method2: 0, method3: 0 }
-          
-          try {
-            // Get performances with player_id
-            const { data: perfWithPlayers, error: joinError1 } = await supabase
-              .from('performances')
-              .select('id, player_id, team_id, created_at')
-              .limit(3)
+          // Calculate statistics
+          if (performancesData && performancesData.length > 0) {
+            const totalPerformances = performancesData.length
+            const recentPerformances = performancesData.filter(p => {
+              const createdDate = new Date(p.created_at)
+              const weekAgo = new Date()
+              weekAgo.setDate(weekAgo.getDate() - 7)
+              return createdDate >= weekAgo
+            })
             
-            if (joinError1) {
-              console.warn('⚠️ Performances for join failed:', joinError1.message)
-            } else {
-              console.log('✅ Performances for join successful:', perfWithPlayers?.length, 'records')
-              joinResults.method1 = perfWithPlayers?.length || 0
-            }
-          } catch (err) {
-            console.error('❌ Method 1 (manual join) failed:', err)
-          }
-          
-          // Test 7: Try PostgreSQL-style join (might work)
-          try {
-            console.log('🔍 Testing: PostgreSQL-style join with users table')
-            const { data: pgJoinData, error: pgJoinError } = await supabase
-              .from('performances')
-              .select(`
-                id,
-                player_id,
-                users!player_id (
-                  id,
-                  name
-                )
-              `)
-              .limit(2)
-            
-            if (pgJoinError) {
-              console.warn('⚠️ PostgreSQL join failed:', pgJoinError.message)
-            } else {
-              console.log('✅ PostgreSQL join successful:', pgJoinData?.length, 'records')
-              joinResults.method2 = pgJoinData?.length || 0
-            }
-          } catch (err) {
-            console.error('❌ Method 2 (PostgreSQL join) failed:', err)
-          }
-          
-          // Test 8: Try the broken foreign key syntax that was causing crashes
-          try {
-            console.log('🔍 Testing: The broken foreign key syntax (expect this to fail)')
-            const { data: brokenJoinData, error: brokenJoinError } = await supabase
-              .from('performances')
-              .select(`
-                *,
-                slots!performances_slot_fkey(organizer)
-              `)
-              .limit(1)
-            
-            if (brokenJoinError) {
-              console.warn('⚠️ Broken join failed as expected:', brokenJoinError.message)
-            } else {
-              console.log('✅ Broken join somehow worked:', brokenJoinData?.length, 'records')
-              joinResults.method3 = brokenJoinData?.length || 0
-            }
-          } catch (err) {
-            console.error('❌ Method 3 (broken join) failed as expected:', err)
-          }
-          
-          setDbResults({
-            totalCount: count,
-            sampleRecords: perfData?.length || 0,
-            firstRecord: perfData?.[0] || null,
-            usersCount: usersData?.length || 0,
-            teamsCount: teamsData?.length || 0,
-            slotsCount: slotsData?.length || 0,
-            joinTests: joinResults
-          })
-          
-          // Test 9: Data processing and calculations (likely crash source)
-          console.log('🔍 Testing: Data processing and calculations')
-          
-          try {
-            // Test complex data transformations like the original component
-            const mockPerformances = [
-              { id: '1', player_id: 'user1', team_id: 'team1', kills: 10, deaths: 5, assists: 8 },
-              { id: '2', player_id: 'user2', team_id: 'team1', kills: 12, deaths: 3, assists: 6 },
-              { id: '3', player_id: 'user3', team_id: 'team2', kills: 8, deaths: 7, assists: 10 }
-            ]
-            
-            // Test 1: Array operations that might cause issues
-            const teamStats = mockPerformances.reduce((acc, perf) => {
-              if (!acc[perf.team_id]) {
-                acc[perf.team_id] = { totalKills: 0, totalDeaths: 0, totalAssists: 0, count: 0 }
-              }
-              acc[perf.team_id].totalKills += perf.kills
-              acc[perf.team_id].totalDeaths += perf.deaths
-              acc[perf.team_id].totalAssists += perf.assists
-              acc[perf.team_id].count += 1
+            // Calculate team distribution
+            const teamDistribution = performancesData.reduce((acc, perf) => {
+              acc[perf.team_id] = (acc[perf.team_id] || 0) + 1
               return acc
-            }, {} as Record<string, any>)
+            }, {} as Record<string, number>)
             
-            console.log('✅ Array reduce operations successful')
+            // Calculate player distribution
+            const playerDistribution = performancesData.reduce((acc, perf) => {
+              acc[perf.player_id] = (acc[perf.player_id] || 0) + 1
+              return acc
+            }, {} as Record<string, number>)
             
-            // Test 2: Math calculations that might cause NaN/Infinity
-            const playerStats = mockPerformances.map(perf => ({
-              ...perf,
-              kd_ratio: perf.deaths === 0 ? perf.kills : perf.kills / perf.deaths,
-              kda_ratio: perf.deaths === 0 ? (perf.kills + perf.assists) : (perf.kills + perf.assists) / perf.deaths
-            }))
-            
-            console.log('✅ Math calculations successful')
-            
-            // Test 3: Complex filtering and sorting
-            const topPerformers = playerStats
-              .filter(p => p.kd_ratio > 1)
-              .sort((a, b) => b.kda_ratio - a.kda_ratio)
-              .slice(0, 3)
-            
-            console.log('✅ Complex array operations successful')
-            
-            // Test 4: Date handling (common crash source)
-            const dateTest = new Date().toLocaleDateString()
-            const timeTest = new Date().getTime()
-            
-            console.log('✅ Date operations successful')
-            
-                         setTestData('Performance report ready! All systems operational.')
-             console.log('✅ Performance report loaded successfully')
-            
-          } catch (calcError) {
-            console.error('❌ Data processing failed:', calcError)
-            setTestData('Data processing failed: ' + String(calcError))
+            setStats({
+              totalPerformances,
+              recentPerformances: recentPerformances.length,
+              teamsActive: Object.keys(teamDistribution).length,
+              playersActive: Object.keys(playerDistribution).length,
+              teamDistribution,
+              playerDistribution
+            })
+          } else {
+            setStats({
+              totalPerformances: 0,
+              recentPerformances: 0,
+              teamsActive: 0,
+              playersActive: 0,
+              teamDistribution: {},
+              playerDistribution: {}
+            })
           }
+          
+          console.log('✅ Performance report loaded successfully')
         } catch (err) {
           console.error('❌ Error in database test:', err)
           setError(err instanceof Error ? err.message : String(err))
@@ -302,25 +196,80 @@ export function PerformanceReportSimple() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-center py-8 text-muted-foreground">
-              Performance report loaded successfully! 🎉
-            </p>
-            <div className="text-center text-sm text-muted-foreground space-y-2">
-              <p><strong>Profile ID:</strong> {profile?.id || 'None'}</p>
-              <p><strong>Role:</strong> {profile?.role || 'None'}</p>
-              <p><strong>Test Data:</strong> {testData}</p>
-              <p><strong>Total Performances:</strong> {dbResults?.totalCount ?? 'Unknown'}</p>
-              <p><strong>Sample Records:</strong> {dbResults?.sampleRecords ?? 'Unknown'}</p>
-              <p><strong>First Record ID:</strong> {dbResults?.firstRecord?.id ?? 'None'}</p>
-              <p><strong>Users Found:</strong> {dbResults?.usersCount ?? 'Unknown'}</p>
-              <p><strong>Teams Found:</strong> {dbResults?.teamsCount ?? 'Unknown'}</p>
-              <p><strong>Slots Found:</strong> {dbResults?.slotsCount ?? 'Unknown'}</p>
-              <p><strong>Manual Join:</strong> {dbResults?.joinTests?.method1 ?? 'Unknown'}</p>
-              <p><strong>PostgreSQL Join:</strong> {dbResults?.joinTests?.method2 ?? 'Unknown'}</p>
-              <p><strong>Broken Join:</strong> {dbResults?.joinTests?.method3 ?? 'Unknown'}</p>
-              <p><strong>Loading:</strong> {loading ? 'Yes' : 'No'}</p>
-              <p><strong>Error:</strong> {error || 'None'}</p>
-            </div>
+            {stats ? (
+              <div className="space-y-6">
+                {/* Summary Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-2xl font-bold text-primary">{stats.totalPerformances}</div>
+                    <div className="text-sm text-muted-foreground">Total Performances</div>
+                  </div>
+                  <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{stats.recentPerformances}</div>
+                    <div className="text-sm text-muted-foreground">This Week</div>
+                  </div>
+                  <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{stats.teamsActive}</div>
+                    <div className="text-sm text-muted-foreground">Active Teams</div>
+                  </div>
+                  <div className="text-center p-4 bg-muted rounded-lg">
+                    <div className="text-2xl font-bold text-orange-600">{stats.playersActive}</div>
+                    <div className="text-sm text-muted-foreground">Active Players</div>
+                  </div>
+                </div>
+
+                {/* Recent Performances */}
+                {performances.length > 0 ? (
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Recent Performances</h3>
+                    <div className="space-y-2">
+                      {performances.slice(0, 5).map((perf, index) => (
+                        <div key={perf.id} className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                          <div>
+                            <div className="font-medium">Performance #{perf.id.slice(0, 8)}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {new Date(perf.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm">
+                              Player: {users.find(u => u.id === perf.player_id)?.name || 'Unknown'}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              Team: {teams.find(t => t.id === perf.team_id)?.name || 'Unknown'}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {performances.length > 5 && (
+                      <div className="text-center mt-3 text-sm text-muted-foreground">
+                        +{performances.length - 5} more performances
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="text-muted-foreground">No performance data found</div>
+                    <div className="text-sm text-muted-foreground mt-2">
+                      {profile.role === 'player' 
+                        ? 'Submit your first performance to see data here' 
+                        : 'Performances will appear here as they are submitted'
+                      }
+                    </div>
+                  </div>
+                )}
+
+                {/* Debug Info */}
+                <div className="text-xs text-muted-foreground border-t pt-4">
+                  <p>User: {profile?.role} | Loaded: {users.length} users, {teams.length} teams</p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading performance data...
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
