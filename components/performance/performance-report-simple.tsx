@@ -180,8 +180,61 @@ export function PerformanceReportSimple() {
             joinTests: joinResults
           })
           
-          setTestData('Join queries testing completed!')
-          console.log('✅ Join testing completed')
+          // Test 9: Data processing and calculations (likely crash source)
+          console.log('🔍 Testing: Data processing and calculations')
+          
+          try {
+            // Test complex data transformations like the original component
+            const mockPerformances = [
+              { id: '1', player_id: 'user1', team_id: 'team1', kills: 10, deaths: 5, assists: 8 },
+              { id: '2', player_id: 'user2', team_id: 'team1', kills: 12, deaths: 3, assists: 6 },
+              { id: '3', player_id: 'user3', team_id: 'team2', kills: 8, deaths: 7, assists: 10 }
+            ]
+            
+            // Test 1: Array operations that might cause issues
+            const teamStats = mockPerformances.reduce((acc, perf) => {
+              if (!acc[perf.team_id]) {
+                acc[perf.team_id] = { totalKills: 0, totalDeaths: 0, totalAssists: 0, count: 0 }
+              }
+              acc[perf.team_id].totalKills += perf.kills
+              acc[perf.team_id].totalDeaths += perf.deaths
+              acc[perf.team_id].totalAssists += perf.assists
+              acc[perf.team_id].count += 1
+              return acc
+            }, {} as Record<string, any>)
+            
+            console.log('✅ Array reduce operations successful')
+            
+            // Test 2: Math calculations that might cause NaN/Infinity
+            const playerStats = mockPerformances.map(perf => ({
+              ...perf,
+              kd_ratio: perf.deaths === 0 ? perf.kills : perf.kills / perf.deaths,
+              kda_ratio: perf.deaths === 0 ? (perf.kills + perf.assists) : (perf.kills + perf.assists) / perf.deaths
+            }))
+            
+            console.log('✅ Math calculations successful')
+            
+            // Test 3: Complex filtering and sorting
+            const topPerformers = playerStats
+              .filter(p => p.kd_ratio > 1)
+              .sort((a, b) => b.kda_ratio - a.kda_ratio)
+              .slice(0, 3)
+            
+            console.log('✅ Complex array operations successful')
+            
+            // Test 4: Date handling (common crash source)
+            const dateTest = new Date().toLocaleDateString()
+            const timeTest = new Date().getTime()
+            
+            console.log('✅ Date operations successful')
+            
+            setTestData('Data processing and calculations completed successfully!')
+            console.log('✅ Data processing test completed')
+            
+          } catch (calcError) {
+            console.error('❌ Data processing failed:', calcError)
+            setTestData('Data processing failed: ' + String(calcError))
+          }
         } catch (err) {
           console.error('❌ Error in database test:', err)
           setError(err instanceof Error ? err.message : String(err))
@@ -250,7 +303,7 @@ export function PerformanceReportSimple() {
           </CardHeader>
           <CardContent>
             <p className="text-center py-8 text-muted-foreground">
-              Join query testing completed! 🔍
+              Data processing testing completed! 🧮
             </p>
             <div className="text-center text-sm text-muted-foreground space-y-2">
               <p><strong>Profile ID:</strong> {profile?.id || 'None'}</p>
