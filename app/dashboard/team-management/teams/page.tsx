@@ -161,21 +161,12 @@ export default function TeamsPage() {
   const isManager = profile?.role === "manager"
   const isCoach = profile?.role === "coach"
   const isAnalyst = profile?.role === "analyst"
-
   const canManage = isAdmin || isManager
   const canEditOwnTeam = isCoach
   const canView = isAdmin || isManager || isCoach || isAnalyst
-
   // Check if user has access to team management
   if (!canView) {
-    return (
-      <div className="space-y-6">
-        <div className="p-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access team management.</p>
-        </div>
-      </div>
-    )
+    return null
   }
 
   if (loading) {

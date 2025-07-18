@@ -85,19 +85,16 @@ export default function PerformancePage() {
   const isCoach = profile?.role === "coach"
   const isPlayer = profile?.role === "player"
   const isAnalyst = profile?.role === "analyst"
-
-  // Tab permissions
   const canViewDashboard = isAdmin || isManager || isCoach || isAnalyst
   const canAddPerformance = isAdmin || isManager || isCoach
   const canUseOCR = isAdmin || isManager || isCoach
   const canSubmitPerformance = isPlayer
   const canViewReport = true // All roles can view report
-
-  // For coach, dashboard/add/ocr are filtered to their team only (handled in fetch)
-  // For analyst, dashboard/report are read-only (no add/ocr/submit)
-
-  // Only require users data for admin/manager/coach/analyst dashboard
   const requiresUsers = canViewDashboard || canAddPerformance || canUseOCR;
+  // If user has no access to any tab, render nothing
+  if (!canViewDashboard && !canAddPerformance && !canUseOCR && !canSubmitPerformance && !canViewReport) {
+    return null
+  }
 
   if (!profile) {
     return <div className="text-center py-8 text-muted-foreground">Loading user profile...</div>;
