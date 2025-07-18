@@ -76,30 +76,63 @@ export type Database = {
           id: string
           email: string
           name: string | null
-          role: "admin" | "manager" | "coach" | "player" | "analyst" | "pending_player"
+          role: "admin" | "manager" | "coach" | "player" | "analyst" | "pending_player" | "awaiting_approval"
           role_level: number | null
           team_id: string | null
           avatar_url: string | null
           created_at: string
           provider: string | null
+          contact_number: string | null
+          in_game_role: string | null
+          device_info: string | null
+          device_model: string | null
+          ram: string | null
+          fps: string | null
+          storage: string | null
+          status: string | null
+          gyroscope_enabled: boolean | null
+          instagram_handle: string | null
+          discord_id: string | null
         }
         Insert: {
           id: string
           email: string
           name?: string | null
-          role?: "admin" | "manager" | "coach" | "player" | "analyst" | "pending_player"
+          role?: "admin" | "manager" | "coach" | "player" | "analyst" | "pending_player" | "awaiting_approval"
           role_level?: number | null
           team_id?: string | null
           avatar_url?: string | null
           provider?: string | null
+          contact_number?: string | null
+          in_game_role?: string | null
+          device_info?: string | null
+          device_model?: string | null
+          ram?: string | null
+          fps?: string | null
+          storage?: string | null
+          status?: string | null
+          gyroscope_enabled?: boolean | null
+          instagram_handle?: string | null
+          discord_id?: string | null
         }
         Update: {
           name?: string | null
-          role?: "admin" | "manager" | "coach" | "player" | "analyst" | "pending_player"
+          role?: "admin" | "manager" | "coach" | "player" | "analyst" | "pending_player" | "awaiting_approval"
           role_level?: number | null
           team_id?: string | null
           avatar_url?: string | null
           provider?: string | null
+          contact_number?: string | null
+          in_game_role?: string | null
+          device_info?: string | null
+          device_model?: string | null
+          ram?: string | null
+          fps?: string | null
+          storage?: string | null
+          status?: string | null
+          gyroscope_enabled?: boolean | null
+          instagram_handle?: string | null
+          discord_id?: string | null
         }
       }
       teams: {
@@ -130,7 +163,7 @@ export type Database = {
           team_id: string | null
           player_id: string
           match_number: number
-          slot: number
+          slot: string | null
           map: string
           placement: number | null
           kills: number
@@ -144,7 +177,7 @@ export type Database = {
           team_id?: string | null
           player_id: string
           match_number: number
-          slot: number
+          slot?: string | null
           map: string
           placement?: number | null
           kills?: number
@@ -157,7 +190,7 @@ export type Database = {
           team_id?: string | null
           player_id?: string
           match_number?: number
-          slot?: number
+          slot?: string | null
           map?: string
           placement?: number | null
           kills?: number
@@ -200,7 +233,7 @@ export type Database = {
           time_range: string
           number_of_slots: number
           slot_rate: number
-          match_count: number | null
+          match_count: number
           notes: string | null
           date: string // DATE type in SQL, string in TS
           created_at: string
@@ -211,7 +244,7 @@ export type Database = {
           time_range: string
           number_of_slots: number
           slot_rate: number
-          match_count?: number | null
+          match_count: number
           notes?: string | null
           date: string
         }
@@ -221,7 +254,7 @@ export type Database = {
           time_range?: string
           number_of_slots?: number
           slot_rate?: number
-          match_count?: number | null
+          match_count?: number
           notes?: string | null
           date?: string
         }
@@ -290,6 +323,62 @@ export type Database = {
           team_id?: string
           position?: number
           amount_won?: number
+        }
+      }
+      admin_config: {
+        Row: {
+          key: string
+          value: string
+        }
+        Insert: {
+          key: string
+          value: string
+        }
+        Update: {
+          key?: string
+          value?: string
+        }
+      }
+      module_permissions: {
+        Row: {
+          id: number
+          role: string
+          module: string
+          can_access: boolean
+        }
+        Insert: {
+          role: string
+          module: string
+          can_access?: boolean
+        }
+        Update: {
+          role?: string
+          module?: string
+          can_access?: boolean
+        }
+      }
+      profiles: {
+        Row: {
+          id: number
+          user_id: string
+          username: string | null
+          avatar_url: string | null
+          website: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          username?: string | null
+          avatar_url?: string | null
+          website?: string | null
+        }
+        Update: {
+          user_id?: string
+          username?: string | null
+          avatar_url?: string | null
+          website?: string | null
+          updated_at?: string
         }
       }
       tier_defaults: {
