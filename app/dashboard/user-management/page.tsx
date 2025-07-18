@@ -715,9 +715,6 @@ export default function UserManagementPage() {
                           {isEnabled ? "Enabled" : "Disabled"}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <Switch checked={isEnabled} onCheckedChange={v => updatePermission(key, v)} />
-                      </TableCell>
                     </TableRow>
                   ))
                 )}
