@@ -83,10 +83,12 @@ export default function PerformanceReportPage() {
     dateTo: ''
   })
 
-  // Check role-based access
+  // Check role-based access - ensure profile is loaded first
   const hasFullAccess = profile?.role && ["admin", "manager", "analyst"].includes(profile.role.toLowerCase())
   const isCoach = profile?.role?.toLowerCase() === "coach"
   const isPlayer = profile?.role?.toLowerCase() === "player"
+  
+
 
   // Redirect if no access
   useEffect(() => {
@@ -108,9 +110,13 @@ export default function PerformanceReportPage() {
   // Load performance data
   useEffect(() => {
     if (profile) {
+      // For coach role, wait for teams to be loaded
+      if (isCoach && teams.length === 0) {
+        return // Don't load performance data yet for coaches until teams are loaded
+      }
       loadPerformanceData()
     }
-  }, [profile, appliedFilters])
+  }, [profile, appliedFilters, teams, isCoach])
 
   const loadFilterOptions = async () => {
     try {
