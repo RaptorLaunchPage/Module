@@ -32,7 +32,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const fetchTeamInfo = async () => {
-      if (profile?.team_id) {
+      if (profile?.team_id && !['admin', 'manager'].includes(profile.role)) {
         try {
           const { data, error } = await supabase
             .from("teams")

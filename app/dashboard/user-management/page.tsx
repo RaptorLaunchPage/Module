@@ -587,7 +587,9 @@ export default function UserManagementPage() {
                       <TableCell>
                         <Badge variant={getRoleBadgeVariant(user?.role)}>{user?.role || "-"}</Badge>
                       </TableCell>
-                      <TableCell>{safeTeams.find((t) => t.id === user?.team_id)?.name || "No team"}</TableCell>
+                      <TableCell>
+                        {['admin', 'manager'].includes(user.role) ? <TableCell>-</TableCell> : <TableCell>{safeTeams.find((t) => t.id === user?.team_id)?.name || "No team"}</TableCell>}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" onClick={() => setEditingUser(user)}>
@@ -637,38 +639,44 @@ export default function UserManagementPage() {
 
                 <div className="space-y-2">
                   <Label>Team</Label>
-                  <Select
-                    value={editingUser.team_id || "none"}
-                    onValueChange={(value) =>
-                      setEditingUser({
-                        ...editingUser,
-                        team_id: value === "none" ? null : value,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select team" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No team</SelectItem>
-                      {teams.map((team) => (
-                        <SelectItem key={team.id} value={team.id}>
-                          {team.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {editingUser.role !== 'admin' && editingUser.role !== 'manager' && (
+                    <Select
+                      value={editingUser.team_id || "none"}
+                      onValueChange={(value) =>
+                        setEditingUser({
+                          ...editingUser,
+                          team_id: value === "none" ? null : value,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select team" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No team</SelectItem>
+                        {teams.map((team) => (
+                          <SelectItem key={team.id} value={team.id}>
+                            {team.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {editingUser.role === 'admin' || editingUser.role === 'manager' ? (
+                    <p className="text-muted-foreground text-sm">Team assignment restricted for admin/manager roles.</p>
+                  ) : null}
                 </div>
               </div>
 
               <div className="flex gap-2">
                 <Button
-                  onClick={() =>
-                    updateUser(editingUser.id, {
-                      role: editingUser.role,
-                      team_id: editingUser.team_id,
-                    })
-                  }
+                  onClick={() => {
+                    const updatedUser = { ...editingUser };
+                    if (updatedUser.role === 'admin' || updatedUser.role === 'manager') {
+                      updatedUser.team_id = null;
+                    }
+                    updateUser(editingUser.id, updatedUser);
+                  }}
                 >
                   Save Changes
                 </Button>
