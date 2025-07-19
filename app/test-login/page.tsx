@@ -34,7 +34,7 @@ export default function TestLogin() {
       addLog("2. Testing auth methods...")
       if (supabase.auth) {
         addLog("✅ supabase.auth exists")
-        if (supabase.auth.signInWithPassword) {
+        if (typeof supabase.auth.signInWithPassword === 'function') {
           addLog("✅ signInWithPassword method exists")
         } else {
           addLog("❌ signInWithPassword method missing")
