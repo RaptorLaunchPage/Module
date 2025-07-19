@@ -390,5 +390,5 @@ export type Database = {
 
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export const SUPABASE_URL_DEBUG = supabaseUrl
-export const SUPABASE_ANON_DEBUG = supabaseAnonKey.slice(0, 8) + "…"
+export const SUPABASE_URL_DEBUG = supabaseUrl || 'not-set'
+export const SUPABASE_ANON_DEBUG = (supabaseAnonKey || 'not-set').slice(0, 8) + "…"
