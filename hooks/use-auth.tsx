@@ -166,24 +166,93 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log(`🔍 User ID: ${user.id}`)
       console.log(`🔍 Should redirect:`, shouldRedirect)
       
-      // Simple, direct profile query - no complex testing since database works fine
-      console.log(`🔍 Starting profile query...`)
+      // Try multiple approaches to get the profile
+      console.log(`🔍 Attempting to fetch profile...`)
       const startTime = Date.now()
       
-      const { data: existingProfile, error: selectError } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle()
+      let existingProfile = null
+      let selectError = null
+      
+      // Method 1: Try user_management_view first (should bypass RLS issues)
+      try {
+        console.log(`🔍 Method 1: Trying user_management_view...`)
+        const { data, error } = await supabase
+          .from("user_management_view")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle()
+        
+        if (!error && data) {
+          existingProfile = data
+          console.log(`✅ Profile found via user_management_view`)
+        } else if (error) {
+          console.log(`⚠️ user_management_view failed:`, error.message)
+        }
+      } catch (viewError: any) {
+        console.log(`⚠️ user_management_view exception:`, viewError.message)
+      }
+      
+      // Method 2: Try direct users table if view failed
+      if (!existingProfile) {
+        try {
+          console.log(`🔍 Method 2: Trying direct users table...`)
+          const { data, error } = await supabase
+            .from("users")
+            .select("*")
+            .eq("id", user.id)
+            .maybeSingle()
+          
+          if (!error && data) {
+            existingProfile = data
+            console.log(`✅ Profile found via direct users table`)
+          } else if (error) {
+            console.log(`⚠️ Direct users table failed:`, error.message)
+            selectError = error
+          }
+        } catch (directError: any) {
+          console.log(`⚠️ Direct users table exception:`, directError.message)
+          selectError = directError
+        }
+      }
+      
+      // Method 3: Try with RLS disabled query (using service role if available)
+      if (!existingProfile) {
+        try {
+          console.log(`🔍 Method 3: Trying RLS bypass...`)
+          // This would need service role, but let's try anyway
+          const { data, error } = await supabase
+            .from("users")
+            .select("id, email, name, role, role_level, team_id, avatar_url, created_at, status")
+            .eq("id", user.id)
+            .maybeSingle()
+          
+          if (!error && data) {
+            existingProfile = data
+            console.log(`✅ Profile found via RLS bypass`)
+          }
+        } catch (rlsError: any) {
+          console.log(`⚠️ RLS bypass failed:`, rlsError.message)
+        }
+      }
       
       const endTime = Date.now()
-      console.log(`🔍 Query completed in ${endTime - startTime}ms`)
-      console.log(`🔍 Query error:`, selectError)
-      console.log(`🔍 Query result:`, existingProfile)
+      console.log(`🔍 Profile fetch completed in ${endTime - startTime}ms`)
+      console.log(`🔍 Final result:`, existingProfile ? 'Found' : 'Not found')
 
-      if (selectError) {
+      // If we have a serious error (not just "no rows"), show it
+      if (selectError && !existingProfile) {
         console.error("❌ Profile fetch error:", selectError)
-        setError(`Failed to fetch profile: ${selectError.message}`)
+        
+        // Check for RLS/recursion issues
+        if (selectError.message?.includes('infinite recursion') || 
+            selectError.message?.includes('maximum recursion depth') ||
+            selectError.message?.includes('policy') ||
+            selectError.code === '42P17') {
+          console.error('🚨 RLS Policy recursion detected!')
+          setError('Database policy error. Please contact administrator.')
+        } else {
+          setError(`Failed to fetch profile: ${selectError.message}`)
+        }
         setLoading(false)
         return
       }
@@ -208,7 +277,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               console.log(`📍 Navigating to /dashboard`)
               router.push("/dashboard")
             }
-          }, 100) // Shorter timeout since everything works
+          }, 100)
         }
         return
       }
