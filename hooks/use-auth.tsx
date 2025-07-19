@@ -41,6 +41,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [initComplete, setInitComplete] = useState(false)
+  const [isSigningIn, setIsSigningIn] = useState(false)
   const router = useRouter()
 
   // Initialize auth on mount
@@ -71,16 +72,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Improved loading timeout that's less aggressive
   useEffect(() => {
+    if (!loading || !initComplete) return
+    
     const loadingTimeout = setTimeout(() => {
-      if (loading && !session && !user) {
+      if (loading && !session && !user && !isSigningIn) {
         console.warn('⚠️ Loading timeout reached, clearing loading state')
         setLoading(false)
         setError('Authentication timeout - please try refreshing the page')
       }
-    }, 15000) // Increased to 15 seconds
+    }, 15000) // 15 seconds
 
     return () => clearTimeout(loadingTimeout)
-  }, [loading, session, user])
+  }, [loading, session, user, initComplete, isSigningIn])
 
   // Save auth state to localStorage for persistence across tabs
   const saveAuthState = (session: Session | null, profile: any) => {
@@ -107,46 +110,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  // Restore auth state from localStorage - improved for tab switching
-  const restoreAuthState = () => {
-    if (typeof window === 'undefined') return null
+  const initializeAuth = async () => {
+    console.log('🔍 Initializing authentication...')
     
     try {
-      const stored = localStorage.getItem('raptor-auth-state')
-      if (!stored) return null
-      
-      const authState = JSON.parse(stored)
-      // Extended expiry to 8 hours for better tab switching experience
-      if (Date.now() - authState.timestamp > 8 * 60 * 60 * 1000) {
-        localStorage.removeItem('raptor-auth-state')
-        return null
-      }
-      
-      return authState
-    } catch (error) {
-      console.warn('Failed to restore auth state:', error)
-      localStorage.removeItem('raptor-auth-state')
-      return null
-    }
-  }
-
-  const initializeAuth = async () => {
-    try {
-      console.log('🔍 Initializing auth...')
-      setLoading(true)
       setError(null)
-      
-      // Try to restore from localStorage first for instant tab switching
-      const storedAuth = restoreAuthState()
-      if (storedAuth) {
-        console.log('✅ Restored auth state from localStorage')
-        setSession(storedAuth.session)
-        setUser(storedAuth.session.user)
-        setProfile(storedAuth.profile)
-        setLoading(false)
-        setInitComplete(true)
-        return
-      }
       
       // Try to recover session (for page refreshes)
       const sessionRecovered = await SessionManager.recoverSession()
@@ -212,7 +180,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session)
         setUser(session.user)
         setError(null)
-        setLoading(true) // Always show loading when signing in
+        setLoading(true)
+        setIsSigningIn(true)
         
         try {
           // Fetch or create profile
@@ -221,6 +190,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.error('❌ Profile fetch failed after sign in:', profileError)
           setError('Failed to load profile. Please try refreshing the page.')
           setLoading(false)
+          setIsSigningIn(false)
         }
       } else if (event === 'SIGNED_OUT') {
         console.log('🔐 User signed out')
@@ -231,6 +201,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfile(null)
         setError(null)
         setLoading(false)
+        setIsSigningIn(false)
       } else if (event === 'TOKEN_REFRESHED') {
         console.log('🔐 Token refreshed for:', session?.user?.email)
         setSession(session)
@@ -249,6 +220,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('❌ Auth state change error:', error)
       setError('Authentication state error')
       setLoading(false)
+      setIsSigningIn(false)
     }
   }
 
@@ -261,8 +233,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (profile && profile.id === user.id && !shouldRedirect) {
         console.log('✅ Profile already loaded for user:', user.email)
         setLoading(false)
+        setIsSigningIn(false)
         return
       }
+
+      // Add timeout to prevent hanging
+      const profileTimeout = setTimeout(() => {
+        console.error('❌ Profile fetch timeout')
+        setError('Profile loading timeout. Please try refreshing the page.')
+        setLoading(false)
+        setIsSigningIn(false)
+      }, 10000) // 10 second timeout
 
       // First, try to get existing profile
       const { data: existingProfile, error: selectError } = await supabase
@@ -271,10 +252,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq("id", user.id)
         .maybeSingle()
 
+      clearTimeout(profileTimeout)
+
       if (selectError && selectError.code !== "PGRST116") {
         console.error("❌ Profile fetch error:", selectError)
         setError(`Failed to fetch profile: ${selectError.message}`)
         setLoading(false)
+        setIsSigningIn(false)
         return
       }
 
@@ -283,17 +267,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfile(existingProfile)
         saveAuthState(session, existingProfile)
         setLoading(false)
+        setIsSigningIn(false)
         
         // Redirect to appropriate page if this is from a sign in
         if (shouldRedirect) {
-          // Use setTimeout to ensure state is fully updated before redirect
+          // Use a small delay to ensure state is fully updated before redirect
           setTimeout(() => {
             if (existingProfile.role === "pending_player") {
               console.log('📍 Redirecting to onboarding...')
-              router.replace("/onboarding")
+              router.push("/onboarding")
             } else {
               console.log('📍 Redirecting to dashboard...')
-              router.replace("/dashboard")
+              router.push("/dashboard")
             }
           }, 100)
         }
@@ -325,12 +310,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfile(profileResult.profile)
         saveAuthState(session, profileResult.profile)
         setLoading(false)
+        setIsSigningIn(false)
         
         // Redirect to onboarding for new users
         if (shouldRedirect) {
           setTimeout(() => {
             console.log('📍 Redirecting to onboarding for new user...')
-            router.replace("/onboarding")
+            router.push("/onboarding")
           }, 100)
         }
         return
@@ -341,11 +327,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const errorMessage = profileResult.error || "Failed to create profile"
       setError(errorMessage)
       setLoading(false)
+      setIsSigningIn(false)
 
     } catch (err: any) {
       console.error("❌ Profile creation/fetch error:", err)
       setError(err.message || "Could not create or fetch profile")
       setLoading(false)
+      setIsSigningIn(false)
     }
   }
 
@@ -383,19 +371,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('🔐 Attempting sign in for:', email)
       setError(null)
+      setIsSigningIn(true)
       
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       
       if (error) {
         console.error('❌ Sign in error:', error)
+        setIsSigningIn(false)
         return { error }
       }
       
       console.log('✅ Sign in successful, waiting for auth state change...')
+      
+      // Add a timeout to prevent infinite loading
+      setTimeout(() => {
+        if (isSigningIn && !user) {
+          console.warn('⚠️ Sign in timeout, resetting state')
+          setIsSigningIn(false)
+          setLoading(false)
+          setError('Sign in timeout. Please try again.')
+        }
+      }, 15000) // 15 second timeout
+      
       // Success - auth state change will handle the rest
       return { error: null }
     } catch (err: any) {
       console.error("❌ Sign-in exception:", err)
+      setIsSigningIn(false)
       return { error: err }
     }
   }
@@ -439,6 +441,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(null)
       setError(null)
       setLoading(false)
+      setIsSigningIn(false)
       
       // Clear all session data
       SessionManager.clearSession()
@@ -451,91 +454,76 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       // Sign out from Supabase
-      const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.warn('⚠️ Supabase signout warning:', error)
-      }
+      await supabase.auth.signOut()
       
-      console.log('✅ Sign out completed, forcing immediate redirect to homepage')
+      // Force redirect to home
+      router.push('/')
       
-      // Force immediate redirect to homepage using replace
-      if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          window.location.replace('https://dev.raptorofficial.in')
-        }, 100)
-      }
-    } catch (err: any) {
-      console.error("❌ Sign out error:", err)
-      
-      // Force clear everything even if signout fails
+    } catch (error) {
+      console.error('❌ Sign out error:', error)
+      // Even if sign out fails, clear local state and redirect
       setSession(null)
       setUser(null)
       setProfile(null)
       setError(null)
       setLoading(false)
-      SessionManager.clearSession()
-      localStorage.removeItem('raptor-auth-state')
-      
-      // Clear any cached data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('player_dashboard_debug_error')
-        sessionStorage.clear()
-        
-        setTimeout(() => {
-          window.location.replace('https://dev.raptorofficial.in')
-        }, 100)
-      }
+      setIsSigningIn(false)
+      router.push('/')
     }
   }
 
   const resetPassword = async (email: string): Promise<{ error: any | null }> => {
     try {
-      console.log('🔐 Requesting password reset for:', email)
+      setError(null)
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${getSiteUrl()}/auth/confirm`
+        redirectTo: `${getSiteUrl()}/auth/reset-password`
       })
+      
       return { error }
     } catch (err: any) {
-      console.error("❌ Reset password exception:", err)
       return { error: err }
     }
   }
 
-  const signInWithDiscord = async (): Promise<void> => {
+  const signInWithDiscord = async () => {
     try {
-      console.log('🔐 Attempting Discord OAuth...')
       setError(null)
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: `${getSiteUrl()}/auth/confirm`,
-        },
+          redirectTo: `${getSiteUrl()}/dashboard`
+        }
       })
+      
       if (error) throw error
-      console.log('✅ Discord OAuth initiated, redirecting...')
-    } catch (err: any) {
-      console.error("❌ Discord OAuth sign-in error:", err)
-      setError(err.message || "Could not sign in with Discord")
+    } catch (error: any) {
+      console.error('Discord sign in error:', error)
+      throw error
     }
   }
 
-  const value = { 
-    session, 
-    user, 
-    profile, 
-    loading, 
-    error, 
-    signIn, 
-    signUp, 
-    signOut, 
-    retryProfileCreation, 
-    refreshProfile,
-    resetPassword, 
-    signInWithDiscord,
-    clearError
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider
+      value={{
+        session,
+        user,
+        profile,
+        loading: loading || isSigningIn,
+        error,
+        signIn,
+        signUp,
+        signOut,
+        retryProfileCreation,
+        refreshProfile,
+        resetPassword,
+        signInWithDiscord,
+        clearError,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export const useAuth = () => {
