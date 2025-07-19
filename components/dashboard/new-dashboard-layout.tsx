@@ -115,7 +115,7 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50/80 via-indigo-50/60 to-purple-50/80 backdrop-blur-sm">
       {/* Mobile Header */}
       <div className="lg:hidden bg-white shadow-sm border-b">
         <div className="flex items-center justify-between px-4 py-3">
@@ -197,7 +197,7 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
       <div className="lg:flex">
         {/* Desktop Sidebar */}
         <div className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0">
-          <div className="flex flex-col flex-1 bg-white shadow-xl">
+          <div className="flex flex-col flex-1 bg-white/90 backdrop-blur-md shadow-xl border-r border-white/20">
             {/* Desktop Header */}
             <div className="p-6 bg-gradient-to-r from-indigo-600 to-purple-600">
               <div className="flex items-center space-x-3">
@@ -273,7 +273,9 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
         {/* Main Content */}
         <div className="lg:pl-64 flex flex-col min-h-screen">
           <main className="flex-1 p-4 lg:p-8">
-            {children}
+            <div className="bg-white/60 backdrop-blur-sm rounded-xl border border-white/20 shadow-lg p-6">
+              {children}
+            </div>
           </main>
         </div>
       </div>

@@ -42,19 +42,9 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     description: 'Performance analytics and reports',
     icon: 'BarChart3',
     path: '/dashboard/analytics',
-    allowedRoles: ['admin', 'manager', 'coach', 'analyst'],
+    allowedRoles: ['admin', 'manager', 'coach', 'player', 'analyst'],
     showInNavigation: true,
     mobileOrder: 2
-  },
-  {
-    id: 'teams',
-    title: 'Teams',
-    description: 'Team management and roster',
-    icon: 'Users',
-    path: '/dashboard/team-management/teams',
-    allowedRoles: ['admin', 'manager', 'coach'],
-    showInNavigation: true,
-    mobileOrder: 3
   },
   {
     id: 'performance',
@@ -64,21 +54,31 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     path: '/dashboard/performance',
     allowedRoles: ['admin', 'manager', 'coach', 'player', 'analyst'],
     showInNavigation: true,
+    mobileOrder: 3
+  },
+  {
+    id: 'teams',
+    title: 'Team Management',
+    description: 'Team management and roster',
+    icon: 'Users',
+    path: '/dashboard/team-management/teams',
+    allowedRoles: ['admin', 'manager', 'coach'],
+    showInNavigation: true,
     mobileOrder: 4
   },
   {
     id: 'finance',
     title: 'Finance',
-    description: 'Expenses, winnings, and financial reports',
+    description: 'Financial management and tracking',
     icon: 'DollarSign',
-    path: '/dashboard/team-management/expenses',
+    path: '/dashboard/finance',
     allowedRoles: ['admin', 'manager'],
     showInNavigation: true,
     mobileOrder: 5
   },
   {
     id: 'users',
-    title: 'Users',
+    title: 'User Management',
     description: 'User management and roles',
     icon: 'UserCheck',
     path: '/dashboard/user-management',
@@ -153,7 +153,7 @@ export class DashboardPermissions {
           canView: ['admin', 'manager', 'coach', 'analyst'].includes(userRole),
           canCreate: ['admin', 'manager'].includes(userRole),
           canEdit: ['admin', 'manager'].includes(userRole),
-          canDelete: userRole === 'admin',
+          canDelete: ['admin', 'manager'].includes(userRole),
           canExport: ['admin', 'manager', 'coach'].includes(userRole)
         }
 

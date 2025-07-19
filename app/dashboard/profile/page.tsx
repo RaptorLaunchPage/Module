@@ -103,11 +103,9 @@ export default function ProfilePage() {
       console.log('✅ Profile updated successfully')
       toast.success("Profile updated successfully!")
       
-      // Refresh profile data
+      // Refresh profile data without navigation
       await refreshProfile()
-      
-      // Stay on the same page - don't redirect
-      console.log('✅ Profile refresh completed')
+      console.log('✅ Profile refresh completed - staying on profile page')
       
     } catch (error: any) {
       console.error("❌ Error updating profile:", error)
@@ -200,8 +198,9 @@ export default function ProfilePage() {
       console.log('✅ Avatar updated successfully!')
       toast.success("Avatar updated successfully!")
       
-      // Refresh profile data without redirecting
+      // Refresh profile data without navigation
       await refreshProfile()
+      console.log('✅ Avatar update completed - staying on profile page')
       
       // Clear the file input
       if (event.target) {

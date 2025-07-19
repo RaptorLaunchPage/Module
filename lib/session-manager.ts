@@ -51,14 +51,13 @@ export class SessionManager {
 
     const lastActivity = localStorage.getItem(this.ACTIVITY_KEY)
     if (!lastActivity) {
-      // If no activity recorded, don't immediately invalidate
-      // Let Supabase handle the actual session state
+      // If no activity recorded, assume valid for new sessions
       return true
     }
 
     const timeSinceActivity = Date.now() - parseInt(lastActivity)
-    // Extended session duration to 8 hours to reduce aggressive logouts
-    return timeSinceActivity < (8 * 60 * 60 * 1000)
+    // Extended session duration to 12 hours for better tab switching
+    return timeSinceActivity < (12 * 60 * 60 * 1000)
   }
 
   /**
@@ -96,10 +95,10 @@ export class SessionManager {
       clearInterval(this.activityTimer)
     }
 
-    // Check every 10 minutes instead of every minute to reduce aggressive checks
+    // Check every 30 minutes to reduce aggressive checks for better tab switching
     this.activityTimer = setInterval(() => {
       this.checkSession()
-          }, 600000) // 10 minutes
+    }, 1800000) // 30 minutes
   }
 
   /**

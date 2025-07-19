@@ -89,6 +89,7 @@ export default function NewDashboardPage() {
   const roleInfo = DashboardPermissions.getRoleInfo(userRole)
   const canAccessFinance = DashboardPermissions.getDataPermissions(userRole, 'finance').canView
   const canAccessUsers = DashboardPermissions.getDataPermissions(userRole, 'users').canView
+  const canAccessAnalytics = DashboardPermissions.canAccessModule(userRole, 'analytics')
   const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
 
   useEffect(() => {

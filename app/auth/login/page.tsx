@@ -22,9 +22,11 @@ export default function LoginPage() {
   const { signIn, signInWithDiscord, clearError: clearAuthError, loading: authLoading, user } = useAuth()
   const router = useRouter()
 
-  // Redirect if already logged in
+  // Redirect if already logged in and clear submitting state
   useEffect(() => {
     if (user && !authLoading) {
+      console.log("✅ User authenticated, redirecting to dashboard")
+      setIsSubmitting(false) // Clear submitting state
       router.push("/dashboard")
     }
   }, [user, authLoading, router])
@@ -48,19 +50,26 @@ export default function LoginPage() {
     clearAuthError()
     
     try {
+      console.log("🔐 Attempting login for:", email)
       const result = await signIn(email, password)
       
       if (result?.error) {
+        console.error("❌ Login failed:", result.error)
         const errorMessage = result.error.message || "Invalid email or password"
         setError(errorMessage)
         setIsSubmitting(false)
       } else {
-        // Success - auth state change will handle redirect
-        console.log("Login successful, auth state will handle redirect...")
-        // Keep isSubmitting true, auth loading will take over
+        console.log("✅ Login successful, waiting for auth state change...")
+        // Add timeout to prevent infinite loading
+        setTimeout(() => {
+          if (isSubmitting) {
+            console.warn("⚠️ Login timeout, forcing state reset")
+            setIsSubmitting(false)
+          }
+        }, 10000) // 10 second timeout
       }
     } catch (err: any) {
-      console.error("Login error:", err)
+      console.error("❌ Login exception:", err)
       setError("An unexpected error occurred. Please try again.")
       setIsSubmitting(false)
     }
