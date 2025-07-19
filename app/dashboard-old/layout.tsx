@@ -21,7 +21,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, profile, loading, error, retryProfileCreation, clearError, signOut } = useAuth()
+  const { user, profile, loading, error, clearError, signOut } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [retryCount, setRetryCount] = useState(0)
@@ -37,9 +37,15 @@ export default function DashboardLayout({
     clearError()
     
     try {
-      await retryProfileCreation()
-    } catch (err) {
+      // Simply refresh the page to re-trigger profile fetching
+      window.location.reload()
+    } catch (err: any) {
       console.error('Retry failed:', err)
+      toast({
+        title: "Retry Failed",
+        description: "Unable to retry. Please refresh the page.",
+        variant: "destructive",
+      })
     } finally {
       setIsRetrying(false)
     }
