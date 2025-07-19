@@ -90,8 +90,6 @@ export default function LoginPage() {
     clearAuthError()
   }
 
-  const isLoading = authLoading || isSubmitting
-
   return (
     <VideoBackground>
       {/* Ambient glowing dots */}
@@ -151,7 +149,7 @@ export default function LoginPage() {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isSubmitting || authLoading}
                   className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40"
                 />
               </div>
@@ -164,7 +162,7 @@ export default function LoginPage() {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
+                    disabled={isSubmitting || authLoading}
                     className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40 pr-10"
                   />
                   <Button
@@ -173,7 +171,7 @@ export default function LoginPage() {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
-                    disabled={isLoading}
+                    disabled={isSubmitting || authLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 text-slate-400" />
@@ -225,9 +223,9 @@ export default function LoginPage() {
               onClick={handleDiscordLogin}
               variant="outline" 
               className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white border-[#5865F2] font-medium"
-              disabled={isLoading}
+              disabled={isSubmitting || authLoading}
             >
-              {isLoading ? (
+              {(isSubmitting || authLoading) ? (
                 <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">

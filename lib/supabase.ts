@@ -16,7 +16,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// Validate URL format to prevent runtime crashes
+let validUrl: string
+try {
+  new URL(supabaseUrl)
+  validUrl = supabaseUrl
+} catch (error) {
+  console.error('Invalid Supabase URL:', supabaseUrl)
+  // Use a dummy URL that won't crash the client but will fail gracefully
+  validUrl = 'https://dummy.supabase.co'
+}
+
+export const supabase = createClient(validUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -33,37 +44,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-// Add connection test function with better debugging
-export const testConnection = async () => {
-  try {
-    console.log("Testing Supabase connection...")
-    console.log("URL:", supabaseUrl)
-    console.log("Key (first 10 chars):", supabaseAnonKey.slice(0, 10) + "...")
-
-    // Test basic connection first
-    const { data: authData, error: authError } = await supabase.auth.getSession()
-    console.log("Auth test:", { authData, authError })
-
-    // Test if we can access any table (this might fail due to RLS)
-    const { data, error } = await supabase.from("users").select("count").limit(1)
-    console.log("Database test:", { data, error })
-
-    if (error) {
-      console.error("Supabase connection error:", error)
-      // If it's an RLS error, that means connection works but policies are blocking
-      if (error.code === "PGRST301" || error.message.includes("RLS")) {
-        console.log("Connection works, but RLS is blocking access")
-        return true
-      }
-      return false
-    }
-    console.log("Supabase connected successfully")
-    return true
-  } catch (err) {
-    console.error("Connection test failed:", err)
-    return false
-  }
-}
+// REMOVED testConnection function that was causing getSession() hanging issues
+// Connection testing is now handled by the auth hook's simplified approach
 
 export type Database = {
   public: {

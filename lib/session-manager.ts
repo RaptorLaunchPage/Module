@@ -1,4 +1,5 @@
-import { supabase } from "./supabase"
+// DISABLED SESSION MANAGER - Replaced by simplified auth hook
+// This class is kept for compatibility but all methods are no-ops
 
 export class SessionManager {
   private static readonly SESSION_KEY = 'raptor-session-info'
@@ -7,295 +8,145 @@ export class SessionManager {
   private static activityTimer: NodeJS.Timeout | null = null
 
   /**
-   * Initialize session management
+   * DISABLED - Initialize session management
    */
   static init() {
-    if (typeof window === 'undefined') return
-
-    // Update activity on page load
-    this.updateActivity()
-
-    // Set up activity listeners
-    this.setupActivityListeners()
-
-    // Start activity checker
-    this.startActivityChecker()
-
-    // Handle page visibility changes
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        this.updateActivity()
-        this.checkSession()
-      }
-    })
+    console.log('🚫 SessionManager.init() - DISABLED to prevent auth conflicts')
+    // NO-OP - All functionality moved to auth hook
   }
 
   /**
-   * Update last activity timestamp
+   * DISABLED - Update last activity timestamp
    */
   static updateActivity() {
-    if (typeof window === 'undefined') return
-    
-    const now = Date.now()
-    localStorage.setItem(this.ACTIVITY_KEY, now.toString())
-    
-    // Also store in session storage for tab-specific tracking
-    sessionStorage.setItem('raptor-tab-active', now.toString())
+    console.log('🚫 SessionManager.updateActivity() - DISABLED')
+    // NO-OP
   }
 
   /**
-   * Check if session is still valid - less aggressive check
+   * DISABLED - Check if session is still valid
    */
   static isSessionValid(): boolean {
-    if (typeof window === 'undefined') return false
-
-    const lastActivity = localStorage.getItem(this.ACTIVITY_KEY)
-    if (!lastActivity) {
-      // If no activity recorded, assume valid for new sessions
-      return true
-    }
-
-    const timeSinceActivity = Date.now() - parseInt(lastActivity)
-    // Extended session duration to 12 hours for better tab switching
-    return timeSinceActivity < (12 * 60 * 60 * 1000)
+    console.log('🚫 SessionManager.isSessionValid() - DISABLED')
+    return true // Always return true to avoid interference
   }
 
   /**
-   * Set up activity listeners
+   * DISABLED - Set up activity listeners
    */
   private static setupActivityListeners() {
-    if (typeof window === 'undefined') return
-
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click']
-    
-    events.forEach(event => {
-      document.addEventListener(event, this.throttledUpdateActivity, true)
-    })
+    console.log('🚫 SessionManager.setupActivityListeners() - DISABLED')
+    // NO-OP
   }
 
   /**
-   * Throttled activity update (max once per minute)
+   * DISABLED - Throttled activity update
    */
-  private static throttledUpdateActivity = (() => {
-    let lastUpdate = 0
-    return () => {
-      const now = Date.now()
-      if (now - lastUpdate > 60000) { // 1 minute throttle
-        this.updateActivity()
-        lastUpdate = now
-      }
-    }
-  })()
+  private static throttledUpdateActivity = () => {
+    console.log('🚫 SessionManager.throttledUpdateActivity() - DISABLED')
+    // NO-OP
+  }
 
   /**
-   * Start the activity checker
+   * DISABLED - Start the activity checker
    */
   private static startActivityChecker() {
-    if (this.activityTimer) {
-      clearInterval(this.activityTimer)
-    }
-
-    // Check every 30 minutes to reduce aggressive checks for better tab switching
-    this.activityTimer = setInterval(() => {
-      this.checkSession()
-    }, 1800000) // 30 minutes
+    console.log('🚫 SessionManager.startActivityChecker() - DISABLED')
+    // NO-OP
   }
 
   /**
-   * Check session validity and handle logout - DISABLED to prevent getSession conflicts
+   * DISABLED - Check session validity
    */
   static async checkSession() {
-    if (typeof window === 'undefined') return
-
-    // DISABLED: This was calling getSession() and conflicting with auth hook
-    // Let the auth hook handle all session management
-    console.log('Session check disabled to prevent conflicts')
-    return
-
-    // try {
-    //   // Check if we have a valid session from Supabase first
-    //   const { data: { session }, error } = await supabase.auth.getSession()
-    //   
-    //   if (error) {
-    //     console.error('Session check error:', error)
-    //     return
-    //   }
-
-    //   if (!session) {
-    //     // No session, user needs to login
-    //     this.handleSessionExpired()
-    //     return
-    //   }
-
-    //   // Only check activity-based expiration if we have a session
-    //   // Don't be too aggressive with activity checks
-    //   if (!this.isSessionValid()) {
-    //     console.log('⏰ Session expired due to inactivity')
-    //     await this.logout('Session expired due to 4 hours of inactivity')
-    //     return
-    //   }
-
-    //   // Session is valid, update stored session info
-    //   this.storeSessionInfo(session)
-
-    // } catch (error) {
-    //   console.error('Session check failed:', error)
-    // }
+    console.log('🚫 SessionManager.checkSession() - DISABLED')
+    // NO-OP - All session management handled by auth hook
   }
 
   /**
-   * Store session information
+   * DISABLED - Store session information
    */
   private static storeSessionInfo(session: any) {
-    if (typeof window === 'undefined') return
-
-    const sessionInfo = {
-      user: session.user,
-      expires_at: session.expires_at,
-      access_token: session.access_token ? 'present' : 'missing',
-      stored_at: Date.now()
-    }
-
-    localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionInfo))
+    console.log('🚫 SessionManager.storeSessionInfo() - DISABLED')
+    // NO-OP
   }
 
   /**
-   * Get stored session info
+   * DISABLED - Get stored session info
    */
   static getStoredSessionInfo() {
-    if (typeof window === 'undefined') return null
-
-    try {
-      const stored = localStorage.getItem(this.SESSION_KEY)
-      return stored ? JSON.parse(stored) : null
-    } catch {
-      return null
-    }
+    console.log('🚫 SessionManager.getStoredSessionInfo() - DISABLED')
+    return null // Always return null
   }
 
   /**
-   * Handle session expiration
+   * DISABLED - Handle session expiration
    */
   private static handleSessionExpired() {
-    console.log('🔒 Session expired, redirecting to login')
-    
-    // Clear stored data
-    this.clearSession()
-    
-    // Redirect to login with message
-    if (typeof window !== 'undefined') {
-      const currentPath = window.location.pathname
-      window.location.href = `/auth/login?expired=true&returnUrl=${encodeURIComponent(currentPath)}`
-    }
+    console.log('🚫 SessionManager.handleSessionExpired() - DISABLED')
+    // NO-OP
   }
 
   /**
-   * Logout user
+   * DISABLED - Logout user
    */
   static async logout(reason?: string) {
-    try {
-      console.log('🔓 Logging out user:', reason || 'Manual logout')
-      
-      // Sign out from Supabase
-      await supabase.auth.signOut()
-      
-      // Clear all stored data
-      this.clearSession()
-      
-      // Show message and redirect
-      if (typeof window !== 'undefined') {
-        const message = reason || 'You have been logged out'
-        window.location.href = `/auth/login?message=${encodeURIComponent(message)}`
-      }
-      
-    } catch (error) {
-      console.error('Logout error:', error)
-    }
+    console.log('🚫 SessionManager.logout() - DISABLED - Use auth hook signOut instead')
+    // NO-OP - Auth hook handles logout
   }
 
   /**
-   * Recover session after page refresh
-   * This ensures session persists across page reloads
+   * DISABLED - Recover session after page refresh
    */
   static async recoverSession(): Promise<boolean> {
-    try {
-      console.log('🔄 Attempting session recovery after page refresh...')
-      
-      // Check if we have stored session info
-      const storedInfo = this.getStoredSessionInfo()
-      if (!storedInfo) {
-        console.log('❌ No stored session info found')
-        return false
-      }
-
-      // DISABLED: getSession() call removed to prevent conflicts with auth hook
-      console.log('🔧 Session recovery disabled to prevent conflicts')
-      return false
-    } catch (error) {
-      console.error('❌ Session recovery error:', error)
-      return false
-    }
+    console.log('🚫 SessionManager.recoverSession() - DISABLED')
+    return false // Always return false
   }
 
   /**
-   * Clear all session data
+   * Clear all session data - ONLY method that works
    */
   static clearSession() {
     if (typeof window === 'undefined') return
     
-    localStorage.removeItem(this.SESSION_KEY)
-    localStorage.removeItem(this.ACTIVITY_KEY)
-    sessionStorage.removeItem('raptor-tab-active')
-    console.log('🧹 Session data cleared')
-  }
-
-  /**
-   * Refresh session if needed
-   */
-  static async refreshSession() {
+    console.log('🧹 SessionManager.clearSession() - Clearing localStorage only')
     try {
-      const { data, error } = await supabase.auth.refreshSession()
-      
-      if (error) {
-        console.error('Session refresh failed:', error)
-        return false
-      }
-      
-      if (data.session) {
-        this.storeSessionInfo(data.session)
-        this.updateActivity()
-        console.log('✅ Session refreshed successfully')
-        return true
-      }
-      
-      return false
+      localStorage.removeItem(this.SESSION_KEY)
+      localStorage.removeItem(this.ACTIVITY_KEY)
+      sessionStorage.removeItem('raptor-tab-active')
     } catch (error) {
-      console.error('Session refresh error:', error)
-      return false
+      console.warn('Failed to clear session data:', error)
     }
   }
 
   /**
-   * Extend session activity
+   * DISABLED - Refresh session if needed
    */
-  static extendSession() {
-    this.updateActivity()
-    console.log('✅ Session activity extended')
+  static async refreshSession() {
+    console.log('🚫 SessionManager.refreshSession() - DISABLED')
+    return false // Always return false
   }
 
   /**
-   * Get current session status
+   * DISABLED - Extend session activity
+   */
+  static extendSession() {
+    console.log('🚫 SessionManager.extendSession() - DISABLED')
+    // NO-OP
+  }
+
+  /**
+   * DISABLED - Get current session status
    */
   static getSessionStatus() {
+    console.log('🚫 SessionManager.getSessionStatus() - DISABLED')
     return {
-      isValid: this.isSessionValid(),
-      lastActivity: localStorage.getItem(this.ACTIVITY_KEY),
-      storedSession: this.getStoredSessionInfo()
+      isValid: true,
+      lastActivity: null,
+      storedSession: null
     }
   }
 }
 
-// Initialize on client side - DISABLED to prevent conflicts with auth hook
-// if (typeof window !== 'undefined') {
-//   SessionManager.init()
-// }
+// DISABLED - No auto-initialization
+console.log('🚫 SessionManager auto-init DISABLED - Auth hook handles all session management')

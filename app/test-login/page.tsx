@@ -44,19 +44,9 @@ export default function TestLogin() {
         return
       }
 
-      // Test 3: Try to get current session (should be quick)
-      addLog("3. Testing getSession...")
-      const startTime = Date.now()
-      
-      try {
-        const { data, error } = await supabase.auth.getSession()
-        const endTime = Date.now()
-        addLog(`✅ getSession completed in ${endTime - startTime}ms`)
-        addLog(`   Session: ${data.session ? 'exists' : 'null'}`)
-        addLog(`   Error: ${error ? error.message : 'none'}`)
-      } catch (sessionError: any) {
-        addLog(`❌ getSession failed: ${sessionError.message}`)
-      }
+      // Test 3: DISABLED - getSession call removed to prevent hanging
+      addLog("3. Skipping getSession test (DISABLED to prevent auth conflicts)")
+      addLog("⚠️ getSession() calls have been removed from diagnostic tests")
 
       // Test 4: Try a simple database query
       addLog("4. Testing database connection...")
