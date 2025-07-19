@@ -86,15 +86,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(currentSession)
         setUser(currentSession.user)
         
-        // Fetch profile for existing session with timeout
+        // Fetch profile for existing session without redirect (let user choose where to go)
         try {
-          await Promise.race([
-            fetchUserProfile(currentSession.user, false),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Profile fetch timeout')), 15000))
-          ])
+          console.log('🔐 Fetching profile for existing session...')
+          await fetchUserProfile(currentSession.user, false)
         } catch (profileError) {
-          console.error('❌ Profile fetch failed during init, continuing anyway:', profileError)
-          setLoading(false) // Clear loading even if profile fetch fails
+          console.error('❌ Profile fetch failed during init:', profileError)
+          setError('Failed to load user profile')
+          setLoading(false)
         }
       } else {
         console.log('🔐 No existing session found')
@@ -114,7 +113,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     if (event === 'SIGNED_IN' && session?.user) {
       console.log('🔐 User signed in:', session.user.email)
-      console.log('🔐 Current loading state:', loading)
+      console.log('🔐 Current loading state before profile fetch:', loading)
       
       SessionManager.extendSession()
       setSession(session)
@@ -123,9 +122,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       try {
         console.log('🔐 Starting profile fetch...')
-        // Fetch profile and redirect
         await fetchUserProfile(session.user, true)
-        console.log('🔐 Profile fetch completed')
+        console.log('🔐 Profile fetch completed successfully')
       } catch (error) {
         console.error('🔐 Profile fetch failed in auth state change:', error)
         setError('Failed to load user profile')
@@ -146,53 +144,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user || null)
     } else {
       console.log(`🔐 Unhandled auth event: ${event}`)
+      // For unhandled events, ensure loading is cleared if we have no session
+      if (!session) {
+        setLoading(false)
+      }
     }
   }
 
   const fetchUserProfile = async (user: any, shouldRedirect: boolean = false) => {
     try {
       console.log(`🔍 Fetching profile for user: ${user.email}`)
-      console.log(`🔍 User object:`, JSON.stringify(user, null, 2))
+      console.log(`🔍 User ID: ${user.id}`)
       console.log(`🔍 Should redirect:`, shouldRedirect)
       
-      console.log(`🔍 Starting database query for user ID: ${user.id}`)
-      
-      // Add timeout protection
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout after 10 seconds')), 10000)
-      )
-      
-      // Get existing profile with timeout
-      const profileFetchPromise = supabase
+      // Get existing profile - remove the timeout race that might be causing issues
+      const { data: existingProfile, error: selectError } = await supabase
         .from("users")
         .select("*")
         .eq("id", user.id)
         .maybeSingle()
-      
-      console.log(`🔍 Executing profile query...`)
-      const { data: existingProfile, error: selectError } = await Promise.race([
-        profileFetchPromise,
-        timeoutPromise
-      ]) as any
 
       console.log(`🔍 Query completed. Error:`, selectError)
       console.log(`🔍 Query result:`, existingProfile)
 
       if (selectError && selectError.code !== "PGRST116") {
         console.error("❌ Profile fetch error:", selectError)
-        console.error("❌ Error details:", JSON.stringify(selectError, null, 2))
         setError(`Failed to fetch profile: ${selectError.message}`)
         setLoading(false)
         return
       }
 
       if (existingProfile) {
-        console.log(`✅ Profile found:`, existingProfile)
+        console.log(`✅ Profile found, setting state:`, existingProfile)
+        
+        // Set profile first, then clear loading
         setProfile(existingProfile)
+        setError(null) // Clear any previous errors
         setLoading(false)
         
         if (shouldRedirect) {
           console.log(`📍 Redirecting user with role: ${existingProfile.role}`)
+          // Use a longer timeout to ensure state is set
           setTimeout(() => {
             if (existingProfile.role === "pending_player") {
               console.log(`📍 Navigating to /onboarding`)
@@ -201,19 +193,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               console.log(`📍 Navigating to /dashboard`)
               router.push("/dashboard")
             }
-          }, 100)
+          }, 500) // Increased timeout to ensure state is properly set
         }
         return
       }
 
-      // Create new profile
+      // If no existing profile, create new one
       console.log(`🔧 No existing profile found. Creating new profile for: ${user.email}`)
       const provider = user.app_metadata?.provider || 'email'
       const userName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
       
       console.log(`🔧 Profile creation data:`, { userId: user.id, email: user.email, name: userName, provider })
       
-      console.log(`🔧 Calling SecureProfileCreation.createProfile...`)
       const profileResult = await SecureProfileCreation.createProfile(
         user.id,
         user.email,
@@ -224,15 +215,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log(`🔧 Profile creation result:`, profileResult)
 
       if (profileResult.success && profileResult.profile) {
-        console.log(`✅ Profile created:`, profileResult.profile)
+        console.log(`✅ Profile created, setting state:`, profileResult.profile)
+        
         setProfile(profileResult.profile)
+        setError(null)
         setLoading(false)
         
         if (shouldRedirect) {
           console.log(`📍 Redirecting new user to onboarding`)
           setTimeout(() => {
             router.push("/onboarding")
-          }, 100)
+          }, 500)
         }
       } else {
         console.error(`❌ Profile creation failed:`, profileResult.error)
@@ -241,7 +234,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error('❌ Profile fetch exception:', error)
-      console.error('❌ Exception details:', JSON.stringify(error, null, 2))
       setError('Failed to load user profile')
       setLoading(false)
     }
