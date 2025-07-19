@@ -135,8 +135,10 @@ export default function FinancePage() {
     } finally {
       clearTimeout(timeoutId)
       addDebugInfo("🔄 Setting loading to false...")
+      addDebugInfo(`📊 Final state: teams=${teams.length}, expenses=${expenses.length}, winnings=${winnings.length}`)
       setLoading(false)
       setIsDataFetching(false)
+      addDebugInfo("✅ Component should now show success state!")
     }
   }
 
@@ -208,7 +210,7 @@ export default function FinancePage() {
     )
   }
 
-  if (loading) {
+  if (loading || isDataFetching) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -299,10 +301,25 @@ export default function FinancePage() {
     )
   }
 
+  // Add debug info when rendering success state
+  console.log('🎯 Rendering success state:', { 
+    loading, 
+    isDataFetching, 
+    error, 
+    teamsLength: teams.length, 
+    expensesLength: expenses.length, 
+    winningsLength: winnings.length 
+  })
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Finance Management - Debug Mode</h1>
+        <h1 className="text-2xl font-bold">
+          Finance Management - Debug Mode ✅
+          <span className="text-sm text-green-600 ml-2">
+            (Loading: {loading ? 'Yes' : 'No'}, Fetching: {isDataFetching ? 'Yes' : 'No'})
+          </span>
+        </h1>
         <Button onClick={handleRefresh} variant="outline">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
