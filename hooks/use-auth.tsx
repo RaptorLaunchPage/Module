@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('🔍 AuthProvider unmounting...')
       subscription.unsubscribe()
     }
-  }, [initComplete])
+  }, []) // Remove initComplete dependency to prevent multiple subscriptions
 
   // Improved loading timeout that's less aggressive
   useEffect(() => {

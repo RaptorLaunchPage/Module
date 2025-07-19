@@ -102,40 +102,45 @@ export class SessionManager {
   }
 
   /**
-   * Check session validity and handle logout - less aggressive
+   * Check session validity and handle logout - DISABLED to prevent getSession conflicts
    */
   static async checkSession() {
     if (typeof window === 'undefined') return
 
-    try {
-      // Check if we have a valid session from Supabase first
-      const { data: { session }, error } = await supabase.auth.getSession()
-      
-      if (error) {
-        console.error('Session check error:', error)
-        return
-      }
+    // DISABLED: This was calling getSession() and conflicting with auth hook
+    // Let the auth hook handle all session management
+    console.log('Session check disabled to prevent conflicts')
+    return
 
-      if (!session) {
-        // No session, user needs to login
-        this.handleSessionExpired()
-        return
-      }
+    // try {
+    //   // Check if we have a valid session from Supabase first
+    //   const { data: { session }, error } = await supabase.auth.getSession()
+    //   
+    //   if (error) {
+    //     console.error('Session check error:', error)
+    //     return
+    //   }
 
-      // Only check activity-based expiration if we have a session
-      // Don't be too aggressive with activity checks
-      if (!this.isSessionValid()) {
-        console.log('⏰ Session expired due to inactivity')
-        await this.logout('Session expired due to 4 hours of inactivity')
-        return
-      }
+    //   if (!session) {
+    //     // No session, user needs to login
+    //     this.handleSessionExpired()
+    //     return
+    //   }
 
-      // Session is valid, update stored session info
-      this.storeSessionInfo(session)
+    //   // Only check activity-based expiration if we have a session
+    //   // Don't be too aggressive with activity checks
+    //   if (!this.isSessionValid()) {
+    //     console.log('⏰ Session expired due to inactivity')
+    //     await this.logout('Session expired due to 4 hours of inactivity')
+    //     return
+    //   }
 
-    } catch (error) {
-      console.error('Session check failed:', error)
-    }
+    //   // Session is valid, update stored session info
+    //   this.storeSessionInfo(session)
+
+    // } catch (error) {
+    //   console.error('Session check failed:', error)
+    // }
   }
 
   /**
@@ -305,7 +310,7 @@ export class SessionManager {
   }
 }
 
-// Initialize on client side
-if (typeof window !== 'undefined') {
-  SessionManager.init()
-}
+// Initialize on client side - DISABLED to prevent conflicts with auth hook
+// if (typeof window !== 'undefined') {
+//   SessionManager.init()
+// }
