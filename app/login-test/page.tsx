@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { supabase } from "@/lib/supabase"
 
 export default function LoginTestPage() {
   const { signIn, loading, error, session, user, profile } = useAuth()
@@ -59,6 +60,112 @@ export default function LoginTestPage() {
     }
   }
 
+  const testDirectSupabaseAuth = async () => {
+    addLog('=== TESTING DIRECT SUPABASE AUTH ===')
+    addLog('Calling supabase.auth.signInWithPassword directly...')
+    
+    const startTime = Date.now()
+    
+    try {
+      // Test with timeout to see if it hangs
+      const authPromise = supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password
+      })
+      
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Auth call timeout after 10 seconds')), 10000)
+      )
+      
+      addLog('Racing auth call vs 10-second timeout...')
+      
+      const result = await Promise.race([authPromise, timeoutPromise])
+      const endTime = Date.now()
+      
+      addLog(`✅ Auth call completed in ${endTime - startTime}ms`)
+      addLog(`Result: ${JSON.stringify(result)}`)
+      
+    } catch (error: any) {
+      const endTime = Date.now()
+      addLog(`❌ Auth call failed after ${endTime - startTime}ms`)
+      addLog(`Error: ${error.message}`)
+      
+      if (error.message.includes('timeout')) {
+        addLog('🚨 CONFIRMED: Supabase auth endpoint is hanging!')
+      }
+    }
+  }
+
+  const testAuthEndpoint = async () => {
+    addLog('=== TESTING AUTH ENDPOINT CONNECTIVITY ===')
+    
+    try {
+      addLog('Testing basic auth endpoint...')
+      
+      // Test if we can reach the auth endpoint at all
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+        },
+        body: JSON.stringify({
+          email: credentials.email,
+          password: credentials.password
+        })
+      })
+      
+      addLog(`Auth endpoint response status: ${response.status}`)
+      addLog(`Auth endpoint response ok: ${response.ok}`)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        addLog(`Auth endpoint error: ${errorText}`)
+      }
+      
+    } catch (error: any) {
+      addLog(`❌ Auth endpoint test failed: ${error.message}`)
+    }
+  }
+
+  const testBypassAuth = async () => {
+    addLog('=== TESTING AUTH BYPASS ===')
+    addLog('This will manually set session state without calling Supabase auth...')
+    
+    try {
+      // Get current user from a working auth session (if any)
+      const { data: { user: currentUser }, error } = await supabase.auth.getUser()
+      
+      if (currentUser) {
+        addLog(`✅ Found existing authenticated user: ${currentUser.email}`)
+        addLog('Manually triggering profile fetch...')
+        
+        // Directly call the profile fetch that we know works
+        const { data: profile, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', currentUser.id)
+          .maybeSingle()
+        
+        if (profile) {
+          addLog(`✅ Profile found via bypass: ${profile.name} (${profile.role})`)
+          addLog('🚀 Redirecting to dashboard...')
+          
+          setTimeout(() => {
+            window.location.href = '/dashboard'
+          }, 1000)
+        } else {
+          addLog(`❌ No profile found for user`)
+        }
+      } else {
+        addLog(`❌ No authenticated user found`)
+        addLog('Try logging in through Discord first, then test this bypass')
+      }
+    } catch (error: any) {
+      addLog(`❌ Bypass test failed: ${error.message}`)
+    }
+  }
+
   const clearLogs = () => {
     setTestLogs([])
   }
@@ -96,6 +203,15 @@ export default function LoginTestPage() {
             <div className="space-y-2">
               <Button onClick={testLogin} disabled={loading} className="w-full">
                 {loading ? 'Testing...' : 'Test Login'}
+              </Button>
+              <Button onClick={testDirectSupabaseAuth} variant="secondary" className="w-full">
+                Test Direct Supabase Auth
+              </Button>
+              <Button onClick={testAuthEndpoint} variant="outline" className="w-full">
+                Test Auth Endpoint
+              </Button>
+              <Button onClick={testBypassAuth} variant="outline" className="w-full">
+                Test Auth Bypass
               </Button>
               <Button onClick={clearLogs} variant="outline" className="w-full">
                 Clear Logs
