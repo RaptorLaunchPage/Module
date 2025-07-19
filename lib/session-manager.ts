@@ -228,24 +228,9 @@ export class SessionManager {
         return false
       }
 
-      // Get current session from Supabase
-      const { data: { session }, error } = await supabase.auth.getSession()
-      
-      if (error) {
-        console.error('❌ Session recovery failed:', error)
-        return false
-      }
-
-      if (session) {
-        console.log('✅ Session recovered successfully for:', session.user.email)
-        this.storeSessionInfo(session)
-        this.updateActivity()
-        return true
-      } else {
-        console.log('❌ No active session found, clearing stored info')
-        this.clearSession()
-        return false
-      }
+      // DISABLED: getSession() call removed to prevent conflicts with auth hook
+      console.log('🔧 Session recovery disabled to prevent conflicts')
+      return false
     } catch (error) {
       console.error('❌ Session recovery error:', error)
       return false
