@@ -53,11 +53,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       async (event, session) => {
         console.log("🔐 Auth state change:", event, session?.user?.email || 'no user')
         
-        // Don't handle state changes during initial load to prevent conflicts
-        if (!initComplete) {
-          console.log('⏳ Skipping auth state change during initialization')
-          return
-        }
+        // Handle all auth state changes (removed initComplete check that was blocking login)
         
         await handleAuthStateChange(event, session)
       }
@@ -148,48 +144,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return
       }
       
-      // Get current session from Supabase (removed redundant SessionManager.recoverSession call)
-      const { data: { session }, error } = await supabase.auth.getSession()
-      
-      if (error) {
-        console.error('❌ Session fetch error:', error)
-        setSession(null)
-        setUser(null)
-        setProfile(null)
-        setLoading(false)
-        setInitComplete(true)
-        return
-      }
-      
-      if (session?.user) {
-        console.log('✅ Valid session found:', session.user.email)
-        SessionManager.extendSession()
-        setSession(session)
-        setUser(session.user)
-        
-        // Fetch profile for authenticated user
-        try {
-          await fetchUserProfile(session.user, false)
-        } catch (profileError) {
-          console.error('❌ Profile fetch failed during init:', profileError)
-          setLoading(false)
-        }
-      } else {
-        console.log('❌ No session found')
-        SessionManager.clearSession()
-        setSession(null)
-        setUser(null)
-        setProfile(null)
-        setLoading(false)
-      }
-      
+      // Skip getSession() call that was hanging - let auth state change handle session detection
+      console.log('🔍 Initialization complete - auth state changes will handle session detection')
+      setLoading(false)
       setInitComplete(true)
+      
     } catch (error) {
       console.error('❌ Auth initialization error:', error)
-      SessionManager.clearSession()
-      setSession(null)
-      setUser(null)
-      setProfile(null)
       setError('Failed to initialize authentication')
       setLoading(false)
       setInitComplete(true)
