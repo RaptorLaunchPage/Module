@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -19,6 +19,8 @@ export default function FinancePage() {
   const [teams, setTeams] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
   const [winnings, setWinnings] = useState<any[]>([])
+  const [isDataFetching, setIsDataFetching] = useState(false)
+  const hasInitialized = useRef(false)
 
   const userRole = profile?.role as UserRole
   const financePermissions = DashboardPermissions.getDataPermissions(userRole, 'finance')
@@ -51,9 +53,24 @@ export default function FinancePage() {
   }
 
   const fetchSimpleData = async () => {
+    // Prevent multiple simultaneous fetches
+    if (isDataFetching) {
+      addDebugInfo("Already fetching data, skipping...")
+      return
+    }
+
     addDebugInfo("Starting simple data fetch...")
+    setIsDataFetching(true)
     setLoading(true)
     setError(null)
+
+    // Set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      addDebugInfo("⚠️ TIMEOUT: Data fetch taking too long, stopping...")
+      setError("Data fetch timeout - please refresh the page")
+      setLoading(false)
+      setIsDataFetching(false)
+    }, 15000) // 15 second timeout
 
     try {
       // Test database connection first
@@ -104,10 +121,10 @@ export default function FinancePage() {
         setWinnings(winningsData || [])
       }
 
-      addDebugInfo("Data fetch completed successfully!")
+      addDebugInfo("✅ Data fetch completed successfully!")
 
     } catch (error: any) {
-      addDebugInfo(`Fatal error: ${error.message}`)
+      addDebugInfo(`❌ Fatal error: ${error.message}`)
       setError(error.message)
       
       toast({
@@ -116,45 +133,49 @@ export default function FinancePage() {
         variant: "destructive",
       })
     } finally {
-      addDebugInfo("Setting loading to false...")
+      clearTimeout(timeoutId)
+      addDebugInfo("🔄 Setting loading to false...")
       setLoading(false)
+      setIsDataFetching(false)
     }
   }
 
   useEffect(() => {
-    addDebugInfo("Component mounted, checking profile...")
-    
-    if (profile) {
-      addDebugInfo(`Profile found: ${profile.role}`)
-      
-      if (financePermissions.canView) {
-        addDebugInfo("Finance permissions granted, starting data fetch")
-        fetchSimpleData()
-      } else {
-        addDebugInfo("Finance permissions denied")
-        setError(`Access denied: ${profile.role} role cannot access finance module. Required: admin or manager role.`)
-        setLoading(false)
-      }
-    } else {
-      addDebugInfo("No profile found, waiting...")
-      
-      // Set timeout for profile loading
-      const profileTimeout = setTimeout(() => {
-        if (!profile) {
-          addDebugInfo("Profile loading timeout!")
-          setError('Profile loading timeout. Please refresh the page.')
-          setLoading(false)
-        }
-      }, 10000)
-      
-      return () => clearTimeout(profileTimeout)
+    // Only run once when profile becomes available and we haven't initialized yet
+    if (!profile || hasInitialized.current || isDataFetching) {
+      return
     }
-  }, [profile, financePermissions])
+
+    hasInitialized.current = true
+    addDebugInfo("🚀 Component mounted, checking profile...")
+    addDebugInfo(`👤 Profile found: ${profile.role}`)
+    
+    if (financePermissions.canView) {
+      addDebugInfo("✅ Finance permissions granted, starting data fetch")
+      fetchSimpleData()
+    } else {
+      addDebugInfo("❌ Finance permissions denied")
+      setError(`Access denied: ${profile.role} role cannot access finance module. Required: admin or manager role.`)
+      setLoading(false)
+    }
+  }, [profile]) // Only depend on profile
 
   const handleRefresh = () => {
+    hasInitialized.current = false // Reset initialization flag
     setDebugInfo([])
-    addDebugInfo("Manual refresh triggered")
-    fetchSimpleData()
+    setError(null)
+    setTeams([])
+    setExpenses([])
+    setWinnings([])
+    setIsDataFetching(false)
+    setLoading(true)
+    addDebugInfo("🔄 Manual refresh triggered")
+    
+    // Small delay to ensure state updates
+    setTimeout(() => {
+      hasInitialized.current = true
+      fetchSimpleData()
+    }, 100)
   }
 
   if (!profile) {
@@ -192,13 +213,13 @@ export default function FinancePage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Finance Management - Debug Mode</h1>
-          <Button onClick={handleRefresh} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+          <Button onClick={handleRefresh} variant="outline" disabled>
+            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+            Loading...
           </Button>
         </div>
         
-        <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center justify-center min-h-[200px]">
           <div className="text-center space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
             <div>
@@ -208,7 +229,7 @@ export default function FinancePage() {
           </div>
         </div>
 
-        {/* Debug Info Panel */}
+        {/* Debug Info Panel - ONLY show during loading */}
         <Card>
           <CardHeader>
             <CardTitle>Debug Information</CardTitle>
