@@ -164,7 +164,7 @@ export default function TestLogin() {
           <h3 className="font-semibold text-yellow-800 mb-2">🔍 What to look for:</h3>
           <ul className="text-yellow-700 space-y-1 text-sm">
             <li>• <strong>Connection issues:</strong> If basic tests fail, it's an environment/config problem</li>
-            <li>• <strong>Timeout issues:</strong> If calls take >10 seconds, there's a network/server issue</li>
+            <li>• <strong>Timeout issues:</strong> If calls take &gt;10 seconds, there's a network/server issue</li>
             <li>• <strong>Auth hanging:</strong> If login never completes, it's the deadlock bug or server issue</li>
             <li>• <strong>Database errors:</strong> If DB queries fail, check your Supabase project status</li>
           </ul>
