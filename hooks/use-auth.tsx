@@ -148,10 +148,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return
       }
       
-      // Try to recover session (for page refreshes)
-      const sessionRecovered = await SessionManager.recoverSession()
-      
-      // Get current session from Supabase
+      // Get current session from Supabase (removed redundant SessionManager.recoverSession call)
       const { data: { session }, error } = await supabase.auth.getSession()
       
       if (error) {
@@ -166,9 +163,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (session?.user) {
         console.log('✅ Valid session found:', session.user.email)
-        if (sessionRecovered) {
-          console.log('✅ Session was recovered from page refresh')
-        }
         SessionManager.extendSession()
         setSession(session)
         setUser(session.user)
