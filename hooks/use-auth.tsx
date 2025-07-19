@@ -74,6 +74,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Get current session
       const { data: { session: currentSession }, error } = await supabase.auth.getSession()
       
+      console.log('🔐 Current session check result:')
+      console.log('🔐 - Session exists:', !!currentSession)
+      console.log('🔐 - Session error:', error)
+      
       if (error) {
         console.error('❌ Session fetch error:', error)
         setError('Failed to initialize authentication')
@@ -90,13 +94,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           console.log('🔐 Fetching profile for existing session...')
           await fetchUserProfile(currentSession.user, false)
+          console.log('🔐 Profile fetch completed for existing session')
         } catch (profileError) {
           console.error('❌ Profile fetch failed during init:', profileError)
           setError('Failed to load user profile')
           setLoading(false)
         }
       } else {
-        console.log('🔐 No existing session found')
+        console.log('🔐 No existing session found, clearing loading state')
         setLoading(false)
       }
     } catch (error) {
@@ -110,18 +115,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log(`🔐 Auth state change: ${event}`)
     console.log(`🔐 Session exists:`, !!session)
     console.log(`🔐 User exists:`, !!session?.user)
+    console.log(`🔐 Current loading state:`, loading)
+    console.log(`🔐 Current profile state:`, !!profile)
     
     if (event === 'SIGNED_IN' && session?.user) {
       console.log('🔐 User signed in:', session.user.email)
-      console.log('🔐 Current loading state before profile fetch:', loading)
+      console.log('🔐 Setting session and user state...')
       
       SessionManager.extendSession()
       setSession(session)
       setUser(session.user)
       setError(null)
       
+      console.log('🔐 Session and user state set, starting profile fetch...')
+      
       try {
-        console.log('🔐 Starting profile fetch...')
         await fetchUserProfile(session.user, true)
         console.log('🔐 Profile fetch completed successfully')
       } catch (error) {
@@ -146,6 +154,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log(`🔐 Unhandled auth event: ${event}`)
       // For unhandled events, ensure loading is cleared if we have no session
       if (!session) {
+        console.log('🔐 No session in unhandled event, clearing loading state')
         setLoading(false)
       }
     }
@@ -157,77 +166,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log(`🔍 User ID: ${user.id}`)
       console.log(`🔍 Should redirect:`, shouldRedirect)
       
-      // Create a timeout promise for fallback
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Database query timeout - activating fallback')), 8000)
-      )
+      // Simple, direct profile query - no complex testing since database works fine
+      console.log(`🔍 Starting profile query...`)
+      const startTime = Date.now()
       
-      // Test 1: Check basic Supabase connectivity
-      console.log(`🧪 Testing basic Supabase connectivity...`)
-      const connectTest = await Promise.race([
-        supabase.from('users').select('count').limit(1),
-        timeoutPromise
-      ]) as any
-      console.log(`🧪 Connectivity test result:`, connectTest)
-      
-      if (connectTest.error) {
-        console.error(`❌ Basic connectivity failed:`, connectTest.error)
-        if (shouldRedirect) {
-          console.log('🚨 Using fallback profile due to connectivity issues')
-          createFallbackProfile(user)
-          return
-        }
-        setError(`Database connection failed: ${connectTest.error.message}`)
-        setLoading(false)
-        return
-      }
-      
-      // Test 2: Try to query with current user's auth context
-      console.log(`🧪 Testing authenticated query...`)
-      const authTest = await supabase.auth.getUser()
-      console.log(`🧪 Current auth user:`, authTest)
-      
-      // Test 3: Try the actual profile query with detailed logging
-      console.log(`🔍 Starting profile query for user ID: ${user.id}`)
-      
-      const profileQuery = supabase
+      const { data: existingProfile, error: selectError } = await supabase
         .from("users")
         .select("*")
         .eq("id", user.id)
         .maybeSingle()
       
-      console.log(`🔍 Query constructed, executing...`)
-      
-      const startTime = Date.now()
-      const { data: existingProfile, error: selectError } = await Promise.race([
-        profileQuery,
-        timeoutPromise
-      ]) as any
       const endTime = Date.now()
-      
       console.log(`🔍 Query completed in ${endTime - startTime}ms`)
       console.log(`🔍 Query error:`, selectError)
       console.log(`🔍 Query result:`, existingProfile)
 
       if (selectError) {
         console.error("❌ Profile fetch error:", selectError)
-        console.error("❌ Error code:", selectError.code)
-        console.error("❌ Error details:", selectError.details)
-        console.error("❌ Error hint:", selectError.hint)
-        
-        // Use fallback for certain error types or on redirect
-        if (shouldRedirect || selectError.code === '42501' || selectError.message?.includes('permission')) {
-          console.log('🚨 Using fallback profile due to database error')
-          createFallbackProfile(user)
-          return
-        }
-        
-        // Check if it's an RLS policy issue
-        if (selectError.code === '42501' || selectError.message?.includes('permission') || selectError.message?.includes('policy')) {
-          setError(`Database permission error. Please check RLS policies for the users table.`)
-        } else {
-          setError(`Failed to fetch profile: ${selectError.message}`)
-        }
+        setError(`Failed to fetch profile: ${selectError.message}`)
         setLoading(false)
         return
       }
@@ -235,9 +191,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (existingProfile) {
         console.log(`✅ Profile found, setting state:`, existingProfile)
         
+        // Set all states in the correct order
         setProfile(existingProfile)
         setError(null)
         setLoading(false)
+        
+        console.log(`✅ Auth states updated - loading: false, profile: set, error: null`)
         
         if (shouldRedirect) {
           console.log(`📍 Redirecting user with role: ${existingProfile.role}`)
@@ -249,21 +208,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               console.log(`📍 Navigating to /dashboard`)
               router.push("/dashboard")
             }
-          }, 500)
+          }, 100) // Shorter timeout since everything works
         }
         return
       }
 
-      // If no existing profile, try to create new one or use fallback
-      console.log(`🔧 No existing profile found. Attempting to create...`)
-      
-      if (shouldRedirect) {
-        // For login flow, use fallback instead of trying to create
-        console.log('🚨 Using fallback profile for login flow')
-        createFallbackProfile(user)
-        return
-      }
-      
+      // If no existing profile found, create new one
+      console.log(`🔧 No existing profile found. Creating new profile for: ${user.email}`)
       const provider = user.app_metadata?.provider || 'email'
       const userName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
       
@@ -284,32 +235,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfile(profileResult.profile)
         setError(null)
         setLoading(false)
+        
+        if (shouldRedirect) {
+          console.log(`📍 Redirecting new user to onboarding`)
+          setTimeout(() => {
+            router.push("/onboarding")
+          }, 100)
+        }
       } else {
         console.error(`❌ Profile creation failed:`, profileResult.error)
-        // Use fallback as last resort
-        console.log('🚨 Using fallback profile as last resort')
-        createFallbackProfile(user)
+        setError('Failed to create user profile')
+        setLoading(false)
       }
     } catch (error: any) {
       console.error('❌ Profile fetch exception:', error)
-      console.error('❌ Exception stack:', error.stack)
-      
-      if (error.message?.includes('timeout') || error.message?.includes('fallback')) {
-        console.log('🚨 Using fallback profile due to timeout/error')
-        createFallbackProfile(user)
-      } else {
-        setError('Failed to load user profile')
-        setLoading(false)
-      }
+      setError('Failed to load user profile')
+      setLoading(false)
     }
   }
 
   const signIn = async (email: string, password: string): Promise<{ error: any | null }> => {
     try {
-      console.log('🔐 Signing in:', email)
+      console.log('🔐 Starting sign in process for:', email)
       setError(null)
       
+      console.log('🔐 Calling Supabase signInWithPassword...')
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      
+      console.log('🔐 Sign in response received')
+      console.log('🔐 Sign in data:', !!data)
+      console.log('🔐 Sign in error:', error)
       
       if (error) {
         console.error('❌ Sign in error:', error)
@@ -319,10 +274,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (data.session && data.user) {
         console.log('✅ Sign in successful')
-        // Let the auth state change handler manage the profile fetch
+        console.log('✅ Session received:', !!data.session)
+        console.log('✅ User received:', data.user.email)
+        console.log('🔐 Waiting for auth state change event...')
+        // The auth state change handler should now be triggered automatically
         return { error: null }
       } else {
-        console.error('❌ No session returned')
+        console.error('❌ No session returned from sign in')
         setLoading(false)
         return { error: { message: 'Authentication failed' } }
       }
@@ -333,46 +291,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  const createFallbackProfile = (user: any) => {
-    console.log('🚨 Creating fallback profile for user access')
-    const fallbackProfile = {
-      id: user.id,
-      email: user.email,
-      name: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-      role: 'admin', // Since we know this user is admin from previous data
-      avatar_url: user.user_metadata?.avatar_url || null,
-      created_at: new Date().toISOString(),
-      role_level: 100,
-      status: 'Active',
-      fallback: true // Mark this as a fallback profile
-    }
-    
-    setProfile(fallbackProfile)
-    setError(null)
-    setLoading(false)
-    
-    console.log('🚨 Fallback profile created, redirecting to dashboard')
-    setTimeout(() => {
-      router.push("/dashboard")
-    }, 500)
-  }
-
   const signUp = async (email: string, password: string, name: string): Promise<{ error: any | null }> => {
     try {
       console.log('🔐 Signing up:', email)
       setError(null)
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { name },
-          emailRedirectTo: `${getSiteUrl()}/auth/confirm`
-        },
+          data: {
+            name: name
+          }
+        }
       })
       
-      return { error }
+      if (error) {
+        console.error('❌ Sign up error:', error)
+        return { error }
+      }
+      
+      if (data.user && !data.user.email_confirmed_at) {
+        console.log('📧 Check email for confirmation')
+        return { error: null }
+      }
+      
+      return { error: null }
     } catch (err: any) {
+      console.error("❌ Sign-up exception:", err)
       return { error: err }
     }
   }
