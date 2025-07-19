@@ -90,8 +90,8 @@ export default function AnalyticsPage() {
         .from('performances')
         .select(`
           *,
-          users!player_id(id, name, email),
-          teams!inner(id, name)
+          users:player_id(id, name, email),
+          teams:team_id(id, name)
         `)
         .gte('created_at', timeframeDate.toISOString())
       
@@ -112,18 +112,39 @@ export default function AnalyticsPage() {
       
       const { data: performances, error: perfError } = await performanceQuery.order('created_at', { ascending: false })
       
-      if (perfError) throw perfError
+      if (perfError) {
+        console.error('Performance query error:', perfError)
+        throw new Error(`Failed to fetch performance data: ${perfError.message}`)
+      }
       
-      // Load teams and maps for filters
+      console.log('✅ Fetched performances:', performances?.length || 0)
+      
+      // Load teams and maps for filters with error handling
       const [teamsResult, mapsResult] = await Promise.all([
-        supabase.from('teams').select('id, name').order('name'),
-        supabase.from('performances').select('map').not('map', 'is', null)
+        supabase.from('teams').select('id, name').order('name').then(result => {
+          if (result.error) {
+            console.warn('Teams fetch error:', result.error)
+            return { data: [], error: result.error }
+          }
+          return result
+        }),
+        supabase.from('performances').select('map').not('map', 'is', null).then(result => {
+          if (result.error) {
+            console.warn('Maps fetch error:', result.error)
+            return { data: [], error: result.error }
+          }
+          return result
+        })
       ])
       
-      if (teamsResult.data) setTeams(teamsResult.data)
+      if (teamsResult.data) {
+        setTeams(teamsResult.data)
+        console.log('✅ Fetched teams:', teamsResult.data.length)
+      }
       if (mapsResult.data) {
         const uniqueMaps = [...new Set(mapsResult.data.map(p => p.map).filter(Boolean))]
         setMaps(uniqueMaps)
+        console.log('✅ Fetched maps:', uniqueMaps.length)
       }
       
       // Calculate analytics stats
@@ -132,7 +153,16 @@ export default function AnalyticsPage() {
       
     } catch (err: any) {
       console.error('Error loading analytics data:', err)
-      setError(err.message || 'Failed to load analytics data')
+      console.error('Full error details:', err)
+      
+      let errorMessage = 'Failed to load analytics data'
+      if (err.message) {
+        errorMessage = err.message
+      } else if (err.details) {
+        errorMessage = `Database error: ${err.details}`
+      }
+      
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }

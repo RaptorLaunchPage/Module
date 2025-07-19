@@ -212,14 +212,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session)
         setUser(session.user)
         setError(null)
+        setLoading(true) // Always show loading when signing in
         
-        // Only show loading if we don't already have a profile for this user
-        if (!profile || profile.id !== session.user.id) {
-          setLoading(true)
+        try {
+          // Fetch or create profile
+          await fetchUserProfile(session.user, true)
+        } catch (profileError) {
+          console.error('❌ Profile fetch failed after sign in:', profileError)
+          setError('Failed to load profile. Please try refreshing the page.')
+          setLoading(false)
         }
-        
-        // Fetch or create profile
-        await fetchUserProfile(session.user, true)
       } else if (event === 'SIGNED_OUT') {
         console.log('🔐 User signed out')
         await SessionManager.logout()
@@ -284,13 +286,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Redirect to appropriate page if this is from a sign in
         if (shouldRedirect) {
-          if (existingProfile.role === "pending_player") {
-            console.log('📍 Redirecting to onboarding...')
-            router.push("/onboarding")
-          } else {
-            console.log('📍 Redirecting to dashboard...')
-            router.push("/dashboard")
-          }
+          // Use setTimeout to ensure state is fully updated before redirect
+          setTimeout(() => {
+            if (existingProfile.role === "pending_player") {
+              console.log('📍 Redirecting to onboarding...')
+              router.replace("/onboarding")
+            } else {
+              console.log('📍 Redirecting to dashboard...')
+              router.replace("/dashboard")
+            }
+          }, 100)
         }
         return
       }
@@ -323,8 +328,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         // Redirect to onboarding for new users
         if (shouldRedirect) {
-          console.log('📍 Redirecting to onboarding for new user...')
-          router.push("/onboarding")
+          setTimeout(() => {
+            console.log('📍 Redirecting to onboarding for new user...')
+            router.replace("/onboarding")
+          }, 100)
         }
         return
       }
