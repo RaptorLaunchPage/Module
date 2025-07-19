@@ -152,11 +152,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session)
         setUser(session.user)
         setError(null)
-        setLoading(true)
         
         try {
-          // Fetch or create profile
-          await fetchUserProfile(session.user, true)
+          // Fetch or create profile with a timeout
+          const profilePromise = fetchUserProfile(session.user, true)
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
+          )
+          
+          await Promise.race([profilePromise, timeoutPromise])
         } catch (profileError) {
           console.error('❌ Profile fetch failed after sign in:', profileError)
           setError('Failed to load profile. Please try refreshing the page.')
@@ -319,9 +323,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('🔐 Attempting sign in for:', email)
       setError(null)
-      setLoading(true)
       
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       
       if (error) {
         console.error('❌ Sign in error:', error)
@@ -329,10 +332,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return { error }
       }
       
-      console.log('✅ Sign in successful, waiting for auth state change...')
-      
-      // Success - auth state change will handle the rest
-      return { error: null }
+      if (data.session && data.user) {
+        console.log('✅ Sign in successful for:', data.user.email)
+        // The auth state change handler will take care of the rest
+        return { error: null }
+      } else {
+        console.error('❌ Sign in returned no session/user')
+        setLoading(false)
+        return { error: { message: 'Authentication failed - no session returned' } }
+      }
     } catch (err: any) {
       console.error("❌ Sign-in exception:", err)
       setLoading(false)

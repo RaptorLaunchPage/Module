@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
-import { Eye, EyeOff, LogIn, RefreshCw, Home } from "lucide-react"
+import { Eye, EyeOff, LogIn, RefreshCw, Home, Shield } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -26,6 +26,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (user && profile && !authLoading) {
       console.log("✅ User authenticated with profile, redirecting")
+      setIsSubmitting(false) // Clear submitting state on successful auth
       if (profile.role === "pending_player") {
         router.push("/onboarding")
       } else {
@@ -39,6 +40,14 @@ export default function LoginPage() {
     clearAuthError()
     setError("")
   }, [clearAuthError])
+
+  // Clear submitting state if user is set (successful login)
+  useEffect(() => {
+    if (user && isSubmitting) {
+      console.log("✅ User authenticated, clearing submitting state")
+      setIsSubmitting(false)
+    }
+  }, [user, isSubmitting])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,9 +66,20 @@ export default function LoginPage() {
     setError("")
     clearAuthError()
     
+    // Set a timeout to reset submitting state
+    const submitTimeout = setTimeout(() => {
+      if (isSubmitting) {
+        console.warn("⚠️ Login timeout, resetting state")
+        setIsSubmitting(false)
+        setError("Login is taking longer than expected. Please try again.")
+      }
+    }, 15000) // 15 second timeout
+    
     try {
       console.log("🔐 Attempting login for:", email)
       const result = await signIn(email, password)
+      
+      clearTimeout(submitTimeout)
       
       if (result?.error) {
         console.error("❌ Login failed:", result.error)
@@ -68,13 +88,10 @@ export default function LoginPage() {
         setIsSubmitting(false)
       } else {
         console.log("✅ Login successful, auth state will handle redirect...")
-        // Keep submitting state - let the auth redirect clear it
-        setTimeout(() => {
-          // Fallback to clear submitting state if redirect doesn't happen
-          setIsSubmitting(false)
-        }, 10000)
+        // Keep submitting state - auth hook will redirect and clear it
       }
     } catch (err: any) {
+      clearTimeout(submitTimeout)
       console.error("❌ Login exception:", err)
       setError("An unexpected error occurred. Please try again.")
       setIsSubmitting(false)
@@ -124,11 +141,7 @@ export default function LoginPage() {
               </Button>
             </Link>
             <div className="flex items-center justify-center mb-4">
-              <img 
-                src="/RLogo.ico" 
-                alt="Raptor Logo" 
-                className="h-12 w-12"
-              />
+              <Shield className="h-12 w-12 text-white" />
             </div>
             <CardTitle className="text-2xl font-semibold text-white">
               Welcome Back
