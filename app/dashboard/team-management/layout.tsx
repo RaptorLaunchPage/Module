@@ -12,8 +12,6 @@ export default function TeamManagementLayout({ children }: { children: React.Rea
     if (pathname.includes("/team-management/teams")) return "teams"
     if (pathname.includes("/team-management/roster")) return "roster"
     if (pathname.includes("/team-management/slots")) return "slots"
-    if (pathname.includes("/team-management/expenses")) return "expenses"
-    if (pathname.includes("/team-management/prize-pool")) return "prize-pool"
     return "teams" // Default to teams
   }
 
@@ -21,7 +19,7 @@ export default function TeamManagementLayout({ children }: { children: React.Rea
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Team Management</h1>
-        <p className="text-muted-foreground">Manage your teams, rosters, and match logistics</p>
+        <p className="text-muted-foreground">Manage your teams, rosters, and slot bookings</p>
       </div>
 
       <Tabs value={getActiveTab()} className="space-y-4">
@@ -34,12 +32,6 @@ export default function TeamManagementLayout({ children }: { children: React.Rea
           </TabsTrigger>
           <TabsTrigger value="slots" asChild>
             <Link href="/dashboard/team-management/slots">Slot Booking</Link>
-          </TabsTrigger>
-          <TabsTrigger value="expenses" asChild>
-            <Link href="/dashboard/team-management/expenses">Slot Expenses</Link>
-          </TabsTrigger>
-          <TabsTrigger value="prize-pool" asChild>
-            <Link href="/dashboard/team-management/prize-pool">Prize Pool & Winnings</Link>
           </TabsTrigger>
         </TabsList>
         {children}
