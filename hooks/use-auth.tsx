@@ -167,7 +167,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const connectTest = await Promise.race([
         supabase.from('users').select('count').limit(1),
         timeoutPromise
-      ])
+      ]) as any
       console.log(`🧪 Connectivity test result:`, connectTest)
       
       if (connectTest.error) {
