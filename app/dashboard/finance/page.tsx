@@ -51,6 +51,7 @@ export default function FinancePage() {
   const [expenses, setExpenses] = useState<SlotExpense[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [financialSummary, setFinancialSummary] = useState<FinancialSummary>({
     totalExpenses: 0,
     totalPrizeWinnings: 0,
@@ -75,22 +76,40 @@ export default function FinancePage() {
   useEffect(() => {
     if (profile && financePermissions.canView) {
       fetchFinancialData()
+    } else if (profile && !financePermissions.canView) {
+      // User doesn't have permission, stop loading
+      setLoading(false)
     }
   }, [profile, financePermissions])
 
   const fetchFinancialData = async () => {
+    console.log('🔍 Finance: Starting data fetch...')
     setLoading(true)
+    setError(null)
+    
     try {
-      await Promise.all([
+      // Set timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout after 15 seconds')), 15000)
+      )
+      
+      const dataPromise = Promise.all([
         fetchExpenses(),
         fetchTeams(),
         calculateFinancialSummary()
       ])
-    } catch (error) {
-      console.error("Error fetching financial data:", error)
+      
+      await Promise.race([dataPromise, timeoutPromise])
+      console.log('✅ Finance: Data fetch completed successfully')
+      
+    } catch (error: any) {
+      console.error("❌ Finance: Error fetching financial data:", error)
+      const errorMessage = error.message || "Failed to fetch financial data"
+      setError(errorMessage)
+      
       toast({
         title: "Error",
-        description: "Failed to fetch financial data",
+        description: errorMessage,
         variant: "destructive",
       })
     } finally {
@@ -100,6 +119,7 @@ export default function FinancePage() {
 
   const fetchExpenses = async () => {
     try {
+      console.log('🔍 Finance: Fetching expenses...')
       let query = supabase
         .from("slot_expenses")
         .select(`
@@ -110,43 +130,71 @@ export default function FinancePage() {
         .order("created_at", { ascending: false })
 
       const { data, error } = await query
-      if (error) throw error
+      if (error) {
+        console.error('❌ Finance: Expenses query failed:', error)
+        throw error
+      }
+      
+      console.log('✅ Finance: Expenses fetched:', data?.length || 0)
       setExpenses(data || [])
     } catch (error: any) {
-      console.error("Error fetching expenses:", error)
-      throw error
+      console.error("❌ Finance: Error fetching expenses:", error)
+      // Don't throw, just set empty array and continue
+      setExpenses([])
     }
   }
 
   const fetchTeams = async () => {
     try {
+      console.log('🔍 Finance: Fetching teams...')
       const { data, error } = await supabase
         .from("teams")
         .select("*")
         .order("name")
 
-      if (error) throw error
+      if (error) {
+        console.error('❌ Finance: Teams query failed:', error)
+        throw error
+      }
+      
+      console.log('✅ Finance: Teams fetched:', data?.length || 0)
       setTeams(data || [])
-    } catch (error) {
-      console.error("Error fetching teams:", error)
-      throw error
+    } catch (error: any) {
+      console.error("❌ Finance: Error fetching teams:", error)
+      // Don't throw, just set empty array and continue
+      setTeams([])
     }
   }
 
   const calculateFinancialSummary = async () => {
     try {
+      console.log('🔍 Finance: Calculating financial summary...')
+      
       // Calculate total expenses
       const { data: expenseData, error: expenseError } = await supabase
         .from("slot_expenses")
         .select("total")
 
-      if (expenseError) throw expenseError
+      if (expenseError) {
+        console.error('❌ Finance: Summary query failed:', expenseError)
+        // Don't throw, just use zero values
+        setFinancialSummary({
+          totalExpenses: 0,
+          totalPrizeWinnings: 0,
+          netProfitLoss: 0,
+          monthlyExpenses: 0,
+          monthlyWinnings: 0,
+          expensesByCategory: {}
+        })
+        return
+      }
 
       const totalExpenses = expenseData?.reduce((sum, expense) => sum + (expense.total || 0), 0) || 0
+      console.log('✅ Finance: Total expenses calculated:', totalExpenses)
 
       // For now, set placeholder values for other metrics
       // In a real implementation, you'd have prize winnings and other financial data
-      const totalPrizeWinnings = 50000 // Placeholder
+      const totalPrizeWinnings = totalExpenses > 0 ? 50000 : 0 // Only show if there are expenses
       const netProfitLoss = totalPrizeWinnings - totalExpenses
 
       setFinancialSummary({
@@ -155,14 +203,25 @@ export default function FinancePage() {
         netProfitLoss,
         monthlyExpenses: totalExpenses * 0.3, // Rough estimate
         monthlyWinnings: totalPrizeWinnings * 0.4, // Rough estimate
-        expensesByCategory: {
+        expensesByCategory: totalExpenses > 0 ? {
           "Slot Bookings": totalExpenses * 0.7,
           "Equipment": totalExpenses * 0.2,
           "Travel": totalExpenses * 0.1
-        }
+        } : {}
       })
-    } catch (error) {
-      console.error("Error calculating financial summary:", error)
+      
+      console.log('✅ Finance: Financial summary calculated')
+    } catch (error: any) {
+      console.error("❌ Finance: Error calculating financial summary:", error)
+      // Set default values even on error
+      setFinancialSummary({
+        totalExpenses: 0,
+        totalPrizeWinnings: 0,
+        netProfitLoss: 0,
+        monthlyExpenses: 0,
+        monthlyWinnings: 0,
+        expensesByCategory: {}
+      })
     }
   }
 
@@ -195,11 +254,44 @@ export default function FinancePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading financial data...</p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <div>
+            <h3 className="text-lg font-semibold">Loading Finance Data</h3>
+            <p className="text-gray-600">Fetching financial information...</p>
+          </div>
         </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Finance Management</h1>
+          <Button onClick={handleRefresh} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <DollarSign className="h-16 w-16 text-red-500 mx-auto" />
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900">Failed to Load Financial Data</h3>
+                <p className="text-gray-600 mt-2">{error}</p>
+                <Button onClick={handleRefresh} className="mt-4">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -310,21 +402,31 @@ export default function FinancePage() {
               <CardDescription>Current financial distribution by category</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {Object.entries(financialSummary.expensesByCategory).map(([category, amount]) => (
-                  <div key={category} className="flex items-center justify-between">
-                    <span className="font-medium">{category}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        ₹{amount.toLocaleString()}
-                      </span>
-                      <Badge variant="outline">
-                        {((amount / financialSummary.totalExpenses) * 100).toFixed(1)}%
-                      </Badge>
+              {Object.keys(financialSummary.expensesByCategory).length > 0 ? (
+                <div className="space-y-4">
+                  {Object.entries(financialSummary.expensesByCategory).map(([category, amount]) => (
+                    <div key={category} className="flex items-center justify-between">
+                      <span className="font-medium">{category}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          ₹{amount.toLocaleString()}
+                        </span>
+                        <Badge variant="outline">
+                          {((amount / financialSummary.totalExpenses) * 100).toFixed(1)}%
+                        </Badge>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <PieChart className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">No Expense Data</h3>
+                  <p className="text-muted-foreground">
+                    No expenses have been recorded yet. Start by adding tournament slot bookings.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
