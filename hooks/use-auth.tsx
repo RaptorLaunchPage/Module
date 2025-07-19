@@ -47,13 +47,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log(`🔐 Auth event: ${event}`, session?.user?.email || 'no user')
+      console.log(`🔐 AUTH STATE CHANGE DETECTED:`)
+      console.log(`   Event: ${event}`)
+      console.log(`   Session exists: ${!!session}`)
+      console.log(`   User email: ${session?.user?.email || 'NO USER'}`)
+      console.log(`   User ID: ${session?.user?.id || 'NO ID'}`)
+      console.log(`   Session object:`, session)
+      
       handleAuthChange(event, session)
     })
 
     // Mark as initialized
     setInitialized(true)
     setLoading(false)
+    console.log('✅ Auth system initialized with listener attached')
     
     return () => {
       console.log('🔍 AuthProvider cleanup')
@@ -63,37 +70,45 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Handle auth state changes - COMPLETELY REDESIGNED
   const handleAuthChange = async (event: string, session: Session | null) => {
-    console.log(`🔄 Processing auth change: ${event}`)
+    console.log(`🔄 PROCESSING AUTH CHANGE: ${event}`)
+    console.log(`   Current state - loading: ${loading}, user: ${!!user}, profile: ${!!profile}`)
     
     try {
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('✅ User signed in:', session.user.email)
+        console.log('✅ HANDLING SIGNED_IN EVENT')
+        console.log('   Setting session and user state...')
         setSession(session)
         setUser(session.user)
         setError(null)
         setLoading(true)
         
-        // Fetch/create profile
+        console.log('   Calling loadUserProfile...')
         await loadUserProfile(session.user)
         
       } else if (event === 'SIGNED_OUT') {
-        console.log('🔐 User signed out')
+        console.log('🔐 HANDLING SIGNED_OUT EVENT')
         clearAuthState()
         
       } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('🔄 Token refreshed')
+        console.log('🔄 HANDLING TOKEN_REFRESHED EVENT')
         setSession(session)
         setUser(session.user)
         
       } else if (event === 'INITIAL_SESSION' && session) {
-        console.log('🔄 Initial session detected')
+        console.log('🔄 HANDLING INITIAL_SESSION EVENT')
         setSession(session)
         setUser(session.user)
         setLoading(true)
         await loadUserProfile(session.user)
+      } else {
+        console.log(`⚠️ UNHANDLED AUTH EVENT: ${event}`)
+        console.log(`   Session exists: ${!!session}`)
+        console.log(`   Event details:`, { event, session })
       }
     } catch (error) {
-      console.error('❌ Auth change error:', error)
+      console.error('❌ AUTH CHANGE ERROR:', error)
+      console.error('   Error type:', typeof error)
+      console.error('   Error details:', error)
       setError('Authentication error occurred')
       setLoading(false)
     }
@@ -175,21 +190,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Sign in function - simplified
   const signIn = async (email: string, password: string): Promise<{ error: any | null }> => {
     try {
-      console.log('🔐 Sign in attempt:', email)
+      console.log('🔐 SIGN IN ATTEMPT STARTING for:', email)
       setError(null)
       
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      console.log('📞 Calling supabase.auth.signInWithPassword...')
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      
+      console.log('📞 signInWithPassword response received:')
+      console.log('   Error:', error)
+      console.log('   Data:', data)
+      console.log('   Session:', data?.session)
+      console.log('   User:', data?.user)
       
       if (error) {
-        console.error('❌ Sign in failed:', error.message)
+        console.error('❌ SIGN IN FAILED:', error.message)
+        console.error('   Error code:', error.status)
+        console.error('   Error details:', error)
         return { error }
       }
       
-      console.log('✅ Sign in successful - waiting for auth state change')
+      console.log('✅ SIGN IN SUCCESSFUL - Auth state change should fire now')
+      console.log('   Waiting for onAuthStateChange to be triggered...')
       return { error: null }
       
     } catch (err: any) {
-      console.error('❌ Sign in exception:', err)
+      console.error('❌ SIGN IN EXCEPTION:', err)
+      console.error('   Exception type:', typeof err)
+      console.error('   Exception details:', err)
       return { error: err }
     }
   }

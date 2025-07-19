@@ -37,33 +37,47 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log("🔐 LOGIN FORM SUBMISSION STARTED")
+    console.log("   Email:", email)
+    console.log("   Password length:", password.length)
+    console.log("   Current auth loading state:", authLoading)
+    console.log("   Current submitting state:", isSubmitting)
+    
     if (!email.trim() || !password.trim()) {
+      console.log("❌ Empty email or password")
       setError("Please enter both email and password")
       return
     }
 
-    if (isSubmitting) return
+    if (isSubmitting) {
+      console.log("❌ Already submitting, ignoring")
+      return
+    }
 
     setIsSubmitting(true)
     setError("")
     clearAuthError()
+    console.log("✅ Form validation passed, calling signIn...")
     
     try {
-      console.log("🔐 Attempting login for:", email)
       const result = await signIn(email, password)
       
+      console.log("📞 signIn returned:", result)
+      
       if (result?.error) {
-        console.error("❌ Login failed:", result.error)
+        console.error("❌ LOGIN FAILED IN FORM:", result.error)
         const errorMessage = result.error.message || "Invalid email or password"
         setError(errorMessage)
         setIsSubmitting(false)
       } else {
-        console.log("✅ Login successful")
+        console.log("✅ LOGIN SUCCESSFUL IN FORM")
+        console.log("   Resetting submitting state...")
         // Reset submitting state so UI can update
         setIsSubmitting(false)
+        console.log("   Form state reset, waiting for auth state change to handle redirect...")
       }
     } catch (err: any) {
-      console.error("❌ Login exception:", err)
+      console.error("❌ LOGIN FORM EXCEPTION:", err)
       setError("An unexpected error occurred. Please try again.")
       setIsSubmitting(false)
     }
