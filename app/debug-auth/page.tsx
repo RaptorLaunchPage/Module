@@ -82,6 +82,58 @@ export default function DebugAuthPage() {
     }
   }
 
+  const testDirectProfileQuery = async () => {
+    addLog('=== TESTING DIRECT PROFILE QUERY ===')
+    try {
+      const userId = 'b26b7eff-fa27-4a66-89c3-cd3858083c2a' // Known user ID
+      addLog(`Querying for user ID: ${userId}`)
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+      
+      addLog(`Profile query result: ${JSON.stringify(data)}`)
+      if (error) addLog(`Profile query error: ${JSON.stringify(error)}`)
+    } catch (err: any) {
+      addLog(`Profile query exception: ${err.message}`)
+    }
+  }
+
+  const testProfileCreation = async () => {
+    addLog('=== TESTING PROFILE CREATION ===')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) {
+        addLog('No session found for profile creation test')
+        return
+      }
+      
+      addLog('Attempting to create profile...')
+      const result = await fetch('/api/test-profile-creation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: session.user.id,
+          email: session.user.email,
+          name: 'Test User'
+        })
+      })
+      
+      const data = await result.json()
+      addLog(`Profile creation API result: ${JSON.stringify(data)}`)
+    } catch (err: any) {
+      addLog(`Profile creation test failed: ${err.message}`)
+    }
+  }
+
+  const skipProfileAndRedirect = () => {
+    addLog('=== SKIPPING PROFILE CHECK ===')
+    addLog('Redirecting to dashboard without profile...')
+    window.location.href = '/dashboard'
+  }
+
   const clearLogs = () => {
     setDebugLogs([])
   }
@@ -137,6 +189,19 @@ export default function DebugAuthPage() {
               </Button>
               <Button onClick={testDirectSupabaseLogin} variant="outline">
                 Test Direct Supabase
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={testDirectProfileQuery} variant="secondary">
+                Test Profile Query
+              </Button>
+              <Button onClick={testProfileCreation} variant="secondary">
+                Test Profile Creation
+              </Button>
+            </div>
+            <div>
+              <Button onClick={skipProfileAndRedirect} variant="destructive" size="sm">
+                🚨 Skip Profile & Go to Dashboard
               </Button>
             </div>
           </CardContent>

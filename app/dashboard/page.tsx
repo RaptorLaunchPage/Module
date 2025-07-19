@@ -80,7 +80,7 @@ interface QuickAction {
 }
 
 export default function OptimizedDashboardPage() {
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [topPerformers, setTopPerformers] = useState<{
     topTeam: TeamPerformance | null
@@ -347,7 +347,7 @@ export default function OptimizedDashboardPage() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
             <p className="text-muted-foreground">
-              Welcome back, {profile?.name || 'User'}!
+              Welcome back, {profile?.name || user?.email || 'User'}!
             </p>
           </div>
           <Button onClick={handleRefresh} variant="outline">
@@ -363,6 +363,91 @@ export default function OptimizedDashboardPage() {
                 <Activity className="h-16 w-16 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold">Failed to Load Dashboard</h3>
                 <p className="text-gray-600 mt-2">{error}</p>
+                
+                {/* 🚨 TEMPORARY DEBUG INFO */}
+                {user && !profile && (
+                  <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-left">
+                    <h4 className="font-semibold text-yellow-800">Debug Info:</h4>
+                    <p className="text-yellow-700">User authenticated but no profile found.</p>
+                    <p className="text-yellow-700">User ID: {user.id}</p>
+                    <p className="text-yellow-700">Email: {user.email}</p>
+                    <div className="mt-2 space-x-2">
+                      <Button 
+                        onClick={() => window.location.href = '/debug-auth'} 
+                        variant="outline" 
+                        size="sm"
+                      >
+                        Go to Debug Page
+                      </Button>
+                      <Button 
+                        onClick={() => window.location.href = '/onboarding'} 
+                        variant="outline" 
+                        size="sm"
+                      >
+                        Try Onboarding
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // 🚨 TEMPORARY: Handle authenticated users without profiles
+  if (user && !loading && !profile) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Welcome back, {user.email}!
+            </p>
+          </div>
+        </div>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <div className="text-amber-600">
+                <Users className="h-16 w-16 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold">Profile Setup Required</h3>
+                <p className="text-gray-600 mt-2">
+                  Your account is authenticated but your profile needs to be created.
+                </p>
+                
+                <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg text-left">
+                  <h4 className="font-semibold text-amber-800">Debug Information:</h4>
+                  <p className="text-amber-700">User ID: {user.id}</p>
+                  <p className="text-amber-700">Email: {user.email}</p>
+                  <p className="text-amber-700">Provider: {user.app_metadata?.provider}</p>
+                </div>
+                
+                <div className="mt-4 space-x-2">
+                  <Button 
+                    onClick={() => window.location.href = '/debug-auth'}
+                    variant="outline"
+                  >
+                    🔍 Debug Authentication
+                  </Button>
+                  <Button 
+                    onClick={() => window.location.href = '/onboarding'}
+                    variant="default"
+                  >
+                    🚀 Complete Setup
+                  </Button>
+                  <Button 
+                    onClick={handleRefresh}
+                    variant="secondary"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Retry
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>

@@ -155,6 +155,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log(`🔍 User object:`, JSON.stringify(user, null, 2))
       console.log(`🔍 Should redirect:`, shouldRedirect)
       
+      console.log(`🔍 Starting database query for user ID: ${user.id}`)
+      
       // Add timeout protection
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Profile fetch timeout after 10 seconds')), 10000)
@@ -167,13 +169,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq("id", user.id)
         .maybeSingle()
       
+      console.log(`🔍 Executing profile query...`)
       const { data: existingProfile, error: selectError } = await Promise.race([
         profileFetchPromise,
         timeoutPromise
       ]) as any
 
+      console.log(`🔍 Query completed. Error:`, selectError)
+      console.log(`🔍 Query result:`, existingProfile)
+
       if (selectError && selectError.code !== "PGRST116") {
         console.error("❌ Profile fetch error:", selectError)
+        console.error("❌ Error details:", JSON.stringify(selectError, null, 2))
         setError(`Failed to fetch profile: ${selectError.message}`)
         setLoading(false)
         return
@@ -200,18 +207,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // Create new profile
-      console.log(`🔧 Creating new profile for: ${user.email}`)
+      console.log(`🔧 No existing profile found. Creating new profile for: ${user.email}`)
       const provider = user.app_metadata?.provider || 'email'
       const userName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
       
       console.log(`🔧 Profile creation data:`, { userId: user.id, email: user.email, name: userName, provider })
       
+      console.log(`🔧 Calling SecureProfileCreation.createProfile...`)
       const profileResult = await SecureProfileCreation.createProfile(
         user.id,
         user.email,
         userName,
         provider
       )
+
+      console.log(`🔧 Profile creation result:`, profileResult)
 
       if (profileResult.success && profileResult.profile) {
         console.log(`✅ Profile created:`, profileResult.profile)
@@ -231,6 +241,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error('❌ Profile fetch exception:', error)
+      console.error('❌ Exception details:', JSON.stringify(error, null, 2))
       setError('Failed to load user profile')
       setLoading(false)
     }
