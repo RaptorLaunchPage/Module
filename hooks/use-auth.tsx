@@ -50,12 +50,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log("🔐 Auth state change:", event, session?.user?.email || 'no user')
         
         // Handle all auth state changes (removed initComplete check that was blocking login)
-        
-        await handleAuthStateChange(event, session)
+        // Use setTimeout to prevent blocking the auth state change callback
+        setTimeout(() => {
+          handleAuthStateChange(event, session)
+        }, 0)
       }
     )
 
@@ -351,6 +353,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('✅ Sign in successful, waiting for auth state change...')
       
       // Success - auth state change will handle the rest
+      // Note: We don't set loading to false here because auth state change will handle it
       return { error: null }
     } catch (err: any) {
       console.error("❌ Sign-in exception:", err)

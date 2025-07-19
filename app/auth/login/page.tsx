@@ -59,7 +59,8 @@ export default function LoginPage() {
         setIsSubmitting(false)
       } else {
         console.log("✅ Login successful")
-        // Keep submitting state - redirect will happen via auth state change
+        // Reset submitting state so UI can update
+        setIsSubmitting(false)
       }
     } catch (err: any) {
       console.error("❌ Login exception:", err)
@@ -195,9 +196,9 @@ export default function LoginPage() {
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium" 
-                disabled={isLoading}
+                disabled={isSubmitting || authLoading}
               >
-                {isLoading ? (
+                {(isSubmitting || authLoading) ? (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                     {isSubmitting ? "Signing In..." : "Loading..."}
