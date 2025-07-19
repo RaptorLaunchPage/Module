@@ -127,16 +127,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session.user)
       setError(null)
       
-      console.log('🔐 Session and user state set, starting profile fetch...')
+      console.log('🔐 Session and user state set, deferring profile fetch to avoid deadlock...')
       
-      try {
-        await fetchUserProfile(session.user, true)
-        console.log('🔐 Profile fetch completed successfully')
-      } catch (error) {
-        console.error('🔐 Profile fetch failed in auth state change:', error)
-        setError('Failed to load user profile')
-        setLoading(false)
-      }
+      // CRITICAL FIX: Don't make async API calls in onAuthStateChange handler!
+      // This causes a known deadlock bug in supabase-js
+      // Instead, defer the profile fetch to avoid the deadlock
+      setTimeout(async () => {
+        try {
+          console.log('🔐 Starting deferred profile fetch...')
+          await fetchUserProfile(session.user, true)
+          console.log('🔐 Deferred profile fetch completed successfully')
+        } catch (error) {
+          console.error('🔐 Deferred profile fetch failed:', error)
+          setError('Failed to load user profile')
+          setLoading(false)
+        }
+      }, 0) // Use setTimeout to move API call outside the handler
+      
     } else if (event === 'SIGNED_OUT') {
       console.log('🔐 User signed out')
       await SessionManager.logout()
@@ -148,15 +155,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false)
     } else if (event === 'TOKEN_REFRESHED') {
       console.log('🔐 Token refreshed')
-      setSession(session)
-      setUser(session?.user || null)
-    } else {
-      console.log(`🔐 Unhandled auth event: ${event}`)
-      // For unhandled events, ensure loading is cleared if we have no session
-      if (!session) {
-        console.log('🔐 No session in unhandled event, clearing loading state')
-        setLoading(false)
+      if (session) {
+        SessionManager.extendSession()
+        setSession(session)
+        setUser(session.user)
       }
+    } else {
+      console.log(`🔐 Auth state change: ${event} - no action taken`)
     }
   }
 
