@@ -4,30 +4,36 @@ import { createClient } from "@supabase/supabase-js"
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+// Determine final URL and key to use
+let finalUrl: string
+let finalKey: string
+
 /**
- * Fail fast if env vars are missing.
- * Doing this early avoids the "Failed to construct 'URL': Invalid URL" runtime crash.
+ * More graceful handling of missing env vars to prevent 500 errors
  */
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Supabase credentials are missing.\n" +
+  console.error(
+    "⚠️ Supabase credentials are missing.\n" +
       "Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY " +
-      "in your environment variables.",
+      "in your environment variables."
   )
+  // Use dummy values to prevent crashes - auth will fail gracefully
+  finalUrl = 'https://dummy.supabase.co'
+  finalKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bW15IiwiZXhwIjoxOTg0MTgwODAwfQ.dummy'
+} else {
+  // Validate URL format to prevent runtime crashes
+  try {
+    new URL(supabaseUrl)
+    finalUrl = supabaseUrl
+  } catch (error) {
+    console.error('Invalid Supabase URL:', supabaseUrl)
+    // Use a dummy URL that won't crash the client but will fail gracefully
+    finalUrl = 'https://dummy.supabase.co'
+  }
+  finalKey = supabaseAnonKey
 }
 
-// Validate URL format to prevent runtime crashes
-let validUrl: string
-try {
-  new URL(supabaseUrl)
-  validUrl = supabaseUrl
-} catch (error) {
-  console.error('Invalid Supabase URL:', supabaseUrl)
-  // Use a dummy URL that won't crash the client but will fail gracefully
-  validUrl = 'https://dummy.supabase.co'
-}
-
-export const supabase = createClient(validUrl, supabaseAnonKey, {
+export const supabase = createClient(finalUrl, finalKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
