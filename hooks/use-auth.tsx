@@ -40,6 +40,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
+  // Emergency fallback to prevent infinite loading
+  useEffect(() => {
+    const emergencyTimeout = setTimeout(() => {
+      if (loading && !user && !session) {
+        console.warn('🚨 Emergency timeout: Auth loading took too long, clearing loading state')
+        setLoading(false)
+        setError('Authentication timeout. Please try refreshing the page.')
+      }
+    }, 30000) // 30 second emergency timeout
+
+    return () => clearTimeout(emergencyTimeout)
+  }, [loading, user, session])
+
   // Initialize auth on mount
   useEffect(() => {
     console.log('🔍 AuthProvider mounting...')
@@ -73,8 +86,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(currentSession)
         setUser(currentSession.user)
         
-        // Fetch profile for existing session
-        await fetchUserProfile(currentSession.user, false)
+        // Fetch profile for existing session with timeout
+        try {
+          await Promise.race([
+            fetchUserProfile(currentSession.user, false),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Profile fetch timeout')), 15000))
+          ])
+        } catch (profileError) {
+          console.error('❌ Profile fetch failed during init, continuing anyway:', profileError)
+          setLoading(false) // Clear loading even if profile fetch fails
+        }
       } else {
         console.log('🔐 No existing session found')
         setLoading(false)
@@ -88,16 +109,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleAuthStateChange = async (event: string, session: Session | null) => {
     console.log(`🔐 Auth state change: ${event}`)
+    console.log(`🔐 Session exists:`, !!session)
+    console.log(`🔐 User exists:`, !!session?.user)
     
     if (event === 'SIGNED_IN' && session?.user) {
       console.log('🔐 User signed in:', session.user.email)
+      console.log('🔐 Current loading state:', loading)
+      
       SessionManager.extendSession()
       setSession(session)
       setUser(session.user)
       setError(null)
       
-      // Fetch profile and redirect
-      await fetchUserProfile(session.user, true)
+      try {
+        console.log('🔐 Starting profile fetch...')
+        // Fetch profile and redirect
+        await fetchUserProfile(session.user, true)
+        console.log('🔐 Profile fetch completed')
+      } catch (error) {
+        console.error('🔐 Profile fetch failed in auth state change:', error)
+        setError('Failed to load user profile')
+        setLoading(false)
+      }
     } else if (event === 'SIGNED_OUT') {
       console.log('🔐 User signed out')
       await SessionManager.logout()
@@ -111,19 +144,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('🔐 Token refreshed')
       setSession(session)
       setUser(session?.user || null)
+    } else {
+      console.log(`🔐 Unhandled auth event: ${event}`)
     }
   }
 
   const fetchUserProfile = async (user: any, shouldRedirect: boolean = false) => {
     try {
       console.log(`🔍 Fetching profile for user: ${user.email}`)
+      console.log(`🔍 User object:`, JSON.stringify(user, null, 2))
+      console.log(`🔍 Should redirect:`, shouldRedirect)
       
-      // Get existing profile
-      const { data: existingProfile, error: selectError } = await supabase
+      // Add timeout protection
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile fetch timeout after 10 seconds')), 10000)
+      )
+      
+      // Get existing profile with timeout
+      const profileFetchPromise = supabase
         .from("users")
         .select("*")
         .eq("id", user.id)
         .maybeSingle()
+      
+      const { data: existingProfile, error: selectError } = await Promise.race([
+        profileFetchPromise,
+        timeoutPromise
+      ]) as any
 
       if (selectError && selectError.code !== "PGRST116") {
         console.error("❌ Profile fetch error:", selectError)
@@ -138,10 +185,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false)
         
         if (shouldRedirect) {
+          console.log(`📍 Redirecting user with role: ${existingProfile.role}`)
           setTimeout(() => {
             if (existingProfile.role === "pending_player") {
+              console.log(`📍 Navigating to /onboarding`)
               router.push("/onboarding")
             } else {
+              console.log(`📍 Navigating to /dashboard`)
               router.push("/dashboard")
             }
           }, 100)
@@ -153,6 +203,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log(`🔧 Creating new profile for: ${user.email}`)
       const provider = user.app_metadata?.provider || 'email'
       const userName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+      
+      console.log(`🔧 Profile creation data:`, { userId: user.id, email: user.email, name: userName, provider })
       
       const profileResult = await SecureProfileCreation.createProfile(
         user.id,
@@ -167,6 +219,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setLoading(false)
         
         if (shouldRedirect) {
+          console.log(`📍 Redirecting new user to onboarding`)
           setTimeout(() => {
             router.push("/onboarding")
           }, 100)
@@ -188,22 +241,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('🔐 Signing in:', email)
       setError(null)
       
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      // Add timeout to signIn as well
+      const signInPromise = supabase.auth.signInWithPassword({ email, password })
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sign in timeout after 10 seconds')), 10000)
+      )
+      
+      const { data, error } = await Promise.race([signInPromise, timeoutPromise]) as any
       
       if (error) {
         console.error('❌ Sign in error:', error)
+        setLoading(false) // Ensure loading is cleared on error
         return { error }
       }
       
       if (data.session && data.user) {
         console.log('✅ Sign in successful')
+        // Don't set loading false here - let the auth state change handle it
         return { error: null }
       } else {
         console.error('❌ No session returned')
+        setLoading(false)
         return { error: { message: 'Authentication failed' } }
       }
     } catch (err: any) {
       console.error("❌ Sign-in exception:", err)
+      setLoading(false)
       return { error: err }
     }
   }
