@@ -139,12 +139,26 @@ export default function UserManagementPage() {
   }
 
   useEffect(() => {
-    // Only fetch data for users with proper permissions
-    const userPermissions = DashboardPermissions.getDataPermissions(profile?.role as any, 'users')
-    if (!profile || !userPermissions.canView) {
+    // Check permissions and fetch data
+    if (!profile) {
+      console.log('⏳ Waiting for profile to load...')
       return
     }
 
+    const userPermissions = DashboardPermissions.getDataPermissions(profile?.role as any, 'users')
+    console.log('🔍 User permissions check:', {
+      role: profile?.role,
+      canView: userPermissions.canView,
+      permissions: userPermissions
+    })
+
+    if (!userPermissions.canView) {
+      console.log('❌ No permission to view users')
+      setError('Access denied: insufficient permissions')
+      return
+    }
+
+    console.log('✅ Permissions granted, fetching data...')
     fetchUsers()
     fetchTeams()
     
@@ -169,7 +183,7 @@ export default function UserManagementPage() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [profile, activeTab])
+  }, [profile])
 
   const fetchUsers = async () => {
     try {
@@ -715,7 +729,7 @@ export default function UserManagementPage() {
                         <Badge variant={getRoleBadgeVariant(user?.role)}>{user?.role || "-"}</Badge>
                       </TableCell>
                       <TableCell>
-                        {['admin', 'manager'].includes(user.role) ? <TableCell>-</TableCell> : <TableCell>{safeTeams.find((t) => t.id === user?.team_id)?.name || "No team"}</TableCell>}
+                        {['admin', 'manager'].includes(user.role) ? "-" : (safeTeams.find((t) => t.id === user?.team_id)?.name || "No team")}
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">

@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [initComplete, setInitComplete] = useState(false)
   const router = useRouter()
 
   // Initialize auth on mount
@@ -51,6 +52,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("🔐 Auth state change:", event, session?.user?.email || 'no user')
+        
+        // Don't handle state changes during initial load to prevent conflicts
+        if (!initComplete) {
+          console.log('⏳ Skipping auth state change during initialization')
+          return
+        }
+        
         await handleAuthStateChange(event, session)
       }
     )
@@ -61,22 +69,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [])
 
-  // Add timeout to prevent infinite loading
+  // Improved loading timeout that's less aggressive
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
-      if (loading) {
+      if (loading && !session && !user) {
         console.warn('⚠️ Loading timeout reached, clearing loading state')
         setLoading(false)
-        if (!session && !user) {
-          setError('Authentication timeout - please try refreshing the page')
-        }
+        setError('Authentication timeout - please try refreshing the page')
       }
-    }, 10000) // 10 second timeout
+    }, 15000) // Increased to 15 seconds
 
     return () => clearTimeout(loadingTimeout)
   }, [loading, session, user])
 
-  // Save auth state to localStorage for persistence
+  // Save auth state to localStorage for persistence across tabs
   const saveAuthState = (session: Session | null, profile: any) => {
     if (typeof window === 'undefined') return
     
@@ -101,7 +107,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  // Restore auth state from localStorage
+  // Restore auth state from localStorage - improved for tab switching
   const restoreAuthState = () => {
     if (typeof window === 'undefined') return null
     
@@ -110,8 +116,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!stored) return null
       
       const authState = JSON.parse(stored)
-      // Check if stored state is less than 4 hours old
-      if (Date.now() - authState.timestamp > 4 * 60 * 60 * 1000) {
+      // Extended expiry to 8 hours for better tab switching experience
+      if (Date.now() - authState.timestamp > 8 * 60 * 60 * 1000) {
         localStorage.removeItem('raptor-auth-state')
         return null
       }
@@ -130,7 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true)
       setError(null)
       
-      // Try to restore from localStorage first
+      // Try to restore from localStorage first for instant tab switching
       const storedAuth = restoreAuthState()
       if (storedAuth) {
         console.log('✅ Restored auth state from localStorage')
@@ -138,10 +144,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(storedAuth.session.user)
         setProfile(storedAuth.profile)
         setLoading(false)
+        setInitComplete(true)
         return
       }
       
-      // Try to recover session first (for page refreshes)
+      // Try to recover session (for page refreshes)
       const sessionRecovered = await SessionManager.recoverSession()
       
       // Get current session from Supabase
@@ -153,6 +160,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null)
         setProfile(null)
         setLoading(false)
+        setInitComplete(true)
         return
       }
       
@@ -165,12 +173,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session)
         setUser(session.user)
         
-        // Fetch profile for authenticated user - ensure loading is managed properly
+        // Fetch profile for authenticated user
         try {
-          await fetchUserProfile(session.user, false) // Don't redirect on init
+          await fetchUserProfile(session.user, false)
         } catch (profileError) {
           console.error('❌ Profile fetch failed during init:', profileError)
-          setLoading(false) // Ensure loading is cleared even if profile fetch fails
+          setLoading(false)
         }
       } else {
         console.log('❌ No session found')
@@ -180,6 +188,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfile(null)
         setLoading(false)
       }
+      
+      setInitComplete(true)
     } catch (error) {
       console.error('❌ Auth initialization error:', error)
       SessionManager.clearSession()
@@ -188,6 +198,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(null)
       setError('Failed to initialize authentication')
       setLoading(false)
+      setInitComplete(true)
     }
   }
 
@@ -202,13 +213,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session.user)
         setError(null)
         
-        // Only set loading if we don't already have a profile for this user
+        // Only show loading if we don't already have a profile for this user
         if (!profile || profile.id !== session.user.id) {
-          setLoading(true) // Start loading for profile fetch
+          setLoading(true)
         }
         
         // Fetch or create profile
-        await fetchUserProfile(session.user, true) // Pass true to indicate this is from sign in
+        await fetchUserProfile(session.user, true)
       } else if (event === 'SIGNED_OUT') {
         console.log('🔐 User signed out')
         await SessionManager.logout()
@@ -223,17 +234,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(session)
         setUser(session?.user || null)
         // Don't trigger profile fetch or loading for token refresh
-        // Keep existing loading state if already loading
       } else if (event === 'INITIAL_SESSION') {
         console.log('🔐 Initial session detected')
         setSession(session)
         setUser(session?.user || null)
-        // Don't trigger loading for initial session - handled by initializeAuth
       } else {
         console.log(`🔐 Other auth event: ${event}`)
         setSession(session)
         setUser(session?.user || null)
-        // Don't trigger loading for other events
       }
     } catch (error) {
       console.error('❌ Auth state change error:', error)
@@ -343,7 +351,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('🔄 Retrying profile creation for:', user.email)
     setError(null)
     setLoading(true)
-    await fetchUserProfile(user, false) // Don't redirect on retry
+    await fetchUserProfile(user, false)
   }
 
   const refreshProfile = async () => {
@@ -423,7 +431,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null)
       setProfile(null)
       setError(null)
-      setLoading(false) // Ensure loading is false
+      setLoading(false)
       
       // Clear all session data
       SessionManager.clearSession()
@@ -439,14 +447,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.signOut()
       if (error) {
         console.warn('⚠️ Supabase signout warning:', error)
-        // Don't throw error, continue with redirect
       }
       
       console.log('✅ Sign out completed, forcing immediate redirect to homepage')
       
-      // Force immediate redirect to homepage using replace to avoid going through React routing
+      // Force immediate redirect to homepage using replace
       if (typeof window !== 'undefined') {
-        // Use setTimeout to ensure state updates are processed
         setTimeout(() => {
           window.location.replace('https://dev.raptorofficial.in')
         }, 100)
@@ -468,7 +474,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.removeItem('player_dashboard_debug_error')
         sessionStorage.clear()
         
-        // Force immediate redirect to homepage regardless of errors
         setTimeout(() => {
           window.location.replace('https://dev.raptorofficial.in')
         }, 100)
