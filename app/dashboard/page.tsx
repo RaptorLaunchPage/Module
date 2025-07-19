@@ -80,7 +80,7 @@ interface QuickAction {
 }
 
 export default function OptimizedDashboardPage() {
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [topPerformers, setTopPerformers] = useState<{
     topTeam: TeamPerformance | null
@@ -347,7 +347,7 @@ export default function OptimizedDashboardPage() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
             <p className="text-muted-foreground">
-              Welcome back, {profile?.name || 'User'}!
+              Welcome back, {profile?.name || user?.email || 'User'}!
             </p>
           </div>
           <Button onClick={handleRefresh} variant="outline">
