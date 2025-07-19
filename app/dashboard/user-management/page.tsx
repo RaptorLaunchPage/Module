@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Edit, EyeOff, Lock, Unlock, Mail, Bot } from "lucide-react"
+import { Trash2, Edit, EyeOff, Lock, Unlock, Mail, Bot, RefreshCw, Users } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Database } from "@/lib/supabase"
 import { UserManagementService } from "@/lib/user-management"
@@ -175,25 +175,84 @@ export default function UserManagementPage() {
     try {
       setLoading(true)
       setError(null)
-      // Always run both admin service and direct query
-      const adminPromise = SupabaseAdminService.getAllUsers()
-      const directPromise = supabase.from("users").select("*").order("created_at", { ascending: false })
-      const [{ data: adminData, error: adminError }, { data, error }] = await Promise.all([adminPromise, directPromise])
-      // Prefer admin data if available, else fallback to direct query
-      if (adminData && adminData.length > 0 && !adminError) {
-        setUsers(adminData)
-      } else if (data && data.length > 0 && !error) {
-        setUsers(data)
-      } else {
-        setUsers([])
+      
+      console.log('🔍 Fetching users...')
+      
+      // Try multiple approaches to fetch users
+      let fetchedUsers: UserProfile[] = []
+      let hasError = false
+      
+      try {
+        // First try: Direct Supabase query (most reliable)
+        const { data: directData, error: directError } = await supabase
+          .from("users")
+          .select("*")
+          .order("created_at", { ascending: false })
+        
+        if (directData && !directError) {
+          fetchedUsers = Array.isArray(directData) ? directData : []
+          console.log('✅ Direct query successful:', fetchedUsers.length)
+        } else {
+          console.warn('⚠️ Direct query failed:', directError)
+          hasError = true
+        }
+      } catch (directError) {
+        console.warn('⚠️ Direct query error:', directError)
+        hasError = true
       }
-      if (adminError) {
-        setError(adminError.message || String(adminError))
-      } else if (error) {
-        setError(error.message || String(error))
+      
+      // Second try: Admin service if first failed or returned no users
+      if (hasError || fetchedUsers.length === 0) {
+        try {
+          const { data: adminData, error: adminError } = await SupabaseAdminService.getAllUsers()
+          if (adminData && adminData.length > 0 && !adminError) {
+            fetchedUsers = Array.isArray(adminData) ? adminData : []
+            console.log('✅ Admin service fetch successful:', fetchedUsers.length)
+            hasError = false
+          } else {
+            console.warn('⚠️ Admin service failed:', adminError)
+          }
+        } catch (adminError) {
+          console.warn('⚠️ Admin service error:', adminError)
+        }
       }
+      
+             // Third try: Limited query as emergency fallback
+       if (hasError || fetchedUsers.length === 0) {
+         try {
+           const { data: emergencyData, error: emergencyError } = await supabase
+             .from("users")
+             .select("*")
+             .limit(100)
+           
+           if (emergencyData && !emergencyError) {
+             fetchedUsers = Array.isArray(emergencyData) ? emergencyData : []
+             console.log('✅ Emergency query successful:', fetchedUsers.length)
+             hasError = false
+           } else {
+             console.error('❌ Emergency query failed:', emergencyError)
+             setError(emergencyError?.message || 'Failed to fetch users')
+           }
+         } catch (emergencyError) {
+           console.error('❌ Emergency query error:', emergencyError)
+           setError('Database connection error')
+         }
+       }
+      
+      // Set the users (ensure it's always an array)
+      setUsers(Array.isArray(fetchedUsers) ? fetchedUsers : [])
+      
+      if (fetchedUsers.length === 0 && !hasError) {
+        setError('No users found in the system')
+      } else if (hasError && fetchedUsers.length === 0) {
+        setError('Unable to fetch users from any source')
+      }
+      
     } catch (error: any) {
-      setError(error.message || String(error))
+      console.error('❌ Unexpected error in fetchUsers:', error)
+      setError(error.message || 'An unexpected error occurred')
+      setUsers([])
+      
       toast({
         title: "Error",
         description: `Failed to fetch users: ${error.message}`,
@@ -562,7 +621,14 @@ export default function UserManagementPage() {
   }
 
   if (loading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading users...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -571,6 +637,22 @@ export default function UserManagementPage() {
         <TabsTrigger value="users">Users</TabsTrigger>
       </TabsList>
       <TabsContent value="users">
+        {error && (
+          <Alert className="mb-4">
+            <AlertDescription>
+              <strong>Error:</strong> {error}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="ml-2"
+                onClick={fetchUsers}
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
         {/* Tabs for All Users / Discord Users */}
         <div className="flex gap-2 mb-4">
           <Button variant={userTab === 'all' ? 'default' : 'outline'} onClick={() => setUserTab('all')}>All Users</Button>
@@ -596,8 +678,25 @@ export default function UserManagementPage() {
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      No users found.
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <div className="flex flex-col items-center gap-2">
+                        <Users className="h-8 w-8 text-gray-400" />
+                        <p className="text-lg font-medium">No users found</p>
+                        <p className="text-sm">
+                          {userTab === 'discord' 
+                            ? 'No Discord users are currently registered.' 
+                            : 'No users found in the system.'}
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={fetchUsers}
+                          className="mt-2"
+                        >
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                          Refresh
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (

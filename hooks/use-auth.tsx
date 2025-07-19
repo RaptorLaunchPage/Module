@@ -61,11 +61,85 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [])
 
+  // Add timeout to prevent infinite loading
+  useEffect(() => {
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn('⚠️ Loading timeout reached, clearing loading state')
+        setLoading(false)
+        if (!session && !user) {
+          setError('Authentication timeout - please try refreshing the page')
+        }
+      }
+    }, 10000) // 10 second timeout
+
+    return () => clearTimeout(loadingTimeout)
+  }, [loading, session, user])
+
+  // Save auth state to localStorage for persistence
+  const saveAuthState = (session: Session | null, profile: any) => {
+    if (typeof window === 'undefined') return
+    
+    try {
+      if (session && profile) {
+        const authState = {
+          session: {
+            access_token: session.access_token,
+            refresh_token: session.refresh_token,
+            user: session.user,
+            expires_at: session.expires_at
+          },
+          profile,
+          timestamp: Date.now()
+        }
+        localStorage.setItem('raptor-auth-state', JSON.stringify(authState))
+      } else {
+        localStorage.removeItem('raptor-auth-state')
+      }
+    } catch (error) {
+      console.warn('Failed to save auth state:', error)
+    }
+  }
+
+  // Restore auth state from localStorage
+  const restoreAuthState = () => {
+    if (typeof window === 'undefined') return null
+    
+    try {
+      const stored = localStorage.getItem('raptor-auth-state')
+      if (!stored) return null
+      
+      const authState = JSON.parse(stored)
+      // Check if stored state is less than 4 hours old
+      if (Date.now() - authState.timestamp > 4 * 60 * 60 * 1000) {
+        localStorage.removeItem('raptor-auth-state')
+        return null
+      }
+      
+      return authState
+    } catch (error) {
+      console.warn('Failed to restore auth state:', error)
+      localStorage.removeItem('raptor-auth-state')
+      return null
+    }
+  }
+
   const initializeAuth = async () => {
     try {
       console.log('🔍 Initializing auth...')
       setLoading(true)
       setError(null)
+      
+      // Try to restore from localStorage first
+      const storedAuth = restoreAuthState()
+      if (storedAuth) {
+        console.log('✅ Restored auth state from localStorage')
+        setSession(storedAuth.session)
+        setUser(storedAuth.session.user)
+        setProfile(storedAuth.profile)
+        setLoading(false)
+        return
+      }
       
       // Try to recover session first (for page refreshes)
       const sessionRecovered = await SessionManager.recoverSession()
@@ -138,6 +212,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else if (event === 'SIGNED_OUT') {
         console.log('🔐 User signed out')
         await SessionManager.logout()
+        localStorage.removeItem('raptor-auth-state')
         setSession(null)
         setUser(null)
         setProfile(null)
@@ -196,6 +271,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (existingProfile) {
         console.log(`✅ Profile found for user: ${user.email}`, existingProfile)
         setProfile(existingProfile)
+        saveAuthState(session, existingProfile)
         setLoading(false)
         
         // Redirect to appropriate page if this is from a sign in
@@ -234,6 +310,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (profileResult.success && profileResult.profile) {
         console.log(`✅ Profile created successfully for user: ${user.email}`, profileResult.profile)
         setProfile(profileResult.profile)
+        saveAuthState(session, profileResult.profile)
         setLoading(false)
         
         // Redirect to onboarding for new users
@@ -350,6 +427,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Clear all session data
       SessionManager.clearSession()
+      localStorage.removeItem('raptor-auth-state')
       
       // Clear any cached data
       if (typeof window !== 'undefined') {
@@ -383,6 +461,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setError(null)
       setLoading(false)
       SessionManager.clearSession()
+      localStorage.removeItem('raptor-auth-state')
       
       // Clear any cached data
       if (typeof window !== 'undefined') {
