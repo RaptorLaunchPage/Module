@@ -25,8 +25,7 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (user && profile && !authLoading) {
-      console.log("✅ User authenticated with profile, redirecting to dashboard")
-      setIsSubmitting(false)
+      console.log("✅ User authenticated with profile, redirecting")
       if (profile.role === "pending_player") {
         router.push("/onboarding")
       } else {
@@ -41,20 +40,6 @@ export default function LoginPage() {
     setError("")
   }, [clearAuthError])
 
-  // Reset submitting state if auth loading changes
-  useEffect(() => {
-    if (!authLoading && isSubmitting) {
-      // Small delay to allow for successful redirect
-      const timeout = setTimeout(() => {
-        if (!user) {
-          setIsSubmitting(false)
-        }
-      }, 1000)
-      
-      return () => clearTimeout(timeout)
-    }
-  }, [authLoading, isSubmitting, user])
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -63,8 +48,8 @@ export default function LoginPage() {
       return
     }
 
-    if (isSubmitting || authLoading) {
-      console.log("Already submitting or auth loading, ignoring submit")
+    if (isSubmitting) {
+      console.log("Already submitting, ignoring")
       return
     }
 
@@ -82,16 +67,12 @@ export default function LoginPage() {
         setError(errorMessage)
         setIsSubmitting(false)
       } else {
-        console.log("✅ Login successful, waiting for redirect...")
-        // Don't reset submitting here - let useEffect handle it
-        // Add fallback timeout
+        console.log("✅ Login successful, auth state will handle redirect...")
+        // Keep submitting state - let the auth redirect clear it
         setTimeout(() => {
-          if (isSubmitting && !user) {
-            console.warn("⚠️ Login timeout, resetting state")
-            setIsSubmitting(false)
-            setError("Login is taking longer than expected. Please try again.")
-          }
-        }, 20000) // 20 second timeout
+          // Fallback to clear submitting state if redirect doesn't happen
+          setIsSubmitting(false)
+        }, 10000)
       }
     } catch (err: any) {
       console.error("❌ Login exception:", err)
