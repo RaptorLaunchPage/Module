@@ -89,7 +89,7 @@ export default function HomePage() {
               </CardHeader>
               <CardContent>
                 <Link href="/auth/signup">
-                  <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+                  <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
                     Get Started
                   </Button>
                 </Link>
