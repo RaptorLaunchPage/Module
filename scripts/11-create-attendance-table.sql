@@ -161,4 +161,3 @@ CREATE TRIGGER auto_attendance_on_performance
 
 -- Grant necessary permissions
 GRANT SELECT, INSERT ON public.attendances TO authenticated;
-GRANT USAGE ON SEQUENCE attendances_id_seq TO authenticated;
