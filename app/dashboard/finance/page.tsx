@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -91,6 +91,7 @@ export default function FinancePage() {
     winningsByTeam: {}
   })
   const [activeTab, setActiveTab] = useState("overview")
+  const [selectedTeam, setSelectedTeam] = useState<string>("all")
   const [isDataFetching, setIsDataFetching] = useState(false)
   const hasInitialized = useRef(false)
   
@@ -117,6 +118,66 @@ export default function FinancePage() {
 
   const userRole = profile?.role as UserRole
   const financePermissions = DashboardPermissions.getDataPermissions(userRole, 'finance')
+
+  // Filter data based on selected team
+  const filteredExpenses = useMemo(() => {
+    if (selectedTeam === 'all') return expenses
+    return expenses.filter(expense => expense.team_id === selectedTeam)
+  }, [expenses, selectedTeam])
+
+  const filteredWinnings = useMemo(() => {
+    if (selectedTeam === 'all') return winnings
+    return winnings.filter(winning => winning.team_id === selectedTeam)
+  }, [winnings, selectedTeam])
+
+  // Calculate filtered financial summary
+  const filteredFinancialSummary = useMemo(() => {
+    const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + (expense.total || 0), 0)
+    const totalWinnings = filteredWinnings.reduce((sum, winning) => sum + (winning.amount_won || 0), 0)
+    const netProfitLoss = totalWinnings - totalExpenses
+    
+    // Calculate monthly figures (current month)
+    const currentMonth = new Date().getMonth()
+    const currentYear = new Date().getFullYear()
+    
+    const monthlyExpenses = filteredExpenses
+      .filter(expense => {
+        const expenseDate = new Date(expense.created_at || '')
+        return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear
+      })
+      .reduce((sum, expense) => sum + (expense.total || 0), 0)
+      
+    const monthlyWinnings = filteredWinnings
+      .filter(winning => {
+        const winningDate = new Date(winning.created_at || '')
+        return winningDate.getMonth() === currentMonth && winningDate.getFullYear() === currentYear
+      })
+      .reduce((sum, winning) => sum + (winning.amount_won || 0), 0)
+    
+    // Group expenses by category
+    const expensesByCategory: { [key: string]: number } = {}
+    filteredExpenses.forEach(expense => {
+      const category = expense.slot?.organizer || expense.team?.name || 'Unknown'
+      expensesByCategory[category] = (expensesByCategory[category] || 0) + (expense.total || 0)
+    })
+    
+    // Group winnings by team
+    const winningsByTeam: { [key: string]: number } = {}
+    filteredWinnings.forEach(winning => {
+      const teamName = winning.team?.name || 'Unknown Team'
+      winningsByTeam[teamName] = (winningsByTeam[teamName] || 0) + (winning.amount_won || 0)
+    })
+
+    return {
+      totalExpenses,
+      totalWinnings,
+      netProfitLoss,
+      monthlyExpenses,
+      monthlyWinnings,
+      expensesByCategory,
+      winningsByTeam
+    }
+  }, [filteredExpenses, filteredWinnings])
 
   useEffect(() => {
     // Wait for auth to fully initialize
@@ -516,7 +577,7 @@ export default function FinancePage() {
     // Create CSV data
     const csvData = [
       ['Type', 'Date', 'Team', 'Organizer', 'Amount', 'Description'],
-      ...expenses.map(expense => [
+      ...filteredExpenses.map(expense => [
         'Expense',
         expense.slot?.date || expense.created_at?.split('T')[0] || '',
         expense.team?.name || 'Unknown',
@@ -524,7 +585,7 @@ export default function FinancePage() {
         expense.total || 0,
         expense.slot?.notes || ''
       ]),
-      ...winnings.map(winning => [
+      ...filteredWinnings.map(winning => [
         'Winning',
         winning.slot?.date || winning.created_at?.split('T')[0] || '',
         winning.team?.name || 'Unknown',
@@ -647,6 +708,37 @@ export default function FinancePage() {
         </div>
       </div>
 
+      {/* Team Filter */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PieChart className="h-5 w-5" />
+            Filters
+          </CardTitle>
+          <CardDescription>Filter financial data by team</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Team</Label>
+              <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Teams" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Teams</SelectItem>
+                  {teams.map(team => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="flex items-center gap-2">
@@ -675,7 +767,7 @@ export default function FinancePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-green-100 text-sm font-medium">Total Winnings</p>
-                    <p className="text-2xl font-bold">₹{financialSummary.totalWinnings.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">₹{filteredFinancialSummary.totalWinnings.toLocaleString()}</p>
                   </div>
                   <TrendingUp className="h-8 w-8 text-green-200" />
                 </div>
@@ -687,22 +779,22 @@ export default function FinancePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-red-100 text-sm font-medium">Total Expenses</p>
-                    <p className="text-2xl font-bold">₹{financialSummary.totalExpenses.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">₹{filteredFinancialSummary.totalExpenses.toLocaleString()}</p>
                   </div>
                   <TrendingDown className="h-8 w-8 text-red-200" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className={`${financialSummary.netProfitLoss >= 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'} text-white`}>
+            <Card className={`${filteredFinancialSummary.netProfitLoss >= 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'} text-white`}>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-blue-100 text-sm font-medium">Net P&L</p>
-                    <p className="text-2xl font-bold">
-                      ₹{Math.abs(financialSummary.netProfitLoss).toLocaleString()}
-                      {financialSummary.netProfitLoss < 0 && <span className="text-sm ml-1">(Loss)</span>}
-                    </p>
+                                    <p className="text-2xl font-bold">
+                ₹{Math.abs(filteredFinancialSummary.netProfitLoss).toLocaleString()}
+                {filteredFinancialSummary.netProfitLoss < 0 && <span className="text-sm ml-1">(Loss)</span>}
+              </p>
                   </div>
                   <Wallet className="h-8 w-8 text-blue-200" />
                 </div>
@@ -714,7 +806,7 @@ export default function FinancePage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-muted-foreground text-sm font-medium">This Month</p>
-                    <p className="text-2xl font-bold">₹{(financialSummary.monthlyWinnings - financialSummary.monthlyExpenses).toLocaleString()}</p>
+                    <p className="text-2xl font-bold">₹{(filteredFinancialSummary.monthlyWinnings - filteredFinancialSummary.monthlyExpenses).toLocaleString()}</p>
                   </div>
                   <Calendar className="h-8 w-8 text-muted-foreground" />
                 </div>
@@ -723,7 +815,7 @@ export default function FinancePage() {
           </div>
 
           {/* Send to Discord */}
-          {(expenses.length > 0 || winnings.length > 0) && (
+          {(filteredExpenses.length > 0 || filteredWinnings.length > 0) && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
@@ -735,14 +827,14 @@ export default function FinancePage() {
                         ? teams.find(t => t.id === selectedTeam)?.name || 'All Teams'
                         : 'All Teams',
                       date_range: 'Recent period',
-                      total_slots: expenses.length,
-                      total_expense: financialSummary.totalExpenses,
-                      avg_slot_rate: expenses.length > 0 
-                        ? Math.round(financialSummary.totalExpenses / expenses.length)
+                      total_slots: filteredExpenses.length,
+                      total_expense: filteredFinancialSummary.totalExpenses,
+                      avg_slot_rate: filteredExpenses.length > 0 
+                        ? Math.round(filteredFinancialSummary.totalExpenses / filteredExpenses.length)
                         : 0,
                       highest_expense_day: {
                         date: 'Recent',
-                        amount: Math.max(...expenses.map(e => e.total), 0)
+                        amount: Math.max(...filteredExpenses.map(e => e.total), 0)
                       }
                     }}
                     teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id}
@@ -766,22 +858,22 @@ export default function FinancePage() {
                 <CardDescription>Expenses by organizer/category</CardDescription>
               </CardHeader>
               <CardContent>
-                {Object.keys(financialSummary.expensesByCategory).length > 0 ? (
-                  <div className="space-y-4">
-                    {Object.entries(financialSummary.expensesByCategory).map(([category, amount]) => (
-                      <div key={category} className="flex items-center justify-between">
-                        <span className="font-medium">{category}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">
-                            ₹{amount.toLocaleString()}
-                          </span>
-                          <Badge variant="outline">
-                            {((amount / financialSummary.totalExpenses) * 100).toFixed(1)}%
-                          </Badge>
-                        </div>
+                              {Object.keys(filteredFinancialSummary.expensesByCategory).length > 0 ? (
+                <div className="space-y-4">
+                  {Object.entries(filteredFinancialSummary.expensesByCategory).map(([category, amount]) => (
+                    <div key={category} className="flex items-center justify-between">
+                      <span className="font-medium">{category}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          ₹{amount.toLocaleString()}
+                        </span>
+                        <Badge variant="outline">
+                          {((amount / filteredFinancialSummary.totalExpenses) * 100).toFixed(1)}%
+                        </Badge>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
+                </div>
                 ) : (
                   <div className="text-center py-8">
                     <PieChart className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -801,22 +893,22 @@ export default function FinancePage() {
                 <CardDescription>Prize money earned by each team</CardDescription>
               </CardHeader>
               <CardContent>
-                {Object.keys(financialSummary.winningsByTeam).length > 0 ? (
-                  <div className="space-y-4">
-                    {Object.entries(financialSummary.winningsByTeam).map(([team, amount]) => (
-                      <div key={team} className="flex items-center justify-between">
-                        <span className="font-medium">{team}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm text-muted-foreground">
-                            ₹{amount.toLocaleString()}
-                          </span>
-                          <Badge variant="outline">
-                            {((amount / financialSummary.totalWinnings) * 100).toFixed(1)}%
-                          </Badge>
-                        </div>
+                              {Object.keys(filteredFinancialSummary.winningsByTeam).length > 0 ? (
+                <div className="space-y-4">
+                  {Object.entries(filteredFinancialSummary.winningsByTeam).map(([team, amount]) => (
+                    <div key={team} className="flex items-center justify-between">
+                      <span className="font-medium">{team}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          ₹{amount.toLocaleString()}
+                        </span>
+                        <Badge variant="outline">
+                          {((amount / filteredFinancialSummary.totalWinnings) * 100).toFixed(1)}%
+                        </Badge>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
+                </div>
                 ) : (
                   <div className="text-center py-8">
                     <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -935,7 +1027,7 @@ export default function FinancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {expenses.length === 0 ? (
+                  {filteredExpenses.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         <div className="flex flex-col items-center gap-2">
@@ -946,7 +1038,7 @@ export default function FinancePage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    expenses.map((expense) => (
+                    filteredExpenses.map((expense) => (
                       <TableRow key={expense.id}>
                         <TableCell>
                           {expense.slot?.date || new Date(expense.created_at || '').toLocaleDateString()}
@@ -1091,7 +1183,7 @@ export default function FinancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {winnings.length === 0 ? (
+                  {filteredWinnings.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                         <div className="flex flex-col items-center gap-2">
@@ -1102,7 +1194,7 @@ export default function FinancePage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    winnings.map((winning) => (
+                    filteredWinnings.map((winning) => (
                       <TableRow key={winning.id}>
                         <TableCell>
                           {winning.slot?.date || new Date(winning.created_at || '').toLocaleDateString()}
@@ -1149,16 +1241,16 @@ export default function FinancePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="p-4 border rounded-lg">
                   <h3 className="font-semibold mb-2">Total Transactions</h3>
-                  <p className="text-2xl font-bold">{expenses.length + winnings.length}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {expenses.length} expenses, {winnings.length} winnings
-                  </p>
+                  <p className="text-2xl font-bold">{filteredExpenses.length + filteredWinnings.length}</p>
+                                  <p className="text-sm text-muted-foreground">
+                  {filteredExpenses.length} expenses, {filteredWinnings.length} winnings
+                </p>
                 </div>
                 
                 <div className="p-4 border rounded-lg">
                   <h3 className="font-semibold mb-2">Average Win Amount</h3>
                   <p className="text-2xl font-bold">
-                    ₹{winnings.length > 0 ? Math.round(financialSummary.totalWinnings / winnings.length).toLocaleString() : 0}
+                    ₹{filteredWinnings.length > 0 ? Math.round(filteredFinancialSummary.totalWinnings / filteredWinnings.length).toLocaleString() : 0}
                   </p>
                   <p className="text-sm text-muted-foreground">Per tournament win</p>
                 </div>
@@ -1166,8 +1258,8 @@ export default function FinancePage() {
                 <div className="p-4 border rounded-lg">
                   <h3 className="font-semibold mb-2">ROI</h3>
                   <p className="text-2xl font-bold">
-                    {financialSummary.totalExpenses > 0 
-                      ? `${((financialSummary.totalWinnings / financialSummary.totalExpenses - 1) * 100).toFixed(1)}%`
+                    {filteredFinancialSummary.totalExpenses > 0 
+                      ? `${((filteredFinancialSummary.totalWinnings / filteredFinancialSummary.totalExpenses - 1) * 100).toFixed(1)}%`
                       : "N/A"
                     }
                   </p>

@@ -159,6 +159,8 @@ export default function PerformancePage() {
       filteredPerformances.reduce((sum, p) => sum + (p.damage || 0), 0) / filteredPerformances.length : 0,
     avgSurvival: filteredPerformances.length > 0 ? 
       filteredPerformances.reduce((sum, p) => sum + (p.survival_time || 0), 0) / filteredPerformances.length : 0,
+    avgPlacement: filteredPerformances.length > 0 ? 
+      filteredPerformances.reduce((sum, p) => sum + (p.placement || 0), 0) / filteredPerformances.length : 0,
     kdRatio: filteredPerformances.length > 0 ? 
       filteredPerformances.reduce((sum, p) => sum + (p.kills || 0), 0) / filteredPerformances.length : 0,
     todayMatches: filteredPerformances.filter(p => {

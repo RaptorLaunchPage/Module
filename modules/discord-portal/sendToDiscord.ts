@@ -4,15 +4,33 @@ import type {
   MessageType, 
   DiscordWebhookPayload, 
   SendMessageResponse,
-  DiscordLogInsert
+  DiscordLogInsert,
+  AutomationKey
 } from './types'
 import { formatEmbed } from './embeds'
 import { getTeamWebhooks, getAdminWebhooks, isAutomationEnabled } from './webhookService'
 
 // Use the same Supabase client configuration as the main app
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Missing Supabase environment variables during build')
+}
+
+const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
+  : null
+
+/**
+ * Helper function to ensure supabase is available
+ */
+function ensureSupabase() {
+  if (!supabase) {
+    throw new Error('Supabase client not available - missing environment variables')
+  }
+  return supabase
+}
 
 /**
  * Send a message to Discord via webhook
@@ -114,7 +132,7 @@ export async function sendToDiscord({
     }
 
     // Insert logs to database
-    const { data: logs, error: logError } = await supabase
+    const { data: logs, error: logError } = await ensureSupabase()
       .from('communication_logs')
       .insert(logEntries)
       .select()
@@ -140,7 +158,7 @@ export async function sendToDiscord({
     console.error('Error in sendToDiscord:', error)
     
     // Log the error
-    await supabase
+    await ensureSupabase()
       .from('communication_logs')
       .insert({
         team_id: teamId || null,
@@ -207,8 +225,8 @@ async function getWebhooksForMessage(
 /**
  * Map message types to automation keys
  */
-function getAutomationKeyForMessageType(messageType: MessageType): string | null {
-  const mapping: Record<MessageType, string | null> = {
+function getAutomationKeyForMessageType(messageType: MessageType): AutomationKey | null {
+  const mapping: Record<MessageType, AutomationKey | null> = {
     slot_create: 'auto_slot_create',
     slot_update: 'auto_slot_create', // Use same setting
     roster_update: 'auto_roster_update',
@@ -232,7 +250,7 @@ function getAutomationKeyForMessageType(messageType: MessageType): string | null
 export async function retryFailedMessage(logId: string): Promise<SendMessageResponse> {
   try {
     // Get the failed log entry
-    const { data: log, error } = await supabase
+    const { data: log, error } = await ensureSupabase()
       .from('communication_logs')
       .select('*')
       .eq('id', logId)
@@ -248,7 +266,7 @@ export async function retryFailedMessage(logId: string): Promise<SendMessageResp
       return { success: false, error: 'No webhook associated with this log entry' }
     }
 
-    const { data: webhook } = await supabase
+    const { data: webhook } = await ensureSupabase()
       .from('discord_webhooks')
       .select('hook_url')
       .eq('id', log.webhook_id)
@@ -262,7 +280,7 @@ export async function retryFailedMessage(logId: string): Promise<SendMessageResp
     const response = await sendWebhookMessage(webhook.hook_url, log.payload as DiscordWebhookPayload)
 
     // Update the log entry
-    await supabase
+    await ensureSupabase()
       .from('communication_logs')
       .update({
         status: 'success',
@@ -277,12 +295,12 @@ export async function retryFailedMessage(logId: string): Promise<SendMessageResp
 
   } catch (error) {
     // Update the log entry with new failure
-    await supabase
+    await ensureSupabase()
       .from('communication_logs')
       .update({
         status: 'failed',
         error_message: error instanceof Error ? error.message : 'Retry failed',
-        retry_count: (await supabase
+        retry_count: (await ensureSupabase()
           .from('communication_logs')
           .select('retry_count')
           .eq('id', logId)
@@ -314,7 +332,7 @@ export async function getDiscordLogs({
   limit?: number
   offset?: number
 } = {}) {
-  let query = supabase
+  let query = ensureSupabase()
     .from('communication_logs')
     .select(`
       *,

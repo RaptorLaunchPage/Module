@@ -4,12 +4,23 @@ import { getDiscordLogs, retryFailedMessage } from '@/modules/discord-portal'
 import type { MessageType } from '@/modules/discord-portal'
 
 // Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Missing Supabase environment variables during build')
+}
+
+const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null
 
 // Helper function to get user from request
 async function getUserFromRequest(request: NextRequest) {
+  if (!supabase) {
+    return { error: 'Service unavailable', status: 503 }
+  }
+
   const authHeader = request.headers.get('authorization')
   if (!authHeader) {
     return { error: 'Authorization header required', status: 401 }
@@ -37,6 +48,13 @@ async function getUserFromRequest(request: NextRequest) {
 // GET - Fetch communication logs
 export async function GET(request: NextRequest) {
   try {
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
+      )
+    }
+
     const { userData, error, status } = await getUserFromRequest(request)
     if (error) {
       return NextResponse.json({ error }, { status })
@@ -106,6 +124,13 @@ export async function GET(request: NextRequest) {
 // POST - Retry failed message
 export async function POST(request: NextRequest) {
   try {
+    if (!supabase) {
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
+      )
+    }
+
     const { userData, error, status } = await getUserFromRequest(request)
     if (error) {
       return NextResponse.json({ error }, { status })

@@ -11,15 +11,32 @@ import type {
 } from './types'
 
 // Use the same Supabase client configuration as the main app
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Missing Supabase environment variables during build')
+}
+
+const supabase = supabaseUrl && supabaseAnonKey 
+  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
+  : null
+
+/**
+ * Helper function to ensure supabase is available
+ */
+function ensureSupabase() {
+  if (!supabase) {
+    throw new Error('Supabase client not available - missing environment variables')
+  }
+  return supabase
+}
 
 /**
  * Get all webhooks for a specific team
  */
 export async function getTeamWebhooks(teamId: string): Promise<DiscordWebhook[]> {
-  const { data, error } = await supabase
+  const { data, error } = await ensureSupabase()
     .from('discord_webhooks')
     .select('*')
     .eq('team_id', teamId)
@@ -38,7 +55,7 @@ export async function getTeamWebhooks(teamId: string): Promise<DiscordWebhook[]>
  * Get admin/global webhooks
  */
 export async function getAdminWebhooks(): Promise<DiscordWebhook[]> {
-  const { data, error } = await supabase
+  const { data, error } = await ensureSupabase()
     .from('discord_webhooks')
     .select('*')
     .in('type', ['admin', 'global'])
@@ -57,7 +74,7 @@ export async function getAdminWebhooks(): Promise<DiscordWebhook[]> {
  * Get all webhooks (for admin users)
  */
 export async function getAllWebhooks(): Promise<DiscordWebhook[]> {
-  const { data, error } = await supabase
+  const { data, error } = await ensureSupabase()
     .from('discord_webhooks')
     .select(`
       *,
@@ -85,7 +102,7 @@ export async function createWebhook(webhook: DiscordWebhookInsert): Promise<{ su
     return { success: false, error: validation.error }
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await ensureSupabase()
     .from('discord_webhooks')
     .insert(webhook)
     .select()
@@ -114,7 +131,7 @@ export async function updateWebhook(
     }
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await ensureSupabase()
     .from('discord_webhooks')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
@@ -133,7 +150,7 @@ export async function updateWebhook(
  * Delete a webhook
  */
 export async function deleteWebhook(id: string): Promise<{ success: boolean; error?: string }> {
-  const { error } = await supabase
+  const { error } = await ensureSupabase()
     .from('discord_webhooks')
     .delete()
     .eq('id', id)
@@ -196,7 +213,7 @@ export async function validateWebhookUrl(url: string): Promise<WebhookValidation
  * Get automation settings for a team
  */
 export async function getTeamAutomationSettings(teamId: string): Promise<Record<string, boolean>> {
-  const { data, error } = await supabase
+  const { data, error } = await ensureSupabase()
     .from('communication_settings')
     .select('setting_key, setting_value')
     .eq('team_id', teamId)
@@ -218,7 +235,7 @@ export async function getTeamAutomationSettings(teamId: string): Promise<Record<
  * Get global automation settings
  */
 export async function getGlobalAutomationSettings(): Promise<Record<string, boolean>> {
-  const { data, error } = await supabase
+  const { data, error } = await ensureSupabase()
     .from('communication_settings')
     .select('setting_key, setting_value')
     .is('team_id', null)
@@ -245,7 +262,7 @@ export async function updateAutomationSetting(
   teamId: string | null,
   updatedBy: string
 ): Promise<{ success: boolean; error?: string }> {
-  const { error } = await supabase
+  const { error } = await ensureSupabase()
     .from('communication_settings')
     .upsert({
       team_id: teamId,
@@ -272,7 +289,7 @@ export async function isAutomationEnabled(
   settingKey: AutomationKey,
   teamId?: string
 ): Promise<boolean> {
-  const { data, error } = await supabase
+  const { data, error } = await ensureSupabase()
     .from('communication_settings')
     .select('setting_value')
     .eq('setting_key', settingKey)
@@ -310,7 +327,7 @@ export async function initializeTeamAutomationSettings(
     updated_by: createdBy
   }))
 
-  const { error } = await supabase
+  const { error } = await ensureSupabase()
     .from('communication_settings')
     .insert(settingsToInsert)
 
@@ -326,7 +343,7 @@ export async function initializeTeamAutomationSettings(
  * Get webhook statistics
  */
 export async function getWebhookStats(teamId?: string) {
-  const query = supabase
+  const query = ensureSupabase()
     .from('communication_logs')
     .select('status, message_type, timestamp')
 

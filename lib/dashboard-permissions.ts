@@ -170,7 +170,7 @@ export class DashboardPermissions {
   /**
    * Get permissions for data operations
    */
-  static getDataPermissions(userRole: UserRole | undefined, dataType: 'users' | 'teams' | 'performance' | 'finance' | 'communication'): Permission {
+  static getDataPermissions(userRole: UserRole | undefined, dataType: 'users' | 'teams' | 'performance' | 'finance' | 'discord-portal'): Permission {
     if (!userRole) {
       return { canView: false, canCreate: false, canEdit: false, canDelete: false, canExport: false }
     }
