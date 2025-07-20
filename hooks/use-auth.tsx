@@ -103,7 +103,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         console.log(`⚠️ UNHANDLED AUTH EVENT: ${event}`)
         console.log(`   Session exists: ${!!session}`)
+        console.log(`   User email: ${session?.user?.email || 'N/A'}`)
         console.log(`   Event details:`, { event, session })
+        
+        // Handle any session with user data
+        if (session && session.user) {
+          console.log('🔄 FALLBACK: Session detected, setting auth state')
+          setSession(session)
+          setUser(session.user)
+          setLoading(true)
+          await loadUserProfile(session.user)
+        }
       }
     } catch (error) {
       console.error('❌ AUTH CHANGE ERROR:', error)
@@ -131,15 +141,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (existingProfile) {
-        console.log('✅ Profile loaded:', existingProfile.email)
+        console.log('✅ Profile loaded successfully!')
+        console.log('   Email:', existingProfile.email)
+        console.log('   Role:', existingProfile.role)
+        console.log('   Setting profile state...')
         setProfile(existingProfile)
         setLoading(false)
+        
+        console.log('🚀 PROFILE LOADED - Ready for redirect!')
+        console.log('   Current route:', window.location.pathname)
+        console.log('   Target route:', existingProfile.role === "pending_player" ? "/onboarding" : "/dashboard")
         
         // Auto-redirect after successful profile load
         setTimeout(() => {
           if (existingProfile.role === "pending_player") {
+            console.log('📍 Redirecting to onboarding...')
             router.push("/onboarding")
           } else {
+            console.log('📍 Redirecting to dashboard...')
             router.push("/dashboard")
           }
         }, 100)

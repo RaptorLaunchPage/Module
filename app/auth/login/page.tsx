@@ -24,11 +24,18 @@ export default function LoginPage() {
 
   // Redirect if already logged in
   useEffect(() => {
+    console.log('🔍 LOGIN PAGE AUTH STATE CHECK:')
+    console.log('   User:', !!user, user?.email)
+    console.log('   Profile:', !!profile, profile?.role)
+    console.log('   Auth loading:', authLoading)
+    
     if (user && profile && !authLoading) {
-      console.log("✅ User authenticated, redirecting")
+      console.log("✅ LOGIN PAGE: User authenticated, redirecting")
       if (profile.role === "pending_player") {
+        console.log("📍 LOGIN PAGE: Redirecting to onboarding")
         router.push("/onboarding")
       } else {
+        console.log("📍 LOGIN PAGE: Redirecting to dashboard")
         router.push("/dashboard")
       }
     }
