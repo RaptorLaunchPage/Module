@@ -310,6 +310,37 @@ export type Database = {
           amount_won?: number
         }
       }
+      attendances: {
+        Row: {
+          id: string
+          player_id: string
+          team_id: string
+          date: string
+          session_time: "Morning" | "Evening" | "Night" | "Match"
+          status: "Present" | "Absent" | "Auto (Match)"
+          marked_by: string | null
+          slot_id: string | null
+          created_at: string
+        }
+        Insert: {
+          player_id: string
+          team_id: string
+          date: string
+          session_time: "Morning" | "Evening" | "Night" | "Match"
+          status: "Present" | "Absent" | "Auto (Match)"
+          marked_by?: string | null
+          slot_id?: string | null
+        }
+        Update: {
+          player_id?: string
+          team_id?: string
+          date?: string
+          session_time?: "Morning" | "Evening" | "Night" | "Match"
+          status?: "Present" | "Absent" | "Auto (Match)"
+          marked_by?: string | null
+          slot_id?: string | null
+        }
+      }
       admin_config: {
         Row: {
           key: string

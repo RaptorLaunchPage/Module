@@ -64,7 +64,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     path: '/dashboard/team-management/teams',
     allowedRoles: ['admin', 'manager', 'coach'],
     showInNavigation: true,
-    mobileOrder: 4
+    mobileOrder: 5
   },
   {
     id: 'finance',
@@ -74,7 +74,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     path: '/dashboard/finance',
     allowedRoles: ['admin', 'manager'],
     showInNavigation: true,
-    mobileOrder: 5
+    mobileOrder: 6
   },
   {
     id: 'users',
@@ -84,7 +84,17 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     path: '/dashboard/user-management',
     allowedRoles: ['admin'],
     showInNavigation: true,
-    mobileOrder: 6
+    mobileOrder: 7
+  },
+  {
+    id: 'attendance',
+    title: 'Attendance',
+    description: 'Track practice and match attendance',
+    icon: 'CalendarCheck',
+    path: '/dashboard/attendance',
+    allowedRoles: ['admin', 'manager', 'coach', 'player', 'analyst'],
+    showInNavigation: true,
+    mobileOrder: 4
   },
   {
     id: 'profile',
