@@ -40,15 +40,15 @@ type Attendance = {
 type Team = {
   id: string
   name: string
-  tier?: string
+  tier: string | null
 }
 
 type User = {
   id: string
-  name: string
+  name: string | null
   email: string
   team_id: string | null
-  role: string
+  role: string | null
 }
 
 interface AttendanceStatsProps {
