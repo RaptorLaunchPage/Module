@@ -103,6 +103,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         console.log(`⚠️ UNHANDLED AUTH EVENT: ${event}`)
         console.log(`   Session exists: ${!!session}`)
+        console.log(`   User email: ${session?.user?.email || 'N/A'}`)
         console.log(`   Event details:`, { event, session })
       }
     } catch (error) {
@@ -131,15 +132,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (existingProfile) {
-        console.log('✅ Profile loaded:', existingProfile.email)
+        console.log('✅ Profile loaded successfully!')
+        console.log('   Email:', existingProfile.email)
+        console.log('   Role:', existingProfile.role)
         setProfile(existingProfile)
         setLoading(false)
         
+        console.log('🚀 PROFILE LOADED - Ready for redirect!')
         // Auto-redirect after successful profile load
         setTimeout(() => {
           if (existingProfile.role === "pending_player") {
+            console.log('📍 Redirecting to onboarding...')
             router.push("/onboarding")
           } else {
+            console.log('📍 Redirecting to dashboard...')
             router.push("/dashboard")
           }
         }, 100)
