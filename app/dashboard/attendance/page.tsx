@@ -51,15 +51,36 @@ export default function AttendancePage() {
   const [users, setUsers] = useState<UserProfile[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [dataFetched, setDataFetched] = useState(false)
   const [selectedTeam, setSelectedTeam] = useState<string>("all")
   const [selectedSession, setSelectedSession] = useState<string>("all")
   const [selectedDate, setSelectedDate] = useState<string>("")
 
   useEffect(() => {
-    fetchAttendances()
-    fetchUsers()
-    fetchTeams()
+    if (profile) {
+      loadAllData()
+    }
   }, [profile])
+
+  const loadAllData = async () => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      await Promise.all([
+        fetchAttendances(),
+        fetchUsers(),
+        fetchTeams()
+      ])
+      setDataFetched(true)
+    } catch (err) {
+      console.error('Error loading attendance data:', err)
+      setError('Failed to load attendance data. Please try refreshing the page.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const fetchAttendances = async () => {
     if (!profile) return
@@ -88,8 +109,7 @@ export default function AttendancePage() {
       setAttendances(data || [])
     } catch (error) {
       console.error("Error fetching attendances:", error)
-    } finally {
-      setLoading(false)
+      throw error
     }
   }
 

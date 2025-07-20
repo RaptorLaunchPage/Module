@@ -81,6 +81,7 @@ export default function FinancePage() {
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dataFetched, setDataFetched] = useState(false)
   const [financialSummary, setFinancialSummary] = useState<FinancialSummary>({
     totalExpenses: 0,
     totalWinnings: 0,

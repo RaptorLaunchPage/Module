@@ -24,7 +24,9 @@ import {
   Zap, 
   Shield,
   Filter,
-  BarChart3
+  BarChart3,
+  RefreshCw,
+  Users
 } from "lucide-react"
 import type { Database } from "@/lib/supabase"
 import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
@@ -54,16 +56,37 @@ export default function PerformancePage() {
   const [users, setUsers] = useState<UserProfile[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [dataFetched, setDataFetched] = useState(false)
   const [addPerformanceOpen, setAddPerformanceOpen] = useState(false)
   const [selectedTeam, setSelectedTeam] = useState<string>("all")
   const [selectedPlayer, setSelectedPlayer] = useState<string>("all")
   const [selectedMap, setSelectedMap] = useState<string>("all")
 
   useEffect(() => {
-    fetchPerformances()
-    fetchUsers()
-    fetchTeams()
+    if (profile) {
+      loadAllData()
+    }
   }, [profile])
+
+  const loadAllData = async () => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      await Promise.all([
+        fetchPerformances(),
+        fetchUsers(),
+        fetchTeams()
+      ])
+      setDataFetched(true)
+    } catch (err) {
+      console.error('Error loading data:', err)
+      setError('Failed to load performance data. Please try refreshing the page.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const fetchPerformances = async () => {
     if (!profile) return
@@ -92,8 +115,7 @@ export default function PerformancePage() {
       setPerformances(data || [])
     } catch (error) {
       console.error("Error fetching performances:", error)
-    } finally {
-      setLoading(false)
+      throw error
     }
   }
 
@@ -103,14 +125,13 @@ export default function PerformancePage() {
 
       if (error) {
         console.error("Database error fetching users:", error)
-        setUsers([])
-        return
+        throw error
       }
       
       setUsers(data || [])
     } catch (error) {
       console.error("Error fetching users:", error)
-      setUsers([])
+      throw error
     }
   }
 
@@ -120,14 +141,13 @@ export default function PerformancePage() {
 
       if (error) {
         console.error("Database error fetching teams:", error)
-        setTeams([])
-        return
+        throw error
       }
       
       setTeams(data || [])
     } catch (error) {
       console.error("Error fetching teams:", error)
-      setTeams([])
+      throw error
     }
   }
 
@@ -192,16 +212,65 @@ export default function PerformancePage() {
   }
 
   if (!profile) {
-    return <div className="text-center py-8 text-muted-foreground">Loading user profile...</div>
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="text-muted-foreground">Loading user profile...</p>
+        </div>
+      </div>
+    )
   }
 
-  if (requiresUsers && users.length === 0 && !loading) {
+  if (loading) {
     return (
-      <div className="text-center py-8">
-        <h2 className="text-xl font-semibold mb-2">No User Data Available</h2>
-        <p className="text-muted-foreground">
-          Unable to load user data. Please contact your administrator.
-        </p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="text-muted-foreground">Loading performance data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <div className="text-red-500 mb-4">
+              <Target className="h-12 w-12 mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Unable to Load Data</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={loadAllData} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (requiresUsers && users.length === 0 && dataFetched) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <div className="text-muted-foreground mb-4">
+              <Users className="h-12 w-12 mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No Users Found</h3>
+            <p className="text-muted-foreground mb-4">
+              No user data is available yet. Please contact your administrator.
+            </p>
+            <Button onClick={loadAllData} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -370,8 +439,29 @@ export default function PerformancePage() {
             </CardContent>
           </Card>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Stats Cards or No Data State */}
+          {filteredPerformances.length === 0 && dataFetched ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <div className="text-muted-foreground mb-4">
+                  <Target className="h-16 w-16 mx-auto" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No Performance Data Yet</h3>
+                <p className="text-muted-foreground mb-6">
+                  {selectedTeam !== "all" || selectedPlayer !== "all" || selectedMap !== "all" 
+                    ? "No performances match your current filters. Try adjusting the filters above."
+                    : "Start tracking performance by adding your first match data."}
+                </p>
+                {(canAddPerformance && !isAnalyst) && (
+                  <Button onClick={() => setAddPerformanceOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add First Performance
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -456,6 +546,7 @@ export default function PerformancePage() {
               </CardContent>
             </Card>
           </div>
+          )}  {/* End of stats cards conditional */}
 
           {/* Send to Discord */}
           {filteredPerformances.length > 0 && (
