@@ -83,14 +83,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Try a simplified query first without relationships
     let query = userSupabase!
       .from("performances")
-      .select(`
-        *,
-        users!player_id(id, name, email),
-        teams(id, name),
-        slots(id, time_range, date)
-      `)
+      .select("*")
 
     // Apply role-based filtering
     if (userData!.role === "player") {

@@ -173,8 +173,20 @@ export default function PerformancePage() {
   const canSubmitPerformance = userRole === 'player'
   const canViewReport = performancePermissions.canView
 
+  // Enhanced performances with user and team names
+  const enhancedPerformances = performances.map(perf => {
+    const user = users.find(u => u.id === perf.player_id)
+    const team = teams.find(t => t.id === perf.team_id)
+    
+    return {
+      ...perf,
+      users: user ? { id: user.id, name: user.name || 'Unknown', email: user.email } : perf.users,
+      teams: team ? { id: team.id, name: team.name } : perf.teams
+    }
+  })
+
   // Filter performances based on selected filters
-  const filteredPerformances = performances.filter(perf => {
+  const filteredPerformances = enhancedPerformances.filter(perf => {
     if (selectedTeam !== "all" && perf.team_id !== selectedTeam) return false
     if (selectedPlayer !== "all" && perf.player_id !== selectedPlayer) return false
     if (selectedMap !== "all" && perf.map !== selectedMap) return false
@@ -207,12 +219,12 @@ export default function PerformancePage() {
 
   // Get unique values for filters
   const availableTeams = teams.filter(team => 
-    performances.some(p => p.team_id === team.id)
+    enhancedPerformances.some(p => p.team_id === team.id)
   )
   const availablePlayers = users.filter(user => 
-    performances.some(p => p.player_id === user.id)
+    enhancedPerformances.some(p => p.player_id === user.id)
   )
-  const availableMaps = [...new Set(performances.map(p => p.map).filter(Boolean))]
+  const availableMaps = [...new Set(enhancedPerformances.map(p => p.map).filter(Boolean))]
 
   const requiresUsers = canViewDashboard || canAddPerformance || canUseOCR
 
