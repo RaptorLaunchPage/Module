@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, CheckCircle, User, Mail, GamepadIcon } from "lucide-react"
+import { Loader2, CheckCircle, User, Mail, GamepadIcon, ArrowRight, ArrowLeft } from "lucide-react"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
+import { VideoBackground } from "@/components/video-background"
 
 interface OnboardingForm {
   fullName: string
@@ -51,250 +52,322 @@ export default function OnboardingPage() {
     }
   }, [profile, authLoading, router])
 
+  // Show loading while checking auth
+  if (authLoading || !profile) {
+    return <FullPageLoader message="Loading your profile..." />
+  }
+
   const handleInputChange = (field: keyof OnboardingForm, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleNextStep = () => {
-    if (step < 3) {
-      setStep(step + 1)
+  const handleNext = () => {
+    if (step === 1) {
+      if (!formData.fullName.trim() || !formData.displayName.trim() || !formData.contactNumber.trim()) {
+        toast({
+          title: "Missing Information",
+          description: "Please fill in all required fields before continuing.",
+          variant: "destructive"
+        })
+        return
+      }
     }
+    setStep(prev => Math.min(prev + 1, 3))
   }
 
-  const handlePrevStep = () => {
-    if (step > 1) {
-      setStep(step - 1)
-    }
+  const handlePrevious = () => {
+    setStep(prev => Math.max(prev - 1, 1))
   }
 
   const handleSubmit = async () => {
-    if (!profile) return
+    if (!formData.experience.trim() || !formData.preferredRole.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please complete all required fields.",
+        variant: "destructive"
+      })
+      return
+    }
 
     setLoading(true)
+
     try {
-      // Update user profile with onboarding data
+      // Update the profile in the database
       const { error } = await supabase
-        .from("users")
+        .from('profiles')
         .update({
-          name: formData.fullName,
-          // Note: Additional fields like bio, experience, etc. would need to be added to the users table
-          // For now, we'll just update the name and keep pending_player role
+          full_name: formData.fullName,
+          display_name: formData.displayName,
+          contact_number: formData.contactNumber,
+          experience: formData.experience,
+          preferred_role: formData.preferredRole,
+          favorite_games: formData.favoriteGames,
+          bio: formData.bio,
+          role: 'player', // Update role from pending_player to player
+          onboarding_completed: true,
+          updated_at: new Date().toISOString()
         })
-        .eq("id", profile.id)
+        .eq('id', profile.id)
 
-      if (error) throw error
-
-      // Create or update additional profile data in a separate table if needed
-      // This would require creating an additional "user_profiles" table
+      if (error) {
+        console.error('Profile update error:', error)
+        throw error
+      }
 
       toast({
-        title: "Onboarding Complete!",
-        description: "Your profile has been submitted for review. You'll be notified once approved.",
+        title: "Profile Complete!",
+        description: "Welcome to Raptor Esports Hub. Redirecting to your dashboard...",
       })
 
-      // Redirect to dashboard (they'll see a pending approval message)
-      router.push("/dashboard")
+      // Redirect to dashboard after a brief delay
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 2000)
 
     } catch (error: any) {
-      console.error("Onboarding error:", error)
+      console.error('Onboarding error:', error)
       toast({
-        title: "Error",
-        description: error.message || "Failed to complete onboarding",
-        variant: "destructive",
+        title: "Setup Failed",
+        description: error.message || "Failed to complete setup. Please try again.",
+        variant: "destructive"
       })
     } finally {
       setLoading(false)
     }
   }
 
-  if (authLoading || !profile) {
-    return <FullPageLoader message="Loading your profile..." />
-  }
-
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2">
-            <GamepadIcon className="h-6 w-6" />
-            Welcome to Raptor Esports!
-          </CardTitle>
-          <CardDescription>
-            Complete your profile to join our community. Step {step} of 3
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-primary h-2 rounded-full transition-all duration-300" 
-              style={{ width: `${(step / 3) * 100}%` }}
-            />
-          </div>
-
-          {/* Step 1: Basic Information */}
-          {step === 1 && (
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <GamepadIcon className="mx-auto h-16 w-16 text-white mb-4 opacity-80" />
+              <h2 className="esports-heading text-2xl text-white mb-2">Personal Information</h2>
+              <p className="text-slate-200">Let's get to know you better</p>
+            </div>
+            
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <User className="h-5 w-5" />
-                <h3 className="text-lg font-semibold">Basic Information</h3>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                                  <Label htmlFor="fullName">In-Game Name *</Label>
+              <div>
+                <Label htmlFor="fullName" className="text-white font-medium">Full Name *</Label>
                 <Input
                   id="fullName"
-                  placeholder="Enter your in-game name"
-                    value={formData.fullName}
-                    onChange={(e) => handleInputChange("fullName", e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="displayName">Display Name *</Label>
-                  <Input
-                    id="displayName"
-                    placeholder="Gaming username/nickname"
-                    value={formData.displayName}
-                    onChange={(e) => handleInputChange("displayName", e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="contactNumber">Contact Number</Label>
-                <Input
-                  id="contactNumber"
-                  placeholder="+91 XXXXX XXXXX"
-                  value={formData.contactNumber}
-                  onChange={(e) => handleInputChange("contactNumber", e.target.value)}
+                  type="text"
+                  value={formData.fullName}
+                  onChange={(e) => handleInputChange('fullName', e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40"
+                  placeholder="Enter your full name"
+                  required
                 />
               </div>
 
-              <div className="flex justify-end">
-                <Button 
-                  onClick={handleNextStep}
-                  disabled={!formData.fullName || !formData.displayName}
-                >
-                  Next Step
-                </Button>
+              <div>
+                <Label htmlFor="displayName" className="text-white font-medium">Display Name *</Label>
+                <Input
+                  id="displayName"
+                  type="text"
+                  value={formData.displayName}
+                  onChange={(e) => handleInputChange('displayName', e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40"
+                  placeholder="How should we display your name?"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="contactNumber" className="text-white font-medium">Contact Number *</Label>
+                <Input
+                  id="contactNumber"
+                  type="tel"
+                  value={formData.contactNumber}
+                  onChange={(e) => handleInputChange('contactNumber', e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40"
+                  placeholder="+91 XXXXX XXXXX"
+                  required
+                />
               </div>
             </div>
-          )}
+          </div>
+        )
 
-          {/* Step 2: Gaming Information */}
-          {step === 2 && (
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <User className="mx-auto h-16 w-16 text-white mb-4 opacity-80" />
+              <h2 className="esports-heading text-2xl text-white mb-2">Gaming Profile</h2>
+              <p className="text-slate-200">Tell us about your gaming experience</p>
+            </div>
+
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <GamepadIcon className="h-5 w-5" />
-                <h3 className="text-lg font-semibold">Gaming Profile</h3>
+              <div>
+                <Label htmlFor="experience" className="text-white font-medium">Gaming Experience *</Label>
+                <Input
+                  id="experience"
+                  type="text"
+                  value={formData.experience}
+                  onChange={(e) => handleInputChange('experience', e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40"
+                  placeholder="e.g., 2 years competitive BGMI"
+                  required
+                />
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="experience">Gaming Experience *</Label>
-                  <Input
-                    id="experience"
-                    placeholder="e.g., 3 years competitive gaming"
-                    value={formData.experience}
-                    onChange={(e) => handleInputChange("experience", e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="preferredRole">Preferred Role *</Label>
-                  <Input
-                    id="preferredRole"
-                    placeholder="e.g., Duelist, IGL, Support"
-                    value={formData.preferredRole}
-                    onChange={(e) => handleInputChange("preferredRole", e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="favoriteGames">Favorite Games *</Label>
-                  <Input
-                    id="favoriteGames"
-                    placeholder="e.g., Valorant, CS2, Apex Legends"
-                    value={formData.favoriteGames}
-                    onChange={(e) => handleInputChange("favoriteGames", e.target.value)}
-                    required
-                  />
-                </div>
+              <div>
+                <Label htmlFor="preferredRole" className="text-white font-medium">Preferred Role *</Label>
+                <Input
+                  id="preferredRole"
+                  type="text"
+                  value={formData.preferredRole}
+                  onChange={(e) => handleInputChange('preferredRole', e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40"
+                  placeholder="e.g., IGL, Fragger, Support"
+                  required
+                />
               </div>
 
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={handlePrevStep}>
-                  Previous
-                </Button>
-                <Button 
-                  onClick={handleNextStep}
-                  disabled={!formData.experience || !formData.preferredRole || !formData.favoriteGames}
-                >
-                  Next Step
-                </Button>
+              <div>
+                <Label htmlFor="favoriteGames" className="text-white font-medium">Favorite Games</Label>
+                <Input
+                  id="favoriteGames"
+                  type="text"
+                  value={formData.favoriteGames}
+                  onChange={(e) => handleInputChange('favoriteGames', e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40"
+                  placeholder="e.g., BGMI, Valorant, CS2"
+                />
               </div>
             </div>
-          )}
+          </div>
+        )
 
-          {/* Step 3: Additional Information & Review */}
-          {step === 3 && (
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <CheckCircle className="mx-auto h-16 w-16 text-white mb-4 opacity-80" />
+              <h2 className="esports-heading text-2xl text-white mb-2">Final Touches</h2>
+              <p className="text-slate-200">Add a personal bio to complete your profile</p>
+            </div>
+
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                <CheckCircle className="h-5 w-5" />
-                <h3 className="text-lg font-semibold">Final Details</h3>
+              <div>
+                <Label htmlFor="bio" className="text-white font-medium">Bio</Label>
+                <Textarea
+                  id="bio"
+                  value={formData.bio}
+                  onChange={(e) => handleInputChange('bio', e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40 min-h-[120px]"
+                  placeholder="Tell us about yourself, your goals, and what makes you unique as a player..."
+                />
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Bio / Introduction</Label>
-                  <Textarea
-                    id="bio"
-                    placeholder="Tell us about yourself, your achievements, and what you're looking for..."
-                    value={formData.bio}
-                    onChange={(e) => handleInputChange("bio", e.target.value)}
-                    rows={4}
-                  />
-                </div>
+              <Alert className="bg-blue-500/10 border-blue-500/20 text-blue-100">
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  You're almost ready! Once you complete your profile, you'll have full access to the Raptor Esports Hub dashboard.
+                </AlertDescription>
+              </Alert>
+            </div>
+          </div>
+        )
 
-                <Alert>
-                  <CheckCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    <strong>Review Status:</strong> Your profile will be reviewed by our team. 
-                    You'll receive an email notification once approved. This usually takes 24-48 hours.
-                  </AlertDescription>
-                </Alert>
-              </div>
+      default:
+        return null
+    }
+  }
 
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={handlePrevStep}>
-                  Previous
-                </Button>
-                <Button 
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className="min-w-[120px]"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    "Complete Onboarding"
+  return (
+    <VideoBackground>
+      {/* Subtle white glowing dots */}
+      <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-8 w-8 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+      <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-4 w-4 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+      
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-2xl">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="esports-heading text-4xl font-bold text-white mb-4">Complete Your Setup</h1>
+            <p className="text-xl text-slate-200">
+              Welcome to Raptor Esports Hub! Let's set up your player profile.
+            </p>
+          </div>
+
+          {/* Progress indicator */}
+          <div className="flex justify-center mb-8">
+            <div className="flex items-center space-x-4">
+              {[1, 2, 3].map((stepNumber) => (
+                <div key={stepNumber} className="flex items-center">
+                  <div 
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
+                      step >= stepNumber 
+                        ? 'bg-white text-black' 
+                        : 'bg-white/20 text-white border border-white/40'
+                    }`}
+                  >
+                    {stepNumber}
+                  </div>
+                  {stepNumber < 3 && (
+                    <div 
+                      className={`w-12 h-0.5 mx-2 ${
+                        step > stepNumber ? 'bg-white' : 'bg-white/20'
+                      }`}
+                    />
                   )}
-                </Button>
-              </div>
+                </div>
+              ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          </div>
+
+          {/* Main card */}
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
+            <CardContent className="p-8">
+              {renderStep()}
+              
+              {/* Navigation buttons */}
+              <div className="flex justify-between mt-8 pt-6 border-t border-white/20">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={step === 1}
+                  className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Previous
+                </Button>
+
+                {step < 3 ? (
+                  <Button
+                    onClick={handleNext}
+                    className="bg-primary hover:bg-primary/90 text-white font-medium"
+                  >
+                    Next
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="bg-green-600 hover:bg-green-700 text-white font-medium"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Completing Setup...
+                      </>
+                    ) : (
+                      <>
+                        Complete Setup
+                        <CheckCircle className="w-4 h-4 ml-2" />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </VideoBackground>
   )
 }
