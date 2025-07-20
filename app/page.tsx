@@ -34,11 +34,9 @@ export default function HomePage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <VideoBackground />
-      
+    <VideoBackground>
       {/* Overlay */}
-      <div className="absolute inset-0 bg-black/50 z-10" />
+      <div className="absolute inset-0 bg-black/50" />
       
       {/* Content */}
       <div className="relative z-20 flex min-h-screen flex-col items-center justify-center p-4">
@@ -108,6 +106,6 @@ export default function HomePage() {
           </div>
         </div>
       </div>
-    </div>
+    </VideoBackground>
   )
 }
