@@ -16,29 +16,10 @@ export async function middleware(req: NextRequest) {
     return res
   }
 
-  // Simple route protection without server-side session checking
-  // The client-side auth will handle the actual authentication
+  // Let client-side handle all authentication logic
+  // This middleware now only handles very basic routing
   
-  // Public routes that don't require authentication
-  const publicRoutes = ['/', '/auth/login', '/auth/signup', '/auth/forgot', '/auth/reset-password']
-  const isPublicRoute = publicRoutes.includes(pathname)
-  
-  // Dashboard routes that require authentication
-  const isDashboardRoute = pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')
-
-  // Get auth token from cookies for basic check
-  const authToken = req.cookies.get('sb-access-token')?.value ||
-                   req.cookies.get('supabase-auth-token')?.value ||
-                   req.cookies.get('sb-auth-token')?.value
-
-  if (!authToken && isDashboardRoute) {
-    // Redirect to login if trying to access protected route without token
-    console.log(`🔒 Redirecting ${pathname} to login (no auth token)`)
-    return NextResponse.redirect(new URL('/auth/login', req.url))
-  }
-
-  // Don't redirect authenticated users away from auth pages on the server
-  // Let the client-side handle this to avoid conflicts
+  console.log(`🛡️  Middleware: ${pathname}`)
   
   return res
 }

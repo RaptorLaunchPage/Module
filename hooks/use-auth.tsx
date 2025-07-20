@@ -1,15 +1,15 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, createContext, useContext } from "react"
+import { useState, useEffect, createContext, useContext, useCallback } from "react"
 import { supabase } from "@/lib/supabase"
 import { SecureProfileCreation } from "@/lib/secure-profile-creation"
-import type { Session } from "@supabase/supabase-js"
+import type { Session, User } from "@supabase/supabase-js"
 import { useRouter } from "next/navigation"
 
 type AuthContextType = {
   session: Session | null
-  user: any
+  user: User | null
   profile: any
   loading: boolean
   error: string | null
@@ -21,6 +21,7 @@ type AuthContextType = {
   resetPassword: (email: string) => Promise<{ error: any | null }>
   signInWithDiscord: () => Promise<void>
   clearError: () => void
+  isInitialized: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -34,132 +35,55 @@ const getSiteUrl = () => {
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [initialized, setInitialized] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
+  const [isAuthenticating, setIsAuthenticating] = useState(false)
   const router = useRouter()
 
-  // Initialize auth system - simplified approach
-  useEffect(() => {
-    console.log('🚀 AuthProvider initializing...')
-    
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log(`🔐 AUTH STATE CHANGE DETECTED:`)
-      console.log(`   Event: ${event}`)
-      console.log(`   Session exists: ${!!session}`)
-      console.log(`   User email: ${session?.user?.email || 'NO USER'}`)
-      console.log(`   User ID: ${session?.user?.id || 'NO ID'}`)
-      console.log(`   Session object:`, session)
-      
-      handleAuthChange(event, session)
-    })
-
-    // Mark as initialized
-    setInitialized(true)
+  // Clear all auth state
+  const clearAuthState = useCallback(() => {
+    console.log('🧹 Clearing auth state')
+    setSession(null)
+    setUser(null)
+    setProfile(null)
+    setError(null)
     setLoading(false)
-    console.log('✅ Auth system initialized with listener attached')
-    
-    return () => {
-      console.log('🔍 AuthProvider cleanup')
-      subscription.unsubscribe()
-    }
+    setIsAuthenticating(false)
   }, [])
 
-  // Handle auth state changes - COMPLETELY REDESIGNED
-  const handleAuthChange = async (event: string, session: Session | null) => {
-    console.log(`🔄 PROCESSING AUTH CHANGE: ${event}`)
-    console.log(`   Current state - loading: ${loading}, user: ${!!user}, profile: ${!!profile}`)
-    
+  // Load user profile
+  const loadUserProfile = useCallback(async (userData: User) => {
     try {
-      if (event === 'SIGNED_IN' && session?.user) {
-        console.log('✅ HANDLING SIGNED_IN EVENT')
-        console.log('   Setting session and user state...')
-        setSession(session)
-        setUser(session.user)
-        setError(null)
-        setLoading(true)
-        
-        console.log('   Calling loadUserProfile...')
-        await loadUserProfile(session.user)
-        
-      } else if (event === 'SIGNED_OUT') {
-        console.log('🔐 HANDLING SIGNED_OUT EVENT')
-        clearAuthState()
-        
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        console.log('🔄 HANDLING TOKEN_REFRESHED EVENT')
-        setSession(session)
-        setUser(session.user)
-        
-      } else if (event === 'INITIAL_SESSION' && session) {
-        console.log('🔄 HANDLING INITIAL_SESSION EVENT')
-        setSession(session)
-        setUser(session.user)
-        setLoading(true)
-        await loadUserProfile(session.user)
-      } else {
-        console.log(`⚠️ UNHANDLED AUTH EVENT: ${event}`)
-        console.log(`   Session exists: ${!!session}`)
-        console.log(`   User email: ${session?.user?.email || 'N/A'}`)
-        console.log(`   Event details:`, { event, session })
-      }
-    } catch (error) {
-      console.error('❌ AUTH CHANGE ERROR:', error)
-      console.error('   Error type:', typeof error)
-      console.error('   Error details:', error)
-      setError('Authentication error occurred')
-      setLoading(false)
-    }
-  }
-
-  // Load user profile - simplified
-  const loadUserProfile = async (user: any) => {
-    try {
-      console.log(`🔍 Loading profile for: ${user.email}`)
+      console.log(`🔍 Loading profile for user: ${userData.email}`)
       
       // Check for existing profile
-      const { data: existingProfile, error } = await supabase
+      const { data: existingProfile, error: profileError } = await supabase
         .from("users")
         .select("*")
-        .eq("id", user.id)
+        .eq("id", userData.id)
         .maybeSingle()
 
-      if (error && error.code !== "PGRST116") {
-        throw new Error(`Profile fetch failed: ${error.message}`)
+      if (profileError && profileError.code !== "PGRST116") {
+        throw new Error(`Profile fetch failed: ${profileError.message}`)
       }
 
       if (existingProfile) {
-        console.log('✅ Profile loaded successfully!')
-        console.log('   Email:', existingProfile.email)
-        console.log('   Role:', existingProfile.role)
+        console.log('✅ Profile loaded successfully:', existingProfile.role)
         setProfile(existingProfile)
-        setLoading(false)
-        
-        console.log('🚀 PROFILE LOADED - Ready for redirect!')
-        // Auto-redirect after successful profile load
-        setTimeout(() => {
-          if (existingProfile.role === "pending_player") {
-            console.log('📍 Redirecting to onboarding...')
-            router.push("/onboarding")
-          } else {
-            console.log('📍 Redirecting to dashboard...')
-            router.push("/dashboard")
-          }
-        }, 100)
-        return
+        return existingProfile
       }
 
       // Create new profile
       console.log('🔧 Creating new profile...')
-      const provider = user.app_metadata?.provider || 'email'
-      const userName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+      const provider = userData.app_metadata?.provider || 'email'
+      const userName = userData.user_metadata?.name || userData.user_metadata?.full_name || userData.email?.split('@')[0] || 'User'
       
       const profileResult = await SecureProfileCreation.createProfile(
-        user.id,
-        user.email,
+        userData.id,
+        userData.email || '',
         userName,
         provider
       )
@@ -167,73 +91,155 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (profileResult.success && profileResult.profile) {
         console.log('✅ Profile created successfully')
         setProfile(profileResult.profile)
-        setLoading(false)
-        
-        // Redirect new users to onboarding
-        setTimeout(() => {
-          router.push("/onboarding")
-        }, 100)
+        return profileResult.profile
       } else {
         throw new Error(profileResult.error || "Failed to create profile")
       }
 
     } catch (error: any) {
       console.error('❌ Profile load error:', error)
-      setError(error.message || "Failed to load profile")
+      throw error
+    }
+  }, [])
+
+  // Handle auth state changes
+  const handleAuthChange = useCallback(async (event: string, newSession: Session | null) => {
+    console.log(`🔄 AUTH EVENT: ${event}`)
+    
+    try {
+      if (event === 'SIGNED_OUT') {
+        console.log('🚪 User signed out')
+        clearAuthState()
+        return
+      }
+
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && newSession?.user) {
+        console.log(`✅ Processing ${event} event`)
+        
+        setSession(newSession)
+        setUser(newSession.user)
+        setError(null)
+        
+        try {
+          const profileData = await loadUserProfile(newSession.user)
+          setLoading(false)
+          
+          // Only redirect if we're not already authenticating and not already on the right page
+          if (!isAuthenticating && typeof window !== 'undefined') {
+            const currentPath = window.location.pathname
+            let targetPath = '/dashboard'
+            
+            if (profileData?.role === 'pending_player') {
+              targetPath = '/onboarding'
+            }
+            
+            // Only redirect if we're not already on the target path
+            if (currentPath !== targetPath && !currentPath.startsWith(targetPath)) {
+              console.log(`📍 Redirecting to ${targetPath}`)
+              router.push(targetPath)
+            }
+          }
+        } catch (profileError: any) {
+          console.error('❌ Profile loading failed:', profileError)
+          setError(profileError.message || 'Failed to load user profile')
+          setLoading(false)
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Auth change error:', error)
+      setError('Authentication error occurred')
       setLoading(false)
     }
-  }
+  }, [router, loadUserProfile, clearAuthState, isAuthenticating])
 
-  // Clear all auth state
-  const clearAuthState = () => {
-    setSession(null)
-    setUser(null)
-    setProfile(null)
-    setError(null)
-    setLoading(false)
-  }
+  // Initialize auth system
+  useEffect(() => {
+    console.log('🚀 Initializing auth system...')
+    
+    let mounted = true
+    
+    const initAuth = async () => {
+      try {
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          if (mounted) {
+            handleAuthChange(event, session)
+          }
+        })
 
-  // Sign in function - simplified
+        // Get initial session
+        const { data: { session: initialSession } } = await supabase.auth.getSession()
+        
+        if (mounted) {
+          if (initialSession?.user) {
+            console.log('🔄 Initial session found')
+            await handleAuthChange('INITIAL_SESSION', initialSession)
+          } else {
+            console.log('🔄 No initial session')
+            setLoading(false)
+          }
+          
+          setIsInitialized(true)
+        }
+
+        return () => {
+          mounted = false
+          subscription.unsubscribe()
+        }
+      } catch (error) {
+        console.error('❌ Auth initialization error:', error)
+        if (mounted) {
+          setError('Failed to initialize authentication')
+          setLoading(false)
+          setIsInitialized(true)
+        }
+      }
+    }
+
+    const cleanup = initAuth()
+    
+    return () => {
+      mounted = false
+      cleanup.then(fn => fn && fn())
+    }
+  }, [handleAuthChange])
+
+  // Sign in function
   const signIn = async (email: string, password: string): Promise<{ error: any | null }> => {
     try {
-      console.log('🔐 SIGN IN ATTEMPT STARTING for:', email)
+      console.log('🔐 Sign in attempt:', email)
       setError(null)
+      setIsAuthenticating(true)
       
-      console.log('📞 Calling supabase.auth.signInWithPassword...')
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      })
       
-      console.log('📞 signInWithPassword response received:')
-      console.log('   Error:', error)
-      console.log('   Data:', data)
-      console.log('   Session:', data?.session)
-      console.log('   User:', data?.user)
-      
-      if (error) {
-        console.error('❌ SIGN IN FAILED:', error.message)
-        console.error('   Error code:', error.status)
-        console.error('   Error details:', error)
-        return { error }
+      if (signInError) {
+        console.error('❌ Sign in failed:', signInError.message)
+        setIsAuthenticating(false)
+        return { error: signInError }
       }
       
-      console.log('✅ SIGN IN SUCCESSFUL - Auth state change should fire now')
-      console.log('   Waiting for onAuthStateChange to be triggered...')
+      console.log('✅ Sign in successful')
+      // Don't set isAuthenticating to false here - let the auth state change handle it
       return { error: null }
       
     } catch (err: any) {
-      console.error('❌ SIGN IN EXCEPTION:', err)
-      console.error('   Exception type:', typeof err)
-      console.error('   Exception details:', err)
+      console.error('❌ Sign in exception:', err)
+      setIsAuthenticating(false)
       return { error: err }
     }
   }
 
-  // Sign up function - simplified
+  // Sign up function
   const signUp = async (email: string, password: string, name: string): Promise<{ error: any | null }> => {
     try {
       console.log('🔐 Sign up attempt:', email)
       setError(null)
       
-      const { error } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -242,13 +248,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       })
       
-      if (error) {
-        console.error('❌ Sign up failed:', error.message)
+      if (signUpError) {
+        console.error('❌ Sign up failed:', signUpError.message)
       } else {
         console.log('✅ Sign up successful - check email')
       }
       
-      return { error }
+      return { error: signUpError }
       
     } catch (err: any) {
       console.error('❌ Sign up exception:', err)
@@ -256,18 +262,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  // Sign out function - simplified
+  // Sign out function
   const signOut = async () => {
     try {
-      console.log('🔐 Signing out...')
+      console.log('🚪 Signing out...')
       
-      // Clear state immediately
+      // Clear state immediately for better UX
       clearAuthState()
       
       // Sign out from Supabase
       await supabase.auth.signOut()
       
-      // Redirect
+      // Redirect to home
       router.push('/')
       
     } catch (error) {
@@ -297,6 +303,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithDiscord = async () => {
     try {
       setError(null)
+      setIsAuthenticating(true)
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
@@ -305,9 +312,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       })
       
-      if (error) throw error
+      if (error) {
+        setIsAuthenticating(false)
+        throw error
+      }
     } catch (error: any) {
       console.error('Discord sign in error:', error)
+      setIsAuthenticating(false)
       throw error
     }
   }
@@ -358,7 +369,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         refreshProfile,
         resetPassword,
         signInWithDiscord,
-        clearError
+        clearError,
+        isInitialized
       }}
     >
       {children}
