@@ -1,5 +1,5 @@
--- Communication Module Database Schema
--- Tables for Discord webhook integration and communication logging
+-- Discord Portal Database Schema
+-- Tables for Discord webhook integration and message logging
 
 -- Table: discord_webhooks
 -- Stores Discord webhook URLs for teams and system-wide notifications
@@ -17,8 +17,8 @@ CREATE TABLE public.discord_webhooks (
   CONSTRAINT discord_webhooks_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
 
--- Table: communication_logs
--- Logs all communication attempts for debugging and audit purposes
+-- Table: communication_logs (keeping original name for database compatibility)
+-- Logs all Discord message attempts for debugging and audit purposes
 CREATE TABLE public.communication_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   team_id uuid, -- NULL for global/admin messages
@@ -38,8 +38,8 @@ CREATE TABLE public.communication_logs (
   CONSTRAINT communication_logs_triggered_by_fkey FOREIGN KEY (triggered_by) REFERENCES public.users(id) ON DELETE SET NULL
 );
 
--- Table: communication_settings
--- Automation toggle settings per team and global
+-- Table: communication_settings (keeping original name for database compatibility)
+-- Discord automation toggle settings per team and global
 CREATE TABLE public.communication_settings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   team_id uuid, -- NULL for global settings

@@ -1,13 +1,13 @@
-# 📦 Communication System Integration - IMPLEMENTATION COMPLETE
+# 📦 Discord Portal - IMPLEMENTATION COMPLETE
 
 ## 🎯 Overview
-Successfully implemented a comprehensive Communication System Integration module for Raptor Esports CRM that seamlessly integrates with the existing architecture. The module sends critical system events to Discord channels using webhooks and Discord-compliant embed messages.
+Successfully implemented a comprehensive Discord Portal for Raptor Esports CRM that seamlessly integrates with the existing architecture. The portal sends critical system events to Discord channels using webhooks and Discord-compliant embed messages.
 
 ## ✅ IMPLEMENTATION STATUS: COMPLETE
 
 ### 📂 Module Structure Created
 ```
-modules/communication/
+modules/discord-portal/
 ├── types.ts                 # TypeScript definitions
 ├── embeds.ts               # Discord embed formatters  
 ├── webhookService.ts       # Webhook CRUD & settings
@@ -29,7 +29,7 @@ modules/communication/
 
 ### 🔌 API Routes Implemented
 ```
-app/api/communication/
+app/api/discord-portal/
 ├── send/route.ts           # POST: Send messages, GET: Preview
 ├── webhooks/route.ts       # CRUD webhook management
 ├── webhooks/validate/      # Webhook URL validation
@@ -120,15 +120,15 @@ Global admin settings:
 ### Automation Triggers (Ready for Integration)
 ```typescript
 // In slot creation logic:
-import { notifySlotCreated } from '@/modules/communication'
+import { notifySlotCreated } from '@/modules/discord-portal'
 await notifySlotCreated({...slotData, created_by_id, created_by_name})
 
 // In roster management:
-import { notifyRosterUpdate } from '@/modules/communication'  
+import { notifyRosterUpdate } from '@/modules/discord-portal'  
 await notifyRosterUpdate({...rosterData, updated_by_id, updated_by_name})
 
 // For system alerts:
-import { sendSystemAlert } from '@/modules/communication'
+import { sendSystemAlert } from '@/modules/discord-portal'
 await sendSystemAlert({title, message, severity: 'error'})
 ```
 
@@ -140,9 +140,9 @@ await sendSystemAlert({title, message, severity: 'error'})
 - Quick automation toggle switches
 
 ### 2. Module Pages
-- **Webhook Management Page** (`/dashboard/communication/webhooks`)
-- **Message Logs Page** (`/dashboard/communication/logs`)  
-- **Automation Settings Page** (`/dashboard/communication/settings`)
+- **Webhook Management Page** (`/dashboard/discord-portal/webhooks`)
+- **Message Logs Page** (`/dashboard/discord-portal/logs`)  
+- **Automation Settings Page** (`/dashboard/discord-portal/settings`)
 
 ### 3. Existing Page Enhancements
 - Add "Send to Discord" buttons to:
@@ -187,20 +187,20 @@ await sendSystemAlert({title, message, severity: 'error'})
 ## 📦 Files Created/Modified
 
 ### New Files (16 files)
-1. `modules/communication/types.ts`
-2. `modules/communication/embeds.ts`  
-3. `modules/communication/webhookService.ts`
-4. `modules/communication/sendToDiscord.ts`
-5. `modules/communication/permissions.ts`
-6. `modules/communication/index.ts`
-7. `database/communication-module-schema.sql`
-8. `app/api/communication/send/route.ts`
-9. `app/api/communication/webhooks/route.ts`
-10. `app/api/communication/webhooks/validate/route.ts`
-11. `app/api/communication/settings/route.ts`
-12. `app/api/communication/logs/route.ts`
+1. `modules/discord-portal/types.ts`
+2. `modules/discord-portal/embeds.ts`  
+3. `modules/discord-portal/webhookService.ts`
+4. `modules/discord-portal/sendToDiscord.ts`
+5. `modules/discord-portal/permissions.ts`
+6. `modules/discord-portal/index.ts`
+7. `database/discord-portal-schema.sql`
+8. `app/api/discord-portal/send/route.ts`
+9. `app/api/discord-portal/webhooks/route.ts`
+10. `app/api/discord-portal/webhooks/validate/route.ts`
+11. `app/api/discord-portal/settings/route.ts`
+12. `app/api/discord-portal/logs/route.ts`
 
 ### Modified Files (1 file)
 1. `lib/supabase.ts` - Added new table type definitions
 
-**The Communication System Integration module is now COMPLETE and ready for UI integration!** 🎉
+**The Discord Portal is now COMPLETE and ready for use!** 🎉

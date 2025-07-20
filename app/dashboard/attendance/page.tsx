@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { MarkAttendance } from "@/components/attendance/mark-attendance"
 import { AttendanceLogs } from "@/components/attendance/attendance-logs"
 import { AttendanceStats } from "@/components/attendance/attendance-stats"
-import { SendToDiscordButton } from "@/components/communication/send-to-discord-button"
+import { SendToDiscordButton } from "@/components/discord-portal/send-to-discord-button"
 import { 
   CalendarCheck, 
   Plus, 

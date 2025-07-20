@@ -97,11 +97,11 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     mobileOrder: 4
   },
   {
-    id: 'communication',
-    title: 'Communication',
+    id: 'discord-portal',
+    title: 'Discord Portal',
     description: 'Discord notifications and webhook management',
     icon: 'MessageSquare',
-    path: '/dashboard/communication',
+    path: '/dashboard/discord-portal',
     allowedRoles: ['admin', 'manager', 'coach', 'analyst'],
     showInNavigation: true,
     mobileOrder: 8
@@ -155,15 +155,15 @@ export class DashboardPermissions {
    */
   static getPermissions(userRole: UserRole | undefined) {
     if (!userRole) {
-      return {
-        viewCommunication: false,
-        manageCommunication: false
-      }
+          return {
+      viewDiscordPortal: false,
+      manageDiscordPortal: false
+    }
     }
 
     return {
-      viewCommunication: ['admin', 'manager', 'coach', 'analyst'].includes(userRole),
-      manageCommunication: ['admin', 'manager'].includes(userRole)
+      viewDiscordPortal: ['admin', 'manager', 'coach', 'analyst'].includes(userRole),
+      manageDiscordPortal: ['admin', 'manager'].includes(userRole)
     }
   }
 
@@ -212,7 +212,7 @@ export class DashboardPermissions {
           canExport: ['admin', 'manager'].includes(userRole)
         }
 
-      case 'communication':
+      case 'discord-portal':
         return {
           canView: ['admin', 'manager', 'coach', 'analyst'].includes(userRole),
           canCreate: ['admin', 'manager', 'coach', 'analyst'].includes(userRole),

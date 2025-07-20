@@ -4,7 +4,7 @@ import type {
   MessageType, 
   DiscordWebhookPayload, 
   SendMessageResponse,
-  CommunicationLogInsert
+  DiscordLogInsert
 } from './types'
 import { formatEmbed } from './embeds'
 import { getTeamWebhooks, getAdminWebhooks, isAutomationEnabled } from './webhookService'
@@ -73,7 +73,7 @@ export async function sendToDiscord({
     )
 
     // Log each attempt
-    const logEntries: CommunicationLogInsert[] = []
+    const logEntries: DiscordLogInsert[] = []
     let successCount = 0
     let lastError = ''
 
@@ -299,9 +299,9 @@ export async function retryFailedMessage(logId: string): Promise<SendMessageResp
 }
 
 /**
- * Get communication logs with filtering
+ * Get Discord logs with filtering
  */
-export async function getCommunicationLogs({
+export async function getDiscordLogs({
   teamId,
   messageType,
   status,

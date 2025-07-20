@@ -32,7 +32,7 @@ import {
   AlertCircle
 } from "lucide-react"
 import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
-import { SendToDiscordButton } from "@/components/communication/send-to-discord-button"
+import { SendToDiscordButton } from "@/components/discord-portal/send-to-discord-button"
 import type { Database } from "@/lib/supabase"
 
 type Team = Database["public"]["Tables"]["teams"]["Row"]

@@ -1,5 +1,5 @@
-// Core communication functions
-export { sendToDiscord, retryFailedMessage, getCommunicationLogs } from './sendToDiscord'
+// Core Discord Portal functions
+export { sendToDiscord, retryFailedMessage, getDiscordLogs } from './sendToDiscord'
 
 // Webhook management
 export {
@@ -33,12 +33,12 @@ export {
 
 // Permissions and role management
 export {
-  getCommunicationPermissions,
+  getDiscordPermissions,
   canTriggerMessageType,
   canViewLogs,
   canManageWebhooks,
   getAllowedWebhookTypes,
-  canAccessCommunicationModule,
+  canAccessDiscordPortal,
   getMessageTypeCategories,
   getMessageTypeDisplayName,
   getAutomationDisplayName,
@@ -48,14 +48,14 @@ export {
 // Type exports
 export type {
   DiscordWebhook,
-  CommunicationLog,
-  CommunicationSetting,
+  DiscordLog,
+  DiscordSetting,
   DiscordWebhookInsert,
-  CommunicationLogInsert,
-  CommunicationSettingInsert,
+  DiscordLogInsert,
+  DiscordSettingInsert,
   WebhookType,
   MessageType,
-  CommunicationStatus,
+  DiscordMessageStatus,
   AutomationKey,
   DiscordEmbed,
   DiscordEmbedField,
@@ -67,7 +67,7 @@ export type {
   ExpenseSummaryData,
   SendMessageResponse,
   WebhookValidationResponse,
-  CommunicationPermissions,
+  DiscordPermissions,
   TeamAutomationSettings
 } from './types'
 

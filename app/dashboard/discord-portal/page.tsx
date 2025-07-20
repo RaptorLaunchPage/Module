@@ -48,15 +48,15 @@ export default function CommunicationPage() {
     try {
       const token = await getToken()
       
-      // Load webhooks and stats in parallel
-      const [webhooksResponse, logsResponse] = await Promise.all([
-        fetch('/api/communication/webhooks', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }),
-        fetch('/api/communication/logs?limit=100', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-      ])
+              // Load webhooks and stats in parallel
+        const [webhooksResponse, logsResponse] = await Promise.all([
+          fetch('/api/discord-portal/webhooks', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          }),
+          fetch('/api/discord-portal/logs?limit=100', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        ])
 
       if (webhooksResponse.ok) {
         const webhooksData = await webhooksResponse.json()
@@ -93,7 +93,7 @@ export default function CommunicationPage() {
     }
   }
 
-  if (!permissions.viewCommunication) {
+      if (!permissions.viewDiscordPortal) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>
@@ -101,7 +101,7 @@ export default function CommunicationPage() {
             <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold mb-2">Access Denied</h3>
             <p className="text-muted-foreground">
-              You don't have permission to access the communication module.
+              You don't have permission to access the Discord Portal.
             </p>
           </CardContent>
         </Card>
@@ -112,10 +112,10 @@ export default function CommunicationPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Communication Center</h1>
-        <p className="text-muted-foreground">
-          Manage Discord notifications, webhooks, and communication logs
-        </p>
+                  <h1 className="text-3xl font-bold mb-2">Discord Portal</h1>
+          <p className="text-muted-foreground">
+            Manage Discord notifications, webhooks, and message logs
+          </p>
       </div>
 
       {/* Stats Overview */}
@@ -188,7 +188,7 @@ export default function CommunicationPage() {
           </CardHeader>
           <CardContent>
             <Button asChild className="w-full">
-              <a href="/dashboard/communication/webhooks">
+              <a href="/dashboard/discord-portal/webhooks">
                 <Plus className="mr-2 h-4 w-4" />
                 Manage Webhooks
               </a>
@@ -208,7 +208,7 @@ export default function CommunicationPage() {
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" className="w-full">
-              <a href="/dashboard/communication/logs">
+              <a href="/dashboard/discord-portal/logs">
                 <Clock className="mr-2 h-4 w-4" />
                 View Logs
               </a>
@@ -228,7 +228,7 @@ export default function CommunicationPage() {
           </CardHeader>
           <CardContent>
             <Button asChild variant="outline" className="w-full">
-              <a href="/dashboard/communication/settings">
+              <a href="/dashboard/discord-portal/settings">
                 <Settings className="mr-2 h-4 w-4" />
                 Configure
               </a>

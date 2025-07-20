@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
 import { MessageSquare, Send, Eye, Loader2 } from "lucide-react"
-import type { MessageType } from "@/modules/communication"
+import type { MessageType } from "@/modules/discord-portal"
 
 interface SendToDiscordButtonProps {
   messageType: MessageType
@@ -63,7 +63,7 @@ export function SendToDiscordButton({
     setIsLoading(true)
     try {
       const token = await getToken()
-      const response = await fetch(`/api/communication/send?messageType=${messageType}&data=${encodeURIComponent(JSON.stringify(data))}`, {
+      const response = await fetch(`/api/discord-portal/send?messageType=${messageType}&data=${encodeURIComponent(JSON.stringify(data))}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -98,7 +98,7 @@ export function SendToDiscordButton({
     setIsSending(true)
     try {
       const token = await getToken()
-      const response = await fetch('/api/communication/send', {
+      const response = await fetch('/api/discord-portal/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

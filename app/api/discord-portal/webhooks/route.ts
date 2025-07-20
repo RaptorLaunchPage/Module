@@ -7,8 +7,8 @@ import {
   updateWebhook, 
   deleteWebhook,
   validateWebhookUrl
-} from '@/modules/communication'
-import type { DiscordWebhookInsert } from '@/modules/communication'
+} from '@/modules/discord-portal'
+import type { DiscordWebhookInsert } from '@/modules/discord-portal'
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!

@@ -2,13 +2,13 @@ import type { Database } from '@/lib/supabase'
 
 // Base types from database
 export type DiscordWebhook = Database['public']['Tables']['discord_webhooks']['Row']
-export type CommunicationLog = Database['public']['Tables']['communication_logs']['Row']
-export type CommunicationSetting = Database['public']['Tables']['communication_settings']['Row']
+export type DiscordLog = Database['public']['Tables']['communication_logs']['Row']
+export type DiscordSetting = Database['public']['Tables']['communication_settings']['Row']
 
 // Insert types
 export type DiscordWebhookInsert = Database['public']['Tables']['discord_webhooks']['Insert']
-export type CommunicationLogInsert = Database['public']['Tables']['communication_logs']['Insert']
-export type CommunicationSettingInsert = Database['public']['Tables']['communication_settings']['Insert']
+export type DiscordLogInsert = Database['public']['Tables']['communication_logs']['Insert']
+export type DiscordSettingInsert = Database['public']['Tables']['communication_settings']['Insert']
 
 // Discord webhook types
 export type WebhookType = 'team' | 'admin' | 'global'
@@ -28,8 +28,8 @@ export type MessageType =
   | 'system_alert'
   | 'data_cleanup'
 
-// Communication status
-export type CommunicationStatus = 'success' | 'failed' | 'pending' | 'retry'
+// Discord message status
+export type DiscordMessageStatus = 'success' | 'failed' | 'pending' | 'retry'
 
 // Automation setting keys
 export type AutomationKey = 
@@ -156,8 +156,8 @@ export interface WebhookValidationResponse {
   }
 }
 
-// Role permissions for communication features
-export interface CommunicationPermissions {
+// Role permissions for Discord Portal features
+export interface DiscordPermissions {
   canTriggerManual: boolean
   canViewLogs: boolean
   canManageWebhooks: boolean

@@ -2,12 +2,12 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase'
 import type { 
   DiscordWebhook, 
-  CommunicationSetting,
+  DiscordSetting,
   WebhookType,
   AutomationKey,
   WebhookValidationResponse,
   DiscordWebhookInsert,
-  CommunicationSettingInsert
+  DiscordSettingInsert
 } from './types'
 
 // Use the same Supabase client configuration as the main app
@@ -303,7 +303,7 @@ export async function initializeTeamAutomationSettings(
     'auto_attendance_alerts'
   ]
 
-  const settingsToInsert: CommunicationSettingInsert[] = defaultSettings.map(key => ({
+  const settingsToInsert: DiscordSettingInsert[] = defaultSettings.map(key => ({
     team_id: teamId,
     setting_key: key,
     setting_value: false,

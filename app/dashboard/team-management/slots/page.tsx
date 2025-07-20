@@ -201,7 +201,7 @@ export default function SlotsPage() {
         
         // Send Discord notification for slot creation (if automation is enabled)
         try {
-          const { notifySlotCreated } = await import('@/modules/communication')
+          const { notifySlotCreated } = await import('@/modules/discord-portal')
           await notifySlotCreated({
             slot_id: newSlot.id,
             team_id: newSlot.team_id,

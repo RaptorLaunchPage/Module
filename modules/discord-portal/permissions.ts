@@ -1,13 +1,13 @@
-import type { CommunicationPermissions, MessageType } from './types'
+import type { DiscordPermissions, MessageType } from './types'
 
 // User role type from existing system
 type UserRole = 'admin' | 'manager' | 'coach' | 'player' | 'analyst' | 'pending_player' | 'awaiting_approval'
 
 /**
- * Get communication permissions for a user role
+ * Get Discord Portal permissions for a user role
  */
-export function getCommunicationPermissions(role: UserRole): CommunicationPermissions {
-  const rolePermissions: Record<UserRole, CommunicationPermissions> = {
+export function getDiscordPermissions(role: UserRole): DiscordPermissions {
+  const rolePermissions: Record<UserRole, DiscordPermissions> = {
     admin: {
       canTriggerManual: true,
       canViewLogs: true,
@@ -96,15 +96,15 @@ export function getCommunicationPermissions(role: UserRole): CommunicationPermis
  * Check if a user can trigger a specific message type
  */
 export function canTriggerMessageType(role: UserRole, messageType: MessageType): boolean {
-  const permissions = getCommunicationPermissions(role)
+  const permissions = getDiscordPermissions(role)
   return permissions.canTriggerManual && permissions.allowedMessageTypes.includes(messageType)
 }
 
 /**
- * Check if a user can view communication logs
+ * Check if a user can view Discord logs
  */
 export function canViewLogs(role: UserRole, targetTeamId?: string, userTeamId?: string): boolean {
-  const permissions = getCommunicationPermissions(role)
+  const permissions = getDiscordPermissions(role)
   
   if (!permissions.canViewLogs) {
     return false
@@ -128,7 +128,7 @@ export function canViewLogs(role: UserRole, targetTeamId?: string, userTeamId?: 
  * Check if a user can manage webhooks
  */
 export function canManageWebhooks(role: UserRole, targetTeamId?: string, userTeamId?: string): boolean {
-  const permissions = getCommunicationPermissions(role)
+  const permissions = getDiscordPermissions(role)
   
   if (!permissions.canManageWebhooks) {
     return false
@@ -163,9 +163,9 @@ export function getAllowedWebhookTypes(role: UserRole): ('team' | 'admin' | 'glo
 }
 
 /**
- * Check if a role can access the communication module at all
+ * Check if a role can access the Discord Portal module at all
  */
-export function canAccessCommunicationModule(role: UserRole): boolean {
+export function canAccessDiscordPortal(role: UserRole): boolean {
   const excludedRoles: UserRole[] = ['player', 'pending_player', 'awaiting_approval']
   return !excludedRoles.includes(role)
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { sendToDiscord } from '@/modules/communication'
-import type { MessageType } from '@/modules/communication'
+import { sendToDiscord } from '@/modules/discord-portal'
+import type { MessageType } from '@/modules/discord-portal'
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
     const data = JSON.parse(dataStr)
 
     // Import embed formatter dynamically to avoid server-side issues
-    const { formatEmbed } = await import('@/modules/communication')
+    const { formatEmbed } = await import('@/modules/discord-portal')
     
     // Generate preview embed
     const embed = formatEmbed(messageType, data)

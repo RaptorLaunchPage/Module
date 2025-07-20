@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getCommunicationLogs, retryFailedMessage } from '@/modules/communication'
-import type { MessageType } from '@/modules/communication'
+import { getDiscordLogs, retryFailedMessage } from '@/modules/discord-portal'
+import type { MessageType } from '@/modules/discord-portal'
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       finalTeamId = userData!.team_id
     }
 
-    const result = await getCommunicationLogs({
+    const result = await getDiscordLogs({
       teamId: finalTeamId || undefined,
       messageType,
       status: logStatus || undefined,

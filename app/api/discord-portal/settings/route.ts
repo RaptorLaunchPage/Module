@@ -4,8 +4,8 @@ import {
   getTeamAutomationSettings,
   getGlobalAutomationSettings,
   updateAutomationSetting
-} from '@/modules/communication'
-import type { AutomationKey } from '@/modules/communication'
+} from '@/modules/discord-portal'
+import type { AutomationKey } from '@/modules/discord-portal'
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!

@@ -13,7 +13,7 @@ import { OCRExtract } from "@/components/performance/ocr-extract"
 import { PerformanceDashboard } from "@/components/performance/performance-dashboard"
 import { PlayerPerformanceSubmit } from "@/components/performance/player-performance-submit"
 import { PerformanceReportSimple } from "@/components/performance/performance-report-simple"
-import { SendToDiscordButton } from "@/components/communication/send-to-discord-button"
+import { SendToDiscordButton } from "@/components/discord-portal/send-to-discord-button"
 import { 
   Target, 
   Plus, 

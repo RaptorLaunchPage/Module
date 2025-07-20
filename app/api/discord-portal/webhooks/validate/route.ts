@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { validateWebhookUrl } from '@/modules/communication'
+import { validateWebhookUrl } from '@/modules/discord-portal'
 
 export async function POST(request: NextRequest) {
   try {

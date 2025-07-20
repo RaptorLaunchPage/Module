@@ -72,7 +72,7 @@ export default function WebhooksPage() {
       const token = await getToken()
       
       const [webhooksRes, teamsRes] = await Promise.all([
-        fetch('/api/communication/webhooks', {
+        fetch('/api/discord-portal/webhooks', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch('/api/teams', {
@@ -107,7 +107,7 @@ export default function WebhooksPage() {
     setValidating(true)
     try {
       const token = await getToken()
-      const response = await fetch('/api/communication/webhooks/validate', {
+      const response = await fetch('/api/discord-portal/webhooks/validate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -174,8 +174,8 @@ export default function WebhooksPage() {
     try {
       const token = await getToken()
       const url = editingWebhook 
-        ? '/api/communication/webhooks'
-        : '/api/communication/webhooks'
+        ? '/api/discord-portal/webhooks'
+        : '/api/discord-portal/webhooks'
       
       const method = editingWebhook ? 'PUT' : 'POST'
       const body = editingWebhook
@@ -223,7 +223,7 @@ export default function WebhooksPage() {
 
     try {
       const token = await getToken()
-      const response = await fetch(`/api/communication/webhooks?id=${webhookId}`, {
+      const response = await fetch(`/api/discord-portal/webhooks?id=${webhookId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -283,7 +283,7 @@ export default function WebhooksPage() {
     }
   }
 
-  if (!permissions.manageCommunication) {
+  if (!permissions.manageDiscordPortal) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>
