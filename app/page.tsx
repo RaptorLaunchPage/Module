@@ -10,20 +10,21 @@ import { VideoBackground } from "@/components/video-background"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
 
 export default function HomePage() {
-  const { user, loading, profile } = useAuth()
+  const { user, loading, profile, signOut } = useAuth()
   const router = useRouter()
 
-  useEffect(() => {
-    // Simple redirect logic without delays
-    if (!loading && user && profile) {
-      console.log('🏠 Home page redirecting user to appropriate page:', profile.role)
-      if (profile.role === "pending_player") {
-        router.replace("/onboarding")
-      } else {
-        router.replace("/dashboard")
-      }
-    }
-  }, [user, profile, loading, router])
+  // Remove automatic redirects - let users choose when to login
+  // useEffect(() => {
+  //   // Automatic redirect logic DISABLED - users should choose when to login
+  //   if (!loading && user && profile) {
+  //     console.log('🏠 Home page redirecting user to appropriate page:', profile.role)
+  //     if (profile.role === "pending_player") {
+  //       router.replace("/onboarding")
+  //     } else {
+  //       router.replace("/dashboard")
+  //     }
+  //   }
+  // }, [user, profile, loading, router])
 
   // Only show loader if actively loading or if we have user but no profile
   if (loading) {
@@ -35,7 +36,7 @@ export default function HomePage() {
     return <FullPageLoader message="Loading your account..." />
   }
 
-  // Show homepage for non-authenticated users
+  // Show homepage for all users - let them choose their next action
   return (
     <VideoBackground>
       {/* Subtle white glowing dots */}
@@ -50,39 +51,70 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl w-full">
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white text-xl">Sign In</CardTitle>
-              <CardDescription className="text-slate-200">
-                Access your existing account
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/auth/login">
-                <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
-                  Sign In
+        {/* Show different content based on auth status */}
+        {user && profile ? (
+          // Already logged in - show welcome message and dashboard option
+          <div className="text-center space-y-6">
+            <Card className="bg-white/10 backdrop-blur-md border-white/20 max-w-md mx-auto">
+              <CardHeader>
+                <CardTitle className="text-white text-xl">Welcome back, {profile.display_name || user.email}!</CardTitle>
+                <CardDescription className="text-slate-200">
+                  You're already signed in to your account
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button 
+                  onClick={() => router.push(profile.role === "pending_player" ? "/onboarding" : "/dashboard")}
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
+                >
+                  Continue to {profile.role === "pending_player" ? "Setup" : "Dashboard"}
                 </Button>
-              </Link>
-            </CardContent>
-          </Card>
+                <Button 
+                  variant="outline" 
+                  onClick={() => signOut()}
+                  className="w-full border-white/20 text-white hover:bg-white/10"
+                >
+                  Sign Out
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          // Not logged in - show sign in/up options
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl w-full">
+            <Card className="bg-white/10 backdrop-blur-md border-white/20">
+              <CardHeader>
+                <CardTitle className="text-white text-xl">Sign In</CardTitle>
+                <CardDescription className="text-slate-200">
+                  Access your existing account
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/auth/login">
+                  <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
+                    Sign In
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-white/10 backdrop-blur-md border-white/20">
-            <CardHeader>
-              <CardTitle className="text-white text-xl">Sign Up</CardTitle>
-              <CardDescription className="text-slate-200">
-                Create a new account
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/auth/signup">
-                <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
-                  Sign Up
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
+            <Card className="bg-white/10 backdrop-blur-md border-white/20">
+              <CardHeader>
+                <CardTitle className="text-white text-xl">Sign Up</CardTitle>
+                <CardDescription className="text-slate-200">
+                  Create a new account
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/auth/signup">
+                  <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
+                    Sign Up
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <div className="mt-12 text-center">
           <p className="text-slate-300 text-sm mb-4">
