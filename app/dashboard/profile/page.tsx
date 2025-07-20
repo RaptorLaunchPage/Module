@@ -20,8 +20,9 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
-    contact_number: '',
-    in_game_role: '',
+    bio: '',
+    favorite_game: '',
+    gaming_experience: '',
   })
 
   // Initialize form data when profile loads
@@ -29,8 +30,9 @@ export default function ProfilePage() {
     if (profile) {
       setFormData({
         name: profile.name || '',
-        contact_number: profile.contact_number || '',
-        in_game_role: profile.in_game_role || '',
+        bio: profile.bio || '',
+        favorite_game: profile.favorite_game || '',
+        gaming_experience: profile.gaming_experience || '',
       })
     }
   }, [profile])
@@ -44,8 +46,10 @@ export default function ProfilePage() {
         .from('users')
         .update({
           name: formData.name,
-          contact_number: formData.contact_number,
-          in_game_role: formData.in_game_role,
+          bio: formData.bio,
+          favorite_game: formData.favorite_game,
+          gaming_experience: formData.gaming_experience,
+          updated_at: new Date().toISOString(),
         })
         .eq('id', profile.id)
 
@@ -76,8 +80,9 @@ export default function ProfilePage() {
     if (profile) {
       setFormData({
         name: profile.name || '',
-        contact_number: profile.contact_number || '',
-        in_game_role: profile.in_game_role || '',
+        bio: profile.bio || '',
+        favorite_game: profile.favorite_game || '',
+        gaming_experience: profile.gaming_experience || '',
       })
     }
     setIsEditing(false)
@@ -203,30 +208,46 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <Label htmlFor="contact_number">Contact Number</Label>
+              <Label htmlFor="favorite_game">Favorite Game</Label>
               {isEditing ? (
                 <Input
-                  id="contact_number"
-                  value={formData.contact_number}
-                  onChange={(e) => setFormData({ ...formData, contact_number: e.target.value })}
-                  placeholder="Enter your contact number"
+                  id="favorite_game"
+                  value={formData.favorite_game}
+                  onChange={(e) => setFormData({ ...formData, favorite_game: e.target.value })}
+                  placeholder="e.g., Valorant, League of Legends"
                 />
               ) : (
-                <p className="text-sm text-muted-foreground mt-1">{profile.contact_number || 'Not set'}</p>
+                <p className="text-sm text-muted-foreground mt-1">{profile.favorite_game || 'Not set'}</p>
               )}
             </div>
 
             <div>
-              <Label htmlFor="in_game_role">In-Game Role</Label>
+              <Label htmlFor="gaming_experience">Gaming Experience</Label>
               {isEditing ? (
-                <Input
-                  id="in_game_role"
-                  value={formData.in_game_role}
-                  onChange={(e) => setFormData({ ...formData, in_game_role: e.target.value })}
-                  placeholder="e.g., IGL, Entry Fragger, Support"
+                <Textarea
+                  id="gaming_experience"
+                  value={formData.gaming_experience}
+                  onChange={(e) => setFormData({ ...formData, gaming_experience: e.target.value })}
+                  placeholder="Describe your gaming background and achievements"
+                  rows={3}
                 />
               ) : (
-                <p className="text-sm text-muted-foreground mt-1">{profile.in_game_role || 'Not set'}</p>
+                <p className="text-sm text-muted-foreground mt-1">{profile.gaming_experience || 'Not set'}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="bio">Bio</Label>
+              {isEditing ? (
+                <Textarea
+                  id="bio"
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  placeholder="Tell us about yourself"
+                  rows={3}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground mt-1">{profile.bio || 'Not set'}</p>
               )}
             </div>
 

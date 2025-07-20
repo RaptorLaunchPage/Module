@@ -78,6 +78,17 @@ export type Database = {
           gyroscope_enabled: boolean | null
           instagram_handle: string | null
           discord_id: string | null
+          bio: string | null
+          favorite_game: string | null
+          gaming_experience: string | null
+          display_name: string | null
+          full_name: string | null
+          experience: string | null
+          preferred_role: string | null
+          favorite_games: string | null
+          onboarding_completed: boolean | null
+          last_login: string | null
+          updated_at: string | null
         }
         Insert: {
           id: string
@@ -99,6 +110,17 @@ export type Database = {
           gyroscope_enabled?: boolean | null
           instagram_handle?: string | null
           discord_id?: string | null
+          bio?: string | null
+          favorite_game?: string | null
+          gaming_experience?: string | null
+          display_name?: string | null
+          full_name?: string | null
+          experience?: string | null
+          preferred_role?: string | null
+          favorite_games?: string | null
+          onboarding_completed?: boolean | null
+          last_login?: string | null
+          updated_at?: string | null
         }
         Update: {
           name?: string | null
@@ -118,6 +140,17 @@ export type Database = {
           gyroscope_enabled?: boolean | null
           instagram_handle?: string | null
           discord_id?: string | null
+          bio?: string | null
+          favorite_game?: string | null
+          gaming_experience?: string | null
+          display_name?: string | null
+          full_name?: string | null
+          experience?: string | null
+          preferred_role?: string | null
+          favorite_games?: string | null
+          onboarding_completed?: boolean | null
+          last_login?: string | null
+          updated_at?: string | null
         }
       }
       teams: {
@@ -382,12 +415,30 @@ export type Database = {
           website: string | null
           created_at: string
           updated_at: string
+          bio: string | null
+          full_name: string | null
+          display_name: string | null
+          contact_number: string | null
+          experience: string | null
+          preferred_role: string | null
+          favorite_games: string | null
+          role: string | null
+          onboarding_completed: boolean | null
         }
         Insert: {
           user_id: string
           username?: string | null
           avatar_url?: string | null
           website?: string | null
+          bio?: string | null
+          full_name?: string | null
+          display_name?: string | null
+          contact_number?: string | null
+          experience?: string | null
+          preferred_role?: string | null
+          favorite_games?: string | null
+          role?: string | null
+          onboarding_completed?: boolean | null
         }
         Update: {
           user_id?: string
@@ -395,6 +446,15 @@ export type Database = {
           avatar_url?: string | null
           website?: string | null
           updated_at?: string
+          bio?: string | null
+          full_name?: string | null
+          display_name?: string | null
+          contact_number?: string | null
+          experience?: string | null
+          preferred_role?: string | null
+          favorite_games?: string | null
+          role?: string | null
+          onboarding_completed?: boolean | null
         }
       }
       tier_defaults: {

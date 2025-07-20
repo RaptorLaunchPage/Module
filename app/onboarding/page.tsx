@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-
+import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, CheckCircle, User, Mail, GamepadIcon, ArrowRight, ArrowLeft } from "lucide-react"
@@ -22,6 +22,7 @@ interface OnboardingForm {
   experience: string
   preferredRole: string
   favoriteGames: string
+  bio: string
 }
 
 export default function OnboardingPage() {
@@ -36,7 +37,8 @@ export default function OnboardingPage() {
     contactNumber: "",
     experience: "",
     preferredRole: "",
-    favoriteGames: ""
+    favoriteGames: "",
+    bio: ""
   })
 
   useEffect(() => {
@@ -94,10 +96,16 @@ export default function OnboardingPage() {
       const { error } = await supabase
         .from('users')
         .update({
-          name: formData.fullName,
+          full_name: formData.fullName,
+          display_name: formData.displayName,
           contact_number: formData.contactNumber,
-          in_game_role: formData.preferredRole,
-          role: 'player' // Update role from pending_player to player
+          experience: formData.experience,
+          preferred_role: formData.preferredRole,
+          favorite_games: formData.favoriteGames,
+          bio: formData.bio,
+          role: 'player', // Update role from pending_player to player
+          onboarding_completed: true,
+          updated_at: new Date().toISOString()
         })
         .eq('id', profile.id)
 
@@ -238,15 +246,26 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div className="text-center mb-8">
               <CheckCircle className="mx-auto h-16 w-16 text-white mb-4 opacity-80" />
-              <h2 className="esports-heading text-2xl text-white mb-2">Ready to Begin!</h2>
-              <p className="text-slate-200">Your profile is complete and ready for the Raptor Esports Hub</p>
+              <h2 className="esports-heading text-2xl text-white mb-2">Final Touches</h2>
+              <p className="text-slate-200">Add a personal bio to complete your profile</p>
             </div>
 
             <div className="space-y-4">
-              <Alert className="bg-green-500/10 border-green-500/20 text-green-100">
+              <div>
+                <Label htmlFor="bio" className="text-white font-medium">Bio</Label>
+                <Textarea
+                  id="bio"
+                  value={formData.bio}
+                  onChange={(e) => handleInputChange('bio', e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40 min-h-[120px]"
+                  placeholder="Tell us about yourself, your goals, and what makes you unique as a player..."
+                />
+              </div>
+
+              <Alert className="bg-blue-500/10 border-blue-500/20 text-blue-100">
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Congratulations! You're all set. Once you complete registration, you'll have full access to the Raptor Esports Hub dashboard.
+                  You're almost ready! Once you complete your profile, you'll have full access to the Raptor Esports Hub dashboard.
                 </AlertDescription>
               </Alert>
             </div>
