@@ -65,7 +65,8 @@ export default function CommunicationPage() {
         const webhooksData = await webhooksResponse.json()
         setWebhooks(webhooksData || [])
       } else {
-        throw new Error('Failed to load webhooks')
+        const errorText = await webhooksResponse.text()
+        throw new Error(`Failed to load webhooks: ${webhooksResponse.status} ${errorText}`)
       }
 
       if (logsResponse.ok) {
@@ -91,7 +92,8 @@ export default function CommunicationPage() {
           messageTypeStats
         })
       } else {
-        throw new Error('Failed to load message logs')
+        const errorText = await logsResponse.text()
+        throw new Error(`Failed to load message logs: ${logsResponse.status} ${errorText}`)
       }
       
       setDataFetched(true)

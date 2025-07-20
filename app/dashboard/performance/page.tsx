@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
-import { supabase } from "@/lib/supabase"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -51,7 +50,7 @@ type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 type Team = Database["public"]["Tables"]["teams"]["Row"]
 
 export default function PerformancePage() {
-  const { profile } = useAuth()
+  const { profile, getToken } = useAuth()
   const [performances, setPerformances] = useState<Performance[]>([])
   const [users, setUsers] = useState<UserProfile[]>([])
   const [teams, setTeams] = useState<Team[]>([])
@@ -92,26 +91,19 @@ export default function PerformancePage() {
     if (!profile) return
 
     try {
-      let query = supabase
-        .from("performances")
-        .select(`
-          *,
-          users!player_id(id, name, email),
-          teams!inner(id, name),
-          slots(id, time_range, date)
-        `)
+      const token = await getToken()
+      
+      const response = await fetch('/api/performances', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
 
-      // Apply role-based filtering
-      if (profile.role === "player") {
-        query = query.eq("player_id", profile.id)
-      } else if (profile.role === "coach" && profile.team_id) {
-        query = query.eq("team_id", profile.team_id)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
-      // Admin, manager, and analyst can see all performances (no filtering)
 
-      const { data, error } = await query.order("created_at", { ascending: false })
-
-      if (error) throw error
+      const data = await response.json()
       setPerformances(data || [])
     } catch (error) {
       console.error("Error fetching performances:", error)
@@ -121,13 +113,19 @@ export default function PerformancePage() {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase.from("users").select("*").order("name")
-
-      if (error) {
-        console.error("Database error fetching users:", error)
-        throw error
-      }
+      const token = await getToken()
       
+      const response = await fetch('/api/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const data = await response.json()
       setUsers(data || [])
     } catch (error) {
       console.error("Error fetching users:", error)
@@ -137,13 +135,19 @@ export default function PerformancePage() {
 
   const fetchTeams = async () => {
     try {
-      const { data, error } = await supabase.from("teams").select("*").order("name")
-
-      if (error) {
-        console.error("Database error fetching teams:", error)
-        throw error
-      }
+      const token = await getToken()
       
+      const response = await fetch('/api/teams', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const data = await response.json()
       setTeams(data || [])
     } catch (error) {
       console.error("Error fetching teams:", error)
