@@ -100,7 +100,9 @@ export default function PerformancePage() {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        const errorText = await response.text()
+        console.error('API Error:', response.status, errorText)
+        throw new Error(`API Error ${response.status}: ${errorText}`)
       }
 
       const data = await response.json()
@@ -122,7 +124,9 @@ export default function PerformancePage() {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        const errorText = await response.text()
+        console.error('Users API Error:', response.status, errorText)
+        throw new Error(`Users API Error ${response.status}: ${errorText}`)
       }
 
       const data = await response.json()
@@ -144,7 +148,9 @@ export default function PerformancePage() {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        const errorText = await response.text()
+        console.error('Teams API Error:', response.status, errorText)
+        throw new Error(`Teams API Error ${response.status}: ${errorText}`)
       }
 
       const data = await response.json()

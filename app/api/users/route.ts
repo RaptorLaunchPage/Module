@@ -1,21 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Initialize Supabase client
+// Initialize Supabase client with anon key (safer for development)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseServiceKey) {
+if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Missing Supabase environment variables during build')
 }
 
-const supabase = supabaseUrl && supabaseServiceKey 
-  ? createClient(supabaseUrl, supabaseServiceKey)
-  : null
-
 // Helper function to get user from request
 async function getUserFromRequest(request: NextRequest) {
-  if (!supabase) {
+  if (!supabaseUrl || !supabaseAnonKey) {
     return { error: 'Service unavailable', status: 503 }
   }
 
@@ -27,24 +23,21 @@ async function getUserFromRequest(request: NextRequest) {
   const token = authHeader.replace('Bearer ', '')
   
   // Create a client with the user's token for RLS
-  const userSupabase = createClient(
-    supabaseUrl!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+  const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`
       }
     }
-  )
+  })
 
   const { data: { user }, error: authError } = await userSupabase.auth.getUser(token)
   if (authError || !user) {
     return { error: 'Invalid token', status: 401 }
   }
 
-  const { data: userData, error: userError } = await supabase
+  // Get user data using the authenticated client
+  const { data: userData, error: userError } = await userSupabase
     .from('users')
     .select('id, role, team_id')
     .eq('id', user.id)
@@ -60,7 +53,7 @@ async function getUserFromRequest(request: NextRequest) {
 // GET - Fetch users
 export async function GET(request: NextRequest) {
   try {
-    if (!supabase) {
+    if (!supabaseUrl || !supabaseAnonKey) {
       return NextResponse.json(
         { error: 'Service unavailable' },
         { status: 503 }
@@ -81,7 +74,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    let query = supabase
+    let query = userSupabase!
       .from('users')
       .select('*')
       .order('name', { ascending: true })
