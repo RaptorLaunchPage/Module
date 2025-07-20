@@ -97,6 +97,16 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     mobileOrder: 4
   },
   {
+    id: 'communication',
+    title: 'Communication',
+    description: 'Discord notifications and webhook management',
+    icon: 'MessageSquare',
+    path: '/dashboard/communication',
+    allowedRoles: ['admin', 'manager', 'coach', 'analyst'],
+    showInNavigation: true,
+    mobileOrder: 8
+  },
+  {
     id: 'profile',
     title: 'Profile',
     description: 'Personal profile and settings',
@@ -141,9 +151,26 @@ export class DashboardPermissions {
   }
 
   /**
+   * Get general permissions for a user role
+   */
+  static getPermissions(userRole: UserRole | undefined) {
+    if (!userRole) {
+      return {
+        viewCommunication: false,
+        manageCommunication: false
+      }
+    }
+
+    return {
+      viewCommunication: ['admin', 'manager', 'coach', 'analyst'].includes(userRole),
+      manageCommunication: ['admin', 'manager'].includes(userRole)
+    }
+  }
+
+  /**
    * Get permissions for data operations
    */
-  static getDataPermissions(userRole: UserRole | undefined, dataType: 'users' | 'teams' | 'performance' | 'finance'): Permission {
+  static getDataPermissions(userRole: UserRole | undefined, dataType: 'users' | 'teams' | 'performance' | 'finance' | 'communication'): Permission {
     if (!userRole) {
       return { canView: false, canCreate: false, canEdit: false, canDelete: false, canExport: false }
     }
@@ -182,6 +209,15 @@ export class DashboardPermissions {
           canCreate: ['admin', 'manager'].includes(userRole),
           canEdit: ['admin', 'manager'].includes(userRole),
           canDelete: userRole === 'admin',
+          canExport: ['admin', 'manager'].includes(userRole)
+        }
+
+      case 'communication':
+        return {
+          canView: ['admin', 'manager', 'coach', 'analyst'].includes(userRole),
+          canCreate: ['admin', 'manager', 'coach', 'analyst'].includes(userRole),
+          canEdit: ['admin', 'manager'].includes(userRole),
+          canDelete: ['admin', 'manager'].includes(userRole),
           canExport: ['admin', 'manager'].includes(userRole)
         }
 

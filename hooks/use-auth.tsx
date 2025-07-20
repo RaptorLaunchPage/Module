@@ -22,6 +22,7 @@ type AuthContextType = {
   signInWithDiscord: () => Promise<void>
   clearError: () => void
   isInitialized: boolean
+  getToken: () => Promise<string | null>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -354,6 +355,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setError(null)
   }
 
+  // Get current access token
+  const getToken = async (): Promise<string | null> => {
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.access_token || null
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -370,7 +377,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         resetPassword,
         signInWithDiscord,
         clearError,
-        isInitialized
+        isInitialized,
+        getToken
       }}
     >
       {children}

@@ -32,6 +32,7 @@ import {
   AlertCircle
 } from "lucide-react"
 import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
+import { SendToDiscordButton } from "@/components/communication/send-to-discord-button"
 import type { Database } from "@/lib/supabase"
 
 type Team = Database["public"]["Tables"]["teams"]["Row"]
@@ -720,6 +721,41 @@ export default function FinancePage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Send to Discord */}
+          {(expenses.length > 0 || winnings.length > 0) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  Share Financial Report
+                  <SendToDiscordButton
+                    messageType="expense_summary"
+                    data={{
+                      team_name: selectedTeam !== 'all' 
+                        ? teams.find(t => t.id === selectedTeam)?.name || 'All Teams'
+                        : 'All Teams',
+                      date_range: 'Recent period',
+                      total_slots: expenses.length,
+                      total_expense: financialSummary.totalExpenses,
+                      avg_slot_rate: expenses.length > 0 
+                        ? Math.round(financialSummary.totalExpenses / expenses.length)
+                        : 0,
+                      highest_expense_day: {
+                        date: 'Recent',
+                        amount: Math.max(...expenses.map(e => e.total), 0)
+                      }
+                    }}
+                    teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id}
+                    variant="outline"
+                    webhookTypes={['admin']} // Finance data only to admin channels
+                  />
+                </CardTitle>
+                <CardDescription>
+                  Send current financial summary to Discord (Admin only)
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
 
           {/* Breakdown sections */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -198,6 +198,26 @@ export default function SlotsPage() {
           rate: newSlot.slot_rate,
           total: newSlot.slot_rate * newSlot.number_of_slots,
         })
+        
+        // Send Discord notification for slot creation (if automation is enabled)
+        try {
+          const { notifySlotCreated } = await import('@/modules/communication')
+          await notifySlotCreated({
+            slot_id: newSlot.id,
+            team_id: newSlot.team_id,
+            team_name: selectedTeam.name,
+            organizer: newSlot.organizer,
+            date: format(newSlotData.date, "PPP"),
+            time_range: newSlot.time_range,
+            match_count: newSlot.match_count,
+            slot_rate: newSlot.slot_rate,
+            created_by_name: profile?.name || profile?.email || 'Unknown',
+            created_by_id: profile?.id || ''
+          })
+        } catch (commError) {
+          // Don't fail slot creation if Discord notification fails
+          console.warn('Discord notification failed:', commError)
+        }
         if (expenseError) {
           toast({
             title: "Warning",

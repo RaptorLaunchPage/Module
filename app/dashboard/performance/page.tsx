@@ -13,6 +13,7 @@ import { OCRExtract } from "@/components/performance/ocr-extract"
 import { PerformanceDashboard } from "@/components/performance/performance-dashboard"
 import { PlayerPerformanceSubmit } from "@/components/performance/player-performance-submit"
 import { PerformanceReportSimple } from "@/components/performance/performance-report-simple"
+import { SendToDiscordButton } from "@/components/communication/send-to-discord-button"
 import { 
   Target, 
   Plus, 
@@ -453,6 +454,43 @@ export default function PerformancePage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Send to Discord */}
+          {filteredPerformances.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  Share Performance Report
+                  <SendToDiscordButton
+                    messageType="performance_summary"
+                    data={{
+                      team_name: selectedTeam !== 'all' 
+                        ? availableTeams.find(t => t.id === selectedTeam)?.name || 'Team'
+                        : 'All Teams',
+                      date_range: `${stats.totalMatches} matches`,
+                      total_matches: stats.totalMatches,
+                      avg_placement: stats.avgPlacement,
+                      top_performer: {
+                        name: 'Best Performer', // You could calculate this from the data
+                        kills: Math.max(...filteredPerformances.map(p => p.kills)),
+                        damage: Math.max(...filteredPerformances.map(p => p.damage))
+                      },
+                      summary_stats: {
+                        total_kills: stats.totalKills,
+                        total_damage: Math.round(stats.avgDamage * stats.totalMatches),
+                        best_placement: Math.min(...filteredPerformances.map(p => p.placement || 999))
+                      }
+                    }}
+                    teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id}
+                    variant="outline"
+                  />
+                </CardTitle>
+                <CardDescription>
+                  Send current performance summary to Discord
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
 
           {/* Performance Data */}
           {loading ? (
