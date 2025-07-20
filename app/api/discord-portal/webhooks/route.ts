@@ -80,17 +80,29 @@ export async function GET(request: NextRequest) {
         const webhooks = await getAllWebhooks()
         return NextResponse.json({ webhooks })
       }
-    } else if (userData!.role === 'manager' && userData!.team_id) {
-      // Managers can only view their team's webhooks
-      const requestedTeam = teamId || userData!.team_id
-      if (requestedTeam !== userData!.team_id) {
-        return NextResponse.json(
-          { error: 'Cannot view webhooks for other teams' },
-          { status: 403 }
-        )
+    } else if (userData!.role === 'manager') {
+      // Managers can view webhooks
+      if (userData!.team_id) {
+        // Manager with team assignment - can only view their team's webhooks
+        const requestedTeam = teamId || userData!.team_id
+        if (requestedTeam !== userData!.team_id) {
+          return NextResponse.json(
+            { error: 'Cannot view webhooks for other teams' },
+            { status: 403 }
+          )
+        }
+        const webhooks = await getTeamWebhooks(userData!.team_id)
+        return NextResponse.json({ webhooks })
+      } else {
+        // Manager without team assignment - can view all webhooks like admin
+        if (teamId) {
+          const webhooks = await getTeamWebhooks(teamId)
+          return NextResponse.json({ webhooks })
+        } else {
+          const webhooks = await getAllWebhooks()
+          return NextResponse.json({ webhooks })
+        }
       }
-      const webhooks = await getTeamWebhooks(userData!.team_id)
-      return NextResponse.json({ webhooks })
     } else {
       return NextResponse.json(
         { error: 'Insufficient permissions to view webhooks' },

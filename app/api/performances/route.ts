@@ -65,12 +65,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
+    // First check if performances table exists and is accessible
+    const { data: testQuery, error: testError } = await userSupabase!
+      .from("performances")
+      .select("id")
+      .limit(1)
+
+    if (testError) {
+      console.error('Performances table access error:', testError)
+      // If table doesn't exist or no access, return empty array instead of error
+      if (testError.code === 'PGRST116' || testError.message?.includes('relation') || testError.message?.includes('does not exist')) {
+        return NextResponse.json([])
+      }
+      return NextResponse.json(
+        { error: `Database error: ${testError.message}` },
+        { status: 500 }
+      )
+    }
+
     let query = userSupabase!
       .from("performances")
       .select(`
         *,
         users!player_id(id, name, email),
-        teams!inner(id, name),
+        teams(id, name),
         slots(id, time_range, date)
       `)
 
@@ -87,7 +105,7 @@ export async function GET(request: NextRequest) {
     if (queryError) {
       console.error('Error fetching performances:', queryError)
       return NextResponse.json(
-        { error: 'Failed to fetch performances' },
+        { error: `Query error: ${queryError.message}` },
         { status: 500 }
       )
     }
