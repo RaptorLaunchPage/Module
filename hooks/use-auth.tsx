@@ -1,10 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, createContext, useContext } from "react"
 import { supabase } from "@/lib/supabase"
-import { SessionManager } from "@/lib/session-manager"
 import { SecureProfileCreation } from "@/lib/secure-profile-creation"
 import type { Session } from "@supabase/supabase-js"
 import { useRouter } from "next/navigation"
@@ -29,10 +27,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 // Helper to get the correct site URL for redirects
 const getSiteUrl = () => {
-  let url = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000';
-  url = url.startsWith('http') ? url : `https://${url}`;
-  return url.endsWith('/') ? url.slice(0, -1) : url;
-};
+  let url = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_VERCEL_URL || 'http://localhost:3000'
+  url = url.startsWith('http') ? url : `https://${url}`
+  return url.endsWith('/') ? url.slice(0, -1) : url
+}
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null)
@@ -40,278 +38,118 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [initComplete, setInitComplete] = useState(false)
+  const [initialized, setInitialized] = useState(false)
   const router = useRouter()
 
-  // Initialize auth on mount
+  // Initialize auth system - simplified approach
   useEffect(() => {
-    console.log('🔍 AuthProvider mounting...')
-    initializeAuth()
+    console.log('🚀 AuthProvider initializing...')
     
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("🔐 Auth state change:", event, session?.user?.email || 'no user')
-        
-        // Don't handle state changes during initial load to prevent conflicts
-        if (!initComplete) {
-          console.log('⏳ Skipping auth state change during initialization')
-          return
-        }
-        
-        await handleAuthStateChange(event, session)
-      }
-    )
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(`🔐 AUTH STATE CHANGE DETECTED:`)
+      console.log(`   Event: ${event}`)
+      console.log(`   Session exists: ${!!session}`)
+      console.log(`   User email: ${session?.user?.email || 'NO USER'}`)
+      console.log(`   User ID: ${session?.user?.id || 'NO ID'}`)
+      console.log(`   Session object:`, session)
+      
+      handleAuthChange(event, session)
+    })
 
+    // Mark as initialized
+    setInitialized(true)
+    setLoading(false)
+    console.log('✅ Auth system initialized with listener attached')
+    
     return () => {
-      console.log('🔍 AuthProvider unmounting...')
+      console.log('🔍 AuthProvider cleanup')
       subscription.unsubscribe()
     }
-  }, [initComplete])
+  }, [])
 
-  // Improved loading timeout that's less aggressive
-  useEffect(() => {
-    const loadingTimeout = setTimeout(() => {
-      if (loading && !session && !user) {
-        console.warn('⚠️ Loading timeout reached, clearing loading state')
-        setLoading(false)
-        setError('Authentication timeout - please try refreshing the page')
-      }
-    }, 15000) // Increased to 15 seconds
-
-    return () => clearTimeout(loadingTimeout)
-  }, [loading, session, user])
-
-  // Save auth state to localStorage for persistence across tabs
-  const saveAuthState = (session: Session | null, profile: any) => {
-    if (typeof window === 'undefined') return
+  // Handle auth state changes - COMPLETELY REDESIGNED
+  const handleAuthChange = async (event: string, session: Session | null) => {
+    console.log(`🔄 PROCESSING AUTH CHANGE: ${event}`)
+    console.log(`   Current state - loading: ${loading}, user: ${!!user}, profile: ${!!profile}`)
     
     try {
-      if (session && profile) {
-        const authState = {
-          session: {
-            access_token: session.access_token,
-            refresh_token: session.refresh_token,
-            user: session.user,
-            expires_at: session.expires_at
-          },
-          profile,
-          timestamp: Date.now()
-        }
-        localStorage.setItem('raptor-auth-state', JSON.stringify(authState))
-      } else {
-        localStorage.removeItem('raptor-auth-state')
-      }
-    } catch (error) {
-      console.warn('Failed to save auth state:', error)
-    }
-  }
-
-  // Restore auth state from localStorage - improved for tab switching
-  const restoreAuthState = () => {
-    if (typeof window === 'undefined') return null
-    
-    try {
-      const stored = localStorage.getItem('raptor-auth-state')
-      if (!stored) return null
-      
-      const authState = JSON.parse(stored)
-      // Extended expiry to 8 hours for better tab switching experience
-      if (Date.now() - authState.timestamp > 8 * 60 * 60 * 1000) {
-        localStorage.removeItem('raptor-auth-state')
-        return null
-      }
-      
-      return authState
-    } catch (error) {
-      console.warn('Failed to restore auth state:', error)
-      localStorage.removeItem('raptor-auth-state')
-      return null
-    }
-  }
-
-  const initializeAuth = async () => {
-    try {
-      console.log('🔍 Initializing auth...')
-      setLoading(true)
-      setError(null)
-      
-      // Try to restore from localStorage first for instant tab switching
-      const storedAuth = restoreAuthState()
-      if (storedAuth) {
-        console.log('✅ Restored auth state from localStorage')
-        setSession(storedAuth.session)
-        setUser(storedAuth.session.user)
-        setProfile(storedAuth.profile)
-        setLoading(false)
-        setInitComplete(true)
-        return
-      }
-      
-      // Try to recover session (for page refreshes)
-      const sessionRecovered = await SessionManager.recoverSession()
-      
-      // Get current session from Supabase
-      const { data: { session }, error } = await supabase.auth.getSession()
-      
-      if (error) {
-        console.error('❌ Session fetch error:', error)
-        setSession(null)
-        setUser(null)
-        setProfile(null)
-        setLoading(false)
-        setInitComplete(true)
-        return
-      }
-      
-      if (session?.user) {
-        console.log('✅ Valid session found:', session.user.email)
-        if (sessionRecovered) {
-          console.log('✅ Session was recovered from page refresh')
-        }
-        SessionManager.extendSession()
-        setSession(session)
-        setUser(session.user)
-        
-        // Fetch profile for authenticated user
-        try {
-          await fetchUserProfile(session.user, false)
-        } catch (profileError) {
-          console.error('❌ Profile fetch failed during init:', profileError)
-          setLoading(false)
-        }
-      } else {
-        console.log('❌ No session found')
-        SessionManager.clearSession()
-        setSession(null)
-        setUser(null)
-        setProfile(null)
-        setLoading(false)
-      }
-      
-      setInitComplete(true)
-    } catch (error) {
-      console.error('❌ Auth initialization error:', error)
-      SessionManager.clearSession()
-      setSession(null)
-      setUser(null)
-      setProfile(null)
-      setError('Failed to initialize authentication')
-      setLoading(false)
-      setInitComplete(true)
-    }
-  }
-
-  const handleAuthStateChange = async (event: string, session: Session | null) => {
-    try {
-      console.log(`🔐 Handling auth state change: ${event}`)
-      
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('🔐 User signed in:', session.user.email)
-        SessionManager.extendSession()
+        console.log('✅ HANDLING SIGNED_IN EVENT')
+        console.log('   Setting session and user state...')
         setSession(session)
         setUser(session.user)
         setError(null)
-        setLoading(true) // Always show loading when signing in
+        setLoading(true)
         
-        try {
-          // Fetch or create profile
-          await fetchUserProfile(session.user, true)
-        } catch (profileError) {
-          console.error('❌ Profile fetch failed after sign in:', profileError)
-          setError('Failed to load profile. Please try refreshing the page.')
-          setLoading(false)
-        }
+        console.log('   Calling loadUserProfile...')
+        await loadUserProfile(session.user)
+        
       } else if (event === 'SIGNED_OUT') {
-        console.log('🔐 User signed out')
-        await SessionManager.logout()
-        localStorage.removeItem('raptor-auth-state')
-        setSession(null)
-        setUser(null)
-        setProfile(null)
-        setError(null)
-        setLoading(false)
-      } else if (event === 'TOKEN_REFRESHED') {
-        console.log('🔐 Token refreshed for:', session?.user?.email)
+        console.log('🔐 HANDLING SIGNED_OUT EVENT')
+        clearAuthState()
+        
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        console.log('🔄 HANDLING TOKEN_REFRESHED EVENT')
         setSession(session)
-        setUser(session?.user || null)
-        // Don't trigger profile fetch or loading for token refresh
-      } else if (event === 'INITIAL_SESSION') {
-        console.log('🔐 Initial session detected')
+        setUser(session.user)
+        
+      } else if (event === 'INITIAL_SESSION' && session) {
+        console.log('🔄 HANDLING INITIAL_SESSION EVENT')
         setSession(session)
-        setUser(session?.user || null)
+        setUser(session.user)
+        setLoading(true)
+        await loadUserProfile(session.user)
       } else {
-        console.log(`🔐 Other auth event: ${event}`)
-        setSession(session)
-        setUser(session?.user || null)
+        console.log(`⚠️ UNHANDLED AUTH EVENT: ${event}`)
+        console.log(`   Session exists: ${!!session}`)
+        console.log(`   Event details:`, { event, session })
       }
     } catch (error) {
-      console.error('❌ Auth state change error:', error)
-      setError('Authentication state error')
+      console.error('❌ AUTH CHANGE ERROR:', error)
+      console.error('   Error type:', typeof error)
+      console.error('   Error details:', error)
+      setError('Authentication error occurred')
       setLoading(false)
     }
   }
 
-  const fetchUserProfile = async (user: any, shouldRedirect: boolean = false) => {
+  // Load user profile - simplified
+  const loadUserProfile = async (user: any) => {
     try {
-      console.log(`🔍 Fetching profile for user: ${user.id} (${user.email})`)
-      setError(null)
-
-      // Check if we already have a profile for this user to avoid unnecessary fetches
-      if (profile && profile.id === user.id && !shouldRedirect) {
-        console.log('✅ Profile already loaded for user:', user.email)
-        setLoading(false)
-        return
-      }
-
-      // First, try to get existing profile
-      const { data: existingProfile, error: selectError } = await supabase
+      console.log(`🔍 Loading profile for: ${user.email}`)
+      
+      // Check for existing profile
+      const { data: existingProfile, error } = await supabase
         .from("users")
         .select("*")
         .eq("id", user.id)
         .maybeSingle()
 
-      if (selectError && selectError.code !== "PGRST116") {
-        console.error("❌ Profile fetch error:", selectError)
-        setError(`Failed to fetch profile: ${selectError.message}`)
-        setLoading(false)
-        return
+      if (error && error.code !== "PGRST116") {
+        throw new Error(`Profile fetch failed: ${error.message}`)
       }
 
       if (existingProfile) {
-        console.log(`✅ Profile found for user: ${user.email}`, existingProfile)
+        console.log('✅ Profile loaded:', existingProfile.email)
         setProfile(existingProfile)
-        saveAuthState(session, existingProfile)
         setLoading(false)
         
-        // Redirect to appropriate page if this is from a sign in
-        if (shouldRedirect) {
-          // Use a small delay to ensure state is fully updated before redirect
-          setTimeout(() => {
-            if (existingProfile.role === "pending_player") {
-              console.log('📍 Redirecting to onboarding...')
-              router.push("/onboarding")
-            } else {
-              console.log('📍 Redirecting to dashboard...')
-              router.push("/dashboard")
-            }
-          }, 500) // Increased delay for better reliability
-        }
+        // Auto-redirect after successful profile load
+        setTimeout(() => {
+          if (existingProfile.role === "pending_player") {
+            router.push("/onboarding")
+          } else {
+            router.push("/dashboard")
+          }
+        }, 100)
         return
       }
 
-      // Profile doesn't exist, create it
-      console.log(`🔧 Profile not found, creating for user: ${user.email}`)
-      
+      // Create new profile
+      console.log('🔧 Creating new profile...')
       const provider = user.app_metadata?.provider || 'email'
       const userName = user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
-      
-      console.log(`🔧 Creating profile with data:`, {
-        userId: user.id,
-        email: user.email,
-        name: userName,
-        provider
-      })
       
       const profileResult = await SecureProfileCreation.createProfile(
         user.id,
@@ -321,157 +159,120 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       )
 
       if (profileResult.success && profileResult.profile) {
-        console.log(`✅ Profile created successfully for user: ${user.email}`, profileResult.profile)
+        console.log('✅ Profile created successfully')
         setProfile(profileResult.profile)
-        saveAuthState(session, profileResult.profile)
         setLoading(false)
         
-        // Redirect to onboarding for new users
-        if (shouldRedirect) {
-          setTimeout(() => {
-            console.log('📍 Redirecting to onboarding for new user...')
-            router.push("/onboarding")
-          }, 500)
-        }
-        return
+        // Redirect new users to onboarding
+        setTimeout(() => {
+          router.push("/onboarding")
+        }, 100)
+      } else {
+        throw new Error(profileResult.error || "Failed to create profile")
       }
 
-      // Profile creation failed
-      console.error(`❌ Profile creation failed for user: ${user.email}`, profileResult.error)
-      const errorMessage = profileResult.error || "Failed to create profile"
-      setError(errorMessage)
-      setLoading(false)
-
-    } catch (err: any) {
-      console.error("❌ Profile creation/fetch error:", err)
-      setError(err.message || "Could not create or fetch profile")
+    } catch (error: any) {
+      console.error('❌ Profile load error:', error)
+      setError(error.message || "Failed to load profile")
       setLoading(false)
     }
   }
 
-  const retryProfileCreation = async () => {
-    if (!user) {
-      setError("No user logged in")
-      return
-    }
-    
-    console.log('🔄 Retrying profile creation for:', user.email)
-    setError(null)
-    setLoading(true)
-    await fetchUserProfile(user, false)
-  }
-
-  const refreshProfile = async () => {
-    if (!user) {
-      console.log('❌ No user logged in, cannot refresh profile')
-      return
-    }
-    
-    console.log('🔄 Refreshing profile for:', user.email)
-    setError(null)
-    
-    // Force refresh by clearing current profile first
+  // Clear all auth state
+  const clearAuthState = () => {
+    setSession(null)
+    setUser(null)
     setProfile(null)
-    await fetchUserProfile(user, false)
-  }
-
-  const clearError = () => {
     setError(null)
+    setLoading(false)
   }
 
+  // Sign in function - simplified
   const signIn = async (email: string, password: string): Promise<{ error: any | null }> => {
     try {
-      console.log('🔐 Attempting sign in for:', email)
+      console.log('🔐 SIGN IN ATTEMPT STARTING for:', email)
       setError(null)
-      setLoading(true)
       
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      console.log('📞 Calling supabase.auth.signInWithPassword...')
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      
+      console.log('📞 signInWithPassword response received:')
+      console.log('   Error:', error)
+      console.log('   Data:', data)
+      console.log('   Session:', data?.session)
+      console.log('   User:', data?.user)
       
       if (error) {
-        console.error('❌ Sign in error:', error)
-        setLoading(false)
+        console.error('❌ SIGN IN FAILED:', error.message)
+        console.error('   Error code:', error.status)
+        console.error('   Error details:', error)
         return { error }
       }
       
-      console.log('✅ Sign in successful, waiting for auth state change...')
-      
-      // Success - auth state change will handle the rest
+      console.log('✅ SIGN IN SUCCESSFUL - Auth state change should fire now')
+      console.log('   Waiting for onAuthStateChange to be triggered...')
       return { error: null }
+      
     } catch (err: any) {
-      console.error("❌ Sign-in exception:", err)
-      setLoading(false)
+      console.error('❌ SIGN IN EXCEPTION:', err)
+      console.error('   Exception type:', typeof err)
+      console.error('   Exception details:', err)
       return { error: err }
     }
   }
 
+  // Sign up function - simplified
   const signUp = async (email: string, password: string, name: string): Promise<{ error: any | null }> => {
     try {
-      console.log('🔐 Attempting sign up for:', email)
+      console.log('🔐 Sign up attempt:', email)
       setError(null)
       
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            name: name,
-          },
+          data: { name },
           emailRedirectTo: `${getSiteUrl()}/auth/confirm`
-        },
+        }
       })
       
       if (error) {
-        console.error('❌ Sign up error:', error)
+        console.error('❌ Sign up failed:', error.message)
       } else {
-        console.log('✅ Sign up successful, check email for confirmation')
+        console.log('✅ Sign up successful - check email')
       }
       
       return { error }
+      
     } catch (err: any) {
-      console.error("❌ Sign-up exception:", err)
+      console.error('❌ Sign up exception:', err)
       return { error: err }
     }
   }
 
+  // Sign out function - simplified
   const signOut = async () => {
     try {
       console.log('🔐 Signing out...')
       
-      // Clear all auth state immediately to prevent blank screens
-      setSession(null)
-      setUser(null)
-      setProfile(null)
-      setError(null)
-      setLoading(false)
-      
-      // Clear all session data
-      SessionManager.clearSession()
-      localStorage.removeItem('raptor-auth-state')
-      
-      // Clear any cached data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('player_dashboard_debug_error')
-        sessionStorage.clear()
-      }
+      // Clear state immediately
+      clearAuthState()
       
       // Sign out from Supabase
       await supabase.auth.signOut()
       
-      // Force redirect to home
+      // Redirect
       router.push('/')
       
     } catch (error) {
       console.error('❌ Sign out error:', error)
-      // Even if sign out fails, clear local state and redirect
-      setSession(null)
-      setUser(null)
-      setProfile(null)
-      setError(null)
-      setLoading(false)
+      // Still clear state and redirect even if sign out fails
+      clearAuthState()
       router.push('/')
     }
   }
 
+  // Reset password
   const resetPassword = async (email: string): Promise<{ error: any | null }> => {
     try {
       setError(null)
@@ -486,9 +287,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
+  // Discord sign in
   const signInWithDiscord = async () => {
     try {
       setError(null)
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
@@ -501,6 +304,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Discord sign in error:', error)
       throw error
     }
+  }
+
+  // Retry profile creation
+  const retryProfileCreation = async () => {
+    if (!user) {
+      setError("No user logged in")
+      return
+    }
+    
+    console.log('🔄 Retrying profile creation')
+    setError(null)
+    setLoading(true)
+    await loadUserProfile(user)
+  }
+
+  // Refresh profile
+  const refreshProfile = async () => {
+    if (!user) {
+      console.log('❌ No user to refresh profile for')
+      return
+    }
+    
+    console.log('🔄 Refreshing profile')
+    setError(null)
+    setProfile(null)
+    await loadUserProfile(user)
+  }
+
+  // Clear error
+  const clearError = () => {
+    setError(null)
   }
 
   return (
@@ -518,7 +352,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         refreshProfile,
         resetPassword,
         signInWithDiscord,
-        clearError,
+        clearError
       }}
     >
       {children}

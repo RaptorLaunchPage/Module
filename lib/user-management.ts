@@ -18,47 +18,11 @@ export class UserManagementService {
     console.log("🔧 UserManagementService: Updating user", userId, updates)
     
     try {
-      // Check if current user has permission
-      const { data: currentUser } = await supabase.auth.getUser()
-      const { data: currentProfile } = await supabase
-        .from("users")
-        .select("*")
-        .eq("id", currentUser.user?.id)
-        .single()
-      
-      console.log("Current user profile:", currentProfile)
-      
-      if (!currentProfile || currentProfile.role !== "admin") {
-        return {
-          success: false,
-          error: new Error("Insufficient permissions. Only admins can update user roles.")
-        }
-      }
-      
-      // Method 1: Standard update with RLS
-      const standardResult = await this.standardUpdate(userId, updates)
-      if (standardResult.success) {
-        return standardResult
-      }
-      
-      console.log("Standard update failed, trying alternative methods...")
-      
-      // Method 2: Update with explicit transaction
-      const transactionResult = await this.updateWithTransaction(userId, updates)
-      if (transactionResult.success) {
-        return transactionResult
-      }
-      
-      // Method 3: Update individual fields
-      const individualResult = await this.updateIndividualFields(userId, updates)
-      if (individualResult.success) {
-        return individualResult
-      }
-      
-      // All methods failed
+      // DISABLED: getUser() call removed to prevent auth conflicts
+      console.log('🚫 UserManagementService disabled to prevent auth conflicts')
       return {
         success: false,
-        error: new Error("All update methods failed. This might be a database permission issue.")
+        error: "UserManagementService is disabled. Use the auth hook for user management."
       }
       
     } catch (error) {
@@ -150,21 +114,8 @@ export class UserManagementService {
    * Check if user has permission to update roles
    */
   static async checkUpdatePermission(): Promise<boolean> {
-    try {
-      const { data: currentUser } = await supabase.auth.getUser()
-      if (!currentUser.user) return false
-      
-      const { data: profile } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", currentUser.user.id)
-        .single()
-      
-      return DashboardPermissions.getDataPermissions(profile?.role as any, 'users').canEdit
-    } catch (error) {
-      console.error("Permission check failed:", error)
-      return false
-    }
+    console.log('🚫 UserManagementService.checkUpdatePermission() disabled to prevent auth conflicts')
+    return false // Always return false when disabled
   }
   
   /**

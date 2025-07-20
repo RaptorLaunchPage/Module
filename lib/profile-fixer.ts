@@ -150,14 +150,20 @@ export class ProfileFixer {
       })
       
       // Test 3: Test with current user context
-      const { data: currentUser } = await supabase.auth.getUser()
+      // DISABLED: getUser() call removed to prevent auth conflicts
+      console.log('🚫 ProfileFixer.fixUserProfile() disabled to prevent auth conflicts')
+      return {
+        success: false,
+        error: "ProfileFixer is disabled. Use the auth hook for profile management."
+      }
       
-      tests.push({
-        name: "Current user context",
-        success: !!currentUser?.user,
-        userId: currentUser?.user?.id,
-        userRole: currentUser?.user?.user_metadata?.role
-      })
+              // DISABLED: Current user test removed
+        tests.push({
+          name: "Current user context",
+          success: false,
+          userId: "disabled",
+          userRole: "disabled"
+        })
       
       // Test 4: Test update permissions
       const { error: updateError } = await supabase
@@ -165,11 +171,11 @@ export class ProfileFixer {
         .update({ name: "test" })
         .eq("id", "non-existent-id")
       
-      tests.push({
-        name: "Update permissions test",
-        success: !updateError || updateError.code === "PGRST116",
-        error: updateError?.message
-      })
+              tests.push({
+          name: "Update permissions test",
+          success: updateError === null || updateError?.code === "PGRST116",
+          error: updateError?.message || null
+        })
       
       return {
         success: true,

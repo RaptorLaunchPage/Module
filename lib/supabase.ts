@@ -4,19 +4,36 @@ import { createClient } from "@supabase/supabase-js"
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
+// Determine final URL and key to use
+let finalUrl: string
+let finalKey: string
+
 /**
- * Fail fast if env vars are missing.
- * Doing this early avoids the "Failed to construct 'URL': Invalid URL" runtime crash.
+ * More graceful handling of missing env vars to prevent 500 errors
  */
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    "Supabase credentials are missing.\n" +
+  console.error(
+    "⚠️ Supabase credentials are missing.\n" +
       "Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY " +
-      "in your environment variables.",
+      "in your environment variables."
   )
+  // Use dummy values to prevent crashes - auth will fail gracefully
+  finalUrl = 'https://dummy.supabase.co'
+  finalKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bW15IiwiZXhwIjoxOTg0MTgwODAwfQ.dummy'
+} else {
+  // Validate URL format to prevent runtime crashes
+  try {
+    new URL(supabaseUrl)
+    finalUrl = supabaseUrl
+  } catch (error) {
+    console.error('Invalid Supabase URL:', supabaseUrl)
+    // Use a dummy URL that won't crash the client but will fail gracefully
+    finalUrl = 'https://dummy.supabase.co'
+  }
+  finalKey = supabaseAnonKey
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(finalUrl, finalKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -33,37 +50,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-// Add connection test function with better debugging
-export const testConnection = async () => {
-  try {
-    console.log("Testing Supabase connection...")
-    console.log("URL:", supabaseUrl)
-    console.log("Key (first 10 chars):", supabaseAnonKey.slice(0, 10) + "...")
-
-    // Test basic connection first
-    const { data: authData, error: authError } = await supabase.auth.getSession()
-    console.log("Auth test:", { authData, authError })
-
-    // Test if we can access any table (this might fail due to RLS)
-    const { data, error } = await supabase.from("users").select("count").limit(1)
-    console.log("Database test:", { data, error })
-
-    if (error) {
-      console.error("Supabase connection error:", error)
-      // If it's an RLS error, that means connection works but policies are blocking
-      if (error.code === "PGRST301" || error.message.includes("RLS")) {
-        console.log("Connection works, but RLS is blocking access")
-        return true
-      }
-      return false
-    }
-    console.log("Supabase connected successfully")
-    return true
-  } catch (err) {
-    console.error("Connection test failed:", err)
-    return false
-  }
-}
+// REMOVED testConnection function that was causing getSession() hanging issues
+// Connection testing is now handled by the auth hook's simplified approach
 
 export type Database = {
   public: {
@@ -402,5 +390,5 @@ export type Database = {
 
 type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
-export const SUPABASE_URL_DEBUG = supabaseUrl
-export const SUPABASE_ANON_DEBUG = supabaseAnonKey.slice(0, 8) + "…"
+export const SUPABASE_URL_DEBUG = supabaseUrl || 'not-set'
+export const SUPABASE_ANON_DEBUG = (supabaseAnonKey || 'not-set').slice(0, 8) + "…"

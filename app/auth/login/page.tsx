@@ -37,32 +37,47 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log("🔐 LOGIN FORM SUBMISSION STARTED")
+    console.log("   Email:", email)
+    console.log("   Password length:", password.length)
+    console.log("   Current auth loading state:", authLoading)
+    console.log("   Current submitting state:", isSubmitting)
+    
     if (!email.trim() || !password.trim()) {
+      console.log("❌ Empty email or password")
       setError("Please enter both email and password")
       return
     }
 
-    if (isSubmitting) return
+    if (isSubmitting) {
+      console.log("❌ Already submitting, ignoring")
+      return
+    }
 
     setIsSubmitting(true)
     setError("")
     clearAuthError()
+    console.log("✅ Form validation passed, calling signIn...")
     
     try {
-      console.log("🔐 Attempting login for:", email)
       const result = await signIn(email, password)
       
+      console.log("📞 signIn returned:", result)
+      
       if (result?.error) {
-        console.error("❌ Login failed:", result.error)
+        console.error("❌ LOGIN FAILED IN FORM:", result.error)
         const errorMessage = result.error.message || "Invalid email or password"
         setError(errorMessage)
         setIsSubmitting(false)
       } else {
-        console.log("✅ Login successful")
-        // Keep submitting state - redirect will happen via auth state change
+        console.log("✅ LOGIN SUCCESSFUL IN FORM")
+        console.log("   Resetting submitting state...")
+        // Reset submitting state so UI can update
+        setIsSubmitting(false)
+        console.log("   Form state reset, waiting for auth state change to handle redirect...")
       }
     } catch (err: any) {
-      console.error("❌ Login exception:", err)
+      console.error("❌ LOGIN FORM EXCEPTION:", err)
       setError("An unexpected error occurred. Please try again.")
       setIsSubmitting(false)
     }
@@ -88,8 +103,6 @@ export default function LoginPage() {
     setError("")
     clearAuthError()
   }
-
-  const isLoading = authLoading || isSubmitting
 
   return (
     <VideoBackground>
@@ -150,7 +163,7 @@ export default function LoginPage() {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
+                  disabled={isSubmitting || authLoading}
                   className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40"
                 />
               </div>
@@ -163,7 +176,7 @@ export default function LoginPage() {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
+                    disabled={isSubmitting || authLoading}
                     className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40 pr-10"
                   />
                   <Button
@@ -172,7 +185,7 @@ export default function LoginPage() {
                     size="sm"
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                     onClick={() => setShowPassword(!showPassword)}
-                    disabled={isLoading}
+                    disabled={isSubmitting || authLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 text-slate-400" />
@@ -195,9 +208,9 @@ export default function LoginPage() {
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium" 
-                disabled={isLoading}
+                disabled={isSubmitting || authLoading}
               >
-                {isLoading ? (
+                {(isSubmitting || authLoading) ? (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                     {isSubmitting ? "Signing In..." : "Loading..."}
@@ -224,9 +237,9 @@ export default function LoginPage() {
               onClick={handleDiscordLogin}
               variant="outline" 
               className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white border-[#5865F2] font-medium"
-              disabled={isLoading}
+              disabled={isSubmitting || authLoading}
             >
-              {isLoading ? (
+              {(isSubmitting || authLoading) ? (
                 <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
