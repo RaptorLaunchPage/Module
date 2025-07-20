@@ -10,30 +10,12 @@ import { VideoBackground } from "@/components/video-background"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
 
 export default function HomePage() {
-  const { user, loading, profile, signOut } = useAuth()
+  const { user, loading, profile, signOut, isInitialized } = useAuth()
   const router = useRouter()
 
-  // Remove automatic redirects - let users choose when to login
-  // useEffect(() => {
-  //   // Automatic redirect logic DISABLED - users should choose when to login
-  //   if (!loading && user && profile) {
-  //     console.log('🏠 Home page redirecting user to appropriate page:', profile.role)
-  //     if (profile.role === "pending_player") {
-  //       router.replace("/onboarding")
-  //     } else {
-  //       router.replace("/dashboard")
-  //     }
-  //   }
-  // }, [user, profile, loading, router])
-
-  // Only show loader if actively loading or if we have user but no profile
-  if (loading) {
-    return <FullPageLoader message="Checking authentication..." />
-  }
-
-  // If we have a user but no profile, there might be an issue
-  if (user && !profile) {
-    return <FullPageLoader message="Loading your account..." />
+  // Show loading while auth is initializing
+  if (!isInitialized || loading) {
+    return <FullPageLoader message="Loading..." />
   }
 
   // Show homepage for all users - let them choose their next action
@@ -102,13 +84,13 @@ export default function HomePage() {
               <CardHeader>
                 <CardTitle className="text-white text-xl">Sign Up</CardTitle>
                 <CardDescription className="text-slate-200">
-                  Create a new account
+                  Create a new account to get started
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Link href="/auth/signup">
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
-                    Sign Up
+                  <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+                    Get Started
                   </Button>
                 </Link>
               </CardContent>
@@ -116,17 +98,40 @@ export default function HomePage() {
           </div>
         )}
 
-        <div className="mt-12 text-center">
-          <p className="text-slate-300 text-sm mb-4">
-            Professional esports management for competitive teams
-          </p>
-          <div className="flex justify-center space-x-6 text-slate-400 text-xs">
-            <span>Performance Analytics</span>
-            <span>•</span>
-            <span>Team Management</span>
-            <span>•</span>
-            <span>Real-time Tracking</span>
-          </div>
+        {/* Features section */}
+        <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl w-full">
+          <Card className="bg-white/5 backdrop-blur-md border-white/10">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">Team Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-300 text-sm">
+                Organize your team, track performance, and manage tournaments with our comprehensive tools.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/5 backdrop-blur-md border-white/10">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">Performance Analytics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-300 text-sm">
+                Detailed statistics and insights to help your team identify strengths and areas for improvement.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white/5 backdrop-blur-md border-white/10">
+            <CardHeader>
+              <CardTitle className="text-white text-lg">Creator Hub</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-300 text-sm">
+                Tools and resources for content creators to grow their brand and connect with the community.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </VideoBackground>
