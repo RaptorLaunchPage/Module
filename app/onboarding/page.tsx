@@ -92,9 +92,9 @@ export default function OnboardingPage() {
     setLoading(true)
 
     try {
-      // Update the profile in the database
+      // Update the user in the database
       const { error } = await supabase
-        .from('profiles')
+        .from('users')
         .update({
           full_name: formData.fullName,
           display_name: formData.displayName,

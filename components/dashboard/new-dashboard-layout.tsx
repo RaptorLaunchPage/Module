@@ -19,7 +19,8 @@ import {
   Bell, 
   Settings, 
   LogOut,
-  ChevronDown
+  ChevronDown,
+  CalendarCheck
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -32,7 +33,8 @@ const iconMap = {
   Target,
   DollarSign,
   UserCheck,
-  User
+  User,
+  CalendarCheck
 }
 
 interface NewDashboardLayoutProps {
