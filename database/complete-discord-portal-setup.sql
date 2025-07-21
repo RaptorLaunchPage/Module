@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS public.discord_webhooks (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   team_id uuid, -- NULL for admin/global webhooks
   hook_url text NOT NULL,
+  channel_name text NOT NULL, -- Discord channel name for identification
   type text NOT NULL CHECK (type = ANY (ARRAY['team'::text, 'admin'::text, 'global'::text])),
   active boolean NOT NULL DEFAULT true,
   created_at timestamp with time zone DEFAULT now(),
@@ -67,6 +68,7 @@ CREATE TABLE IF NOT EXISTS public.communication_settings (
 CREATE INDEX IF NOT EXISTS idx_discord_webhooks_team_id ON public.discord_webhooks(team_id);
 CREATE INDEX IF NOT EXISTS idx_discord_webhooks_type ON public.discord_webhooks(type);
 CREATE INDEX IF NOT EXISTS idx_discord_webhooks_active ON public.discord_webhooks(active);
+CREATE INDEX IF NOT EXISTS idx_discord_webhooks_channel_name ON public.discord_webhooks(channel_name);
 
 CREATE INDEX IF NOT EXISTS idx_communication_logs_team_id ON public.communication_logs(team_id);
 CREATE INDEX IF NOT EXISTS idx_communication_logs_message_type ON public.communication_logs(message_type);
