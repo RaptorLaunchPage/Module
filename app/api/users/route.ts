@@ -243,12 +243,17 @@ export async function PUT(request: NextRequest) {
         updateData.team_id = team_id
       }
       
+      console.log('Direct update attempt with data:', updateData)
+      console.log('Target user ID:', userId)
+      
       const { data: directUpdate, error: directError } = await userSupabase!
         .from('users')
         .update(updateData)
         .eq('id', userId)
         .select()
         .single()
+
+      console.log('Direct update response:', { directUpdate, directError })
 
       if (!directError && directUpdate) {
         console.log('Emergency direct update succeeded:', directUpdate)
@@ -260,9 +265,29 @@ export async function PUT(request: NextRequest) {
       }
 
       console.error('Emergency direct update failed:', directError?.message)
-      console.error('Direct update error details:', directError)
+      console.error('Direct update error details:', JSON.stringify(directError, null, 2))
+      console.error('Error code:', directError?.code)
+      console.error('Error hint:', directError?.hint)
     } catch (directErr: any) {
       console.error('Emergency direct update error:', directErr.message)
+    }
+
+    // Method 4: Super basic test - just try to read the user first
+    try {
+      console.log('Testing if we can even read the user...')
+      const { data: userCheck, error: userCheckError } = await userSupabase!
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single()
+
+      console.log('User read test:', { userCheck, userCheckError })
+      
+      if (userCheckError) {
+        console.error('Cannot even read user - this is an RLS issue!')
+      }
+    } catch (readErr: any) {
+      console.error('User read test error:', readErr.message)
     }
 
     // If even direct update failed, return error
