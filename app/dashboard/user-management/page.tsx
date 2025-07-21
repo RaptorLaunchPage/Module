@@ -255,29 +255,8 @@ export default function UserManagementPage() {
 
       let data = await response.json()
 
-      // If main API fails with constraint error, try emergency endpoint
-      if (!response.ok && data.error && data.error.includes('ON CONFLICT')) {
-        console.warn('Main API failed with constraint error, trying emergency endpoint...')
-        
-        response = await fetch('/api/users/emergency-update', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            userId,
-            role: newRole,
-            team_id: teamId,
-            adminSecret: 'emergency-admin-123' // You should set this in your environment
-          })
-        })
-
-        data = await response.json()
-
-        if (response.ok) {
-          console.log('Emergency endpoint succeeded:', data)
-        }
-      }
+      // The main API now has multiple fallback methods including emergency function
+      // No need for separate emergency endpoint call
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to update user')

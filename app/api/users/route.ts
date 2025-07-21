@@ -160,7 +160,38 @@ export async function PUT(request: NextRequest) {
     // Use a more direct approach to avoid ON CONFLICT issues
     console.log('Attempting user update with data:', updateData)
     
-    // Method 1: Try using the raw SQL update function
+    // Method 1: Try using the emergency update function (no env vars needed)
+    try {
+      const { data: emergencyResult, error: emergencyError } = await userSupabase!
+        .rpc('emergency_user_update', {
+          user_id_param: userId,
+          role_param: role,
+          team_id_param: team_id || 'null'
+        })
+
+      if (!emergencyError && emergencyResult) {
+        console.log('Emergency function succeeded:', emergencyResult)
+        
+        // Fetch the updated user data
+        const { data: updatedUserData } = await userSupabase!
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single()
+        
+        return NextResponse.json({
+          success: true,
+          user: updatedUserData,
+          method: 'emergency_function'
+        })
+      }
+
+      console.warn('Emergency function failed:', emergencyError?.message)
+    } catch (emergencyErr: any) {
+      console.warn('Emergency function error:', emergencyErr.message)
+    }
+
+    // Method 1b: Try using the raw SQL update function
     try {
       const { data: rawResult, error: rawError } = await userSupabase!
         .rpc('update_user_role_raw', {
