@@ -475,6 +475,97 @@ export type Database = {
           updated_at?: string
         }
       }
+      discord_webhooks: {
+        Row: {
+          id: string
+          team_id: string | null
+          hook_url: string
+          type: "team" | "admin" | "global"
+          active: boolean
+          created_at: string
+          updated_at: string
+          created_by: string
+        }
+        Insert: {
+          team_id?: string | null
+          hook_url: string
+          type: "team" | "admin" | "global"
+          active?: boolean
+          created_by: string
+        }
+        Update: {
+          team_id?: string | null
+          hook_url?: string
+          type?: "team" | "admin" | "global"
+          active?: boolean
+          updated_at?: string
+        }
+      }
+      communication_logs: {
+        Row: {
+          id: string
+          team_id: string | null
+          webhook_id: string | null
+          message_type: string
+          status: "success" | "failed" | "pending" | "retry"
+          payload: Json
+          response_code: number | null
+          response_body: string | null
+          error_message: string | null
+          triggered_by: string | null
+          retry_count: number
+          timestamp: string
+        }
+        Insert: {
+          team_id?: string | null
+          webhook_id?: string | null
+          message_type: string
+          status: "success" | "failed" | "pending" | "retry"
+          payload: Json
+          response_code?: number | null
+          response_body?: string | null
+          error_message?: string | null
+          triggered_by?: string | null
+          retry_count?: number
+        }
+        Update: {
+          team_id?: string | null
+          webhook_id?: string | null
+          message_type?: string
+          status?: "success" | "failed" | "pending" | "retry"
+          payload?: Json
+          response_code?: number | null
+          response_body?: string | null
+          error_message?: string | null
+          triggered_by?: string | null
+          retry_count?: number
+          timestamp?: string
+        }
+      }
+      communication_settings: {
+        Row: {
+          id: string
+          team_id: string | null
+          setting_key: string
+          setting_value: boolean
+          updated_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          team_id?: string | null
+          setting_key: string
+          setting_value: boolean
+          updated_by: string
+        }
+        Update: {
+          team_id?: string | null
+          setting_key?: string
+          setting_value?: boolean
+          updated_by?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }

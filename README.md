@@ -1,214 +1,195 @@
-# Raptor Esports CRM - Modular Web Application
+# Gaming Team Management Platform
 
-A modern, modular web application built with Next.js 14, TypeScript, and Tailwind CSS for managing esports teams and tournaments. This application follows a LEGO-style architecture where different modules can be added and removed independently.
-
-## 🏗️ Architecture
-
-This application is designed with a modular architecture that allows for easy extension and maintenance:
-
-### Core Technologies
-- **Next.js 14** - React framework with App Router
-- **TypeScript** - Type-safe JavaScript
-- **Tailwind CSS** - Utility-first CSS framework
-- **Supabase** - Backend-as-a-Service with PostgreSQL
-- **Radix UI** - Accessible component library
-- **Tesseract.js** - OCR functionality for performance data extraction
-
-### Module Structure
-
-```
-├── app/                           # Next.js App Router
-│   ├── auth/                     # Authentication Module
-│   │   ├── login/               # Login page
-│   │   └── signup/              # Signup page
-│   ├── dashboard/               # Dashboard Module
-│   │   ├── page.tsx            # Main dashboard
-│   │   ├── performance/        # Performance Analytics
-│   │   ├── profile/            # Profile Management
-│   │   ├── user-management/    # User Management
-│   │   └── team-management/    # Team Management Module
-│   │       ├── teams/          # Team CRUD operations
-│   │       ├── roster/         # Player roster management
-│   │       ├── expenses/       # Expense tracking
-│   │       ├── prize-pool/     # Prize pool management
-│   │       └── slots/          # Tournament slots
-│   └── globals.css             # Global styles
-├── components/                  # Reusable Components
-│   ├── ui/                     # UI Component Library
-│   ├── performance/            # Performance-specific components
-│   ├── app-sidebar.tsx         # Application sidebar
-│   └── theme-provider.tsx      # Theme management
-├── hooks/                      # Custom React Hooks
-├── lib/                        # Core Libraries
-│   ├── supabase.ts            # Database client and types
-│   ├── ocr-service.ts         # OCR functionality
-│   ├── advanced-ocr-service.ts # Advanced OCR processing
-│   └── utils.ts               # Utility functions
-└── utils/                      # Additional utilities
-```
+A comprehensive team management solution built for gaming organizations, featuring performance tracking, user management, attendance monitoring, and Discord integration.
 
 ## 🚀 Features
 
-### ✅ Implemented Modules
-- **Authentication System** - Login/Signup with Supabase Auth
-- **Dashboard** - Comprehensive overview with role-based access
-- **Team Management** - Complete CRUD operations for teams
-- **User Management** - User profiles and role management
-- **Roster Management** - Player assignments and team rosters
-- **Expense Tracking** - Financial management with filtering
-- **Prize Pool Management** - Tournament prize distribution
-- **Performance Analytics** - OCR-based performance data extraction
-- **Responsive Design** - Mobile-first responsive layout
+### 🏆 Performance Management
+- **Match Performance Tracking**: Record and analyze individual and team performance metrics
+- **Time-Based Filtering**: View performance data by day, week, month, or custom date ranges
+- **Role-Based Analytics**: Different views for coaches, managers, and players
 
-### 🛠️ Technical Features
-- **Type Safety** - Full TypeScript coverage
-- **Role-Based Access Control** - Admin, Manager, Coach, Player, Analyst roles
-- **OCR Integration** - Automatic performance data extraction from screenshots
-- **Real-time Updates** - Live data synchronization
-- **Modular Architecture** - Easy to extend with new modules
-- **Comprehensive UI Library** - 50+ pre-built components
-- **Theme Support** - Dark/Light mode toggle
+### 👥 User Management
+- **Role-Based Access Control**: Admin, Manager, Coach, Analyst, Player, and Pending Player roles
+- **Team Assignment**: Automatic team-based data filtering and permissions
+- **Profile Management**: Comprehensive user profiles with gaming information
 
-## 📱 Application Structure
+### 📊 Analytics Dashboard
+- **Performance Metrics**: Kill/Death ratios, damage statistics, survival times
+- **Team Statistics**: Aggregate team performance and trends
+- **Individual Progress**: Player development tracking
 
-### User Roles & Permissions
-- **Admin** - Full system access
-- **Manager** - Team and user management
-- **Coach** - Team-specific management
-- **Player** - Limited access to own team data
-- **Analyst** - Performance data access
+### 🎮 Discord Integration
+- **Webhook Management**: Configure Discord notifications for team events
+- **Communication Logs**: Track team communications and announcements
+- **Portal Integration**: Seamless Discord bot integration
 
-### Database Schema
-The application uses a well-structured PostgreSQL database with the following main tables:
-- `users` - User profiles and authentication
-- `teams` - Team information and hierarchy
-- `rosters` - Player-team assignments
-- `performances` - Individual player performance data
-- `slots` - Tournament slots and scheduling
-- `slot_expenses` - Financial tracking
-- `prize_pools` - Prize distribution
-- `winnings` - Tournament results
+### 📅 Attendance Management
+- **Practice Tracking**: Monitor team practice attendance
+- **Schedule Management**: Organize training sessions and matches
+- **Participation Analytics**: Track player engagement
 
-## 🛠️ Installation & Setup
+### 💰 Finance Module
+- **Tournament Earnings**: Track prize money and sponsorship revenue
+- **Expense Management**: Monitor team operational costs
+- **Financial Analytics**: Revenue and expense reporting
 
-### Prerequisites
+## 🛠 Technology Stack
+
+- **Frontend**: Next.js 14 with App Router, React, TypeScript
+- **Backend**: Supabase (PostgreSQL + Auth + Real-time)
+- **Styling**: Tailwind CSS with shadcn/ui components
+- **Authentication**: Supabase Auth with Row Level Security
+- **Database**: PostgreSQL with advanced RLS policies
+
+## 📋 Prerequisites
+
 - Node.js 18+ 
-- npm or pnpm
-- Supabase account (or use provided demo credentials)
+- pnpm (recommended) or npm
+- Supabase account and project
 
-### Installation Steps
+## ⚙️ Environment Setup
 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd raptor-esports-crm
+   cd gaming-team-management
    ```
 
 2. **Install dependencies**
    ```bash
-   npm install
+   pnpm install
    ```
 
-3. **Environment Setup**
-   Create a `.env.local` file with your Supabase credentials:
+3. **Configure environment variables**
+   
+   Create a `.env.local` file in the root directory:
    ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
 
 4. **Database Setup**
-   - Create tables using the schema in `lib/supabase.ts`
-   - Set up Row Level Security (RLS) policies
-   - Configure authentication settings
-
-5. **Run the development server**
-   ```bash
-   npm run dev
+   
+   Run the database schema file in your Supabase SQL editor:
+   ```sql
+   -- Run database/discord-portal-schema.sql in Supabase SQL Editor
    ```
 
-6. **Build for production**
+5. **Start the development server**
    ```bash
-   npm run build
-   npm start
+   pnpm dev
    ```
 
-## 🔧 Development
+   The application will be available at `http://localhost:3000`
 
-### Available Scripts
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Run TypeScript check
+## 🔐 Authentication & Roles
 
-### Code Quality
-- **ESLint** - Configured with Next.js and TypeScript rules
-- **TypeScript** - Strict type checking enabled
-- **Prettier** - Code formatting (recommended)
-- **Tailwind CSS** - Utility-first styling
+### Role Hierarchy
+- **Admin**: Full system access, user management, global settings
+- **Manager**: Team oversight, analytics, user role management
+- **Coach**: Team-specific data, player management within assigned team
+- **Analyst**: Read-only access to performance data and analytics
+- **Player**: Personal performance data, team information
+- **Pending Player**: Limited access pending approval
 
-### Adding New Modules
+### Access Control
+- **Row Level Security (RLS)**: Database-level security ensuring users only access authorized data
+- **API Authentication**: JWT-based authentication for all API endpoints
+- **Role-Based Filtering**: Automatic data filtering based on user role and team assignment
 
-1. **Create module directory** under `app/dashboard/`
-2. **Add page components** with proper TypeScript types
-3. **Update navigation** in `components/app-sidebar.tsx`
-4. **Add database tables** if needed in `lib/supabase.ts`
-5. **Create reusable components** in `components/`
-6. **Add proper role-based access control**
+## 📚 API Documentation
 
-## 📊 Performance
+### User Management
+- `GET /api/users` - Fetch users with role-based filtering
+- `PUT /api/users` - Update user roles and team assignments (Admin only)
 
-The application is optimized for performance with:
-- **Static Generation** - Pre-built pages where possible
-- **Code Splitting** - Automatic chunk splitting
-- **Image Optimization** - Next.js Image component
-- **Bundle Analysis** - Optimized bundle sizes
+### Performance Data
+- `GET /api/performances` - Retrieve performance metrics with filtering
+- `POST /api/performances` - Record new performance data
 
-## 🔒 Security
+### Team Management
+- `GET /api/teams` - Fetch team information
+- `POST /api/teams` - Create new teams (Admin/Manager only)
 
-Security measures implemented:
-- **Row Level Security** - Database-level access control
-- **Type Safety** - Prevents common runtime errors
-- **Input Validation** - Zod schema validation
-- **Authentication** - Supabase Auth with JWT tokens
-- **CSRF Protection** - Built-in Next.js protection
+### Discord Integration
+- `GET /api/discord-portal/webhooks` - Manage Discord webhooks
+- `POST /api/discord-portal/send` - Send Discord notifications
+- `GET /api/discord-portal/logs` - View communication logs
 
-## 🚨 Known Limitations
+## 🚀 Deployment
 
-1. **OCR Service** - Words extraction API not available in current Tesseract.js version
-2. **Real-time Updates** - Some features may require manual refresh
-3. **File Upload** - Limited file size for OCR processing
-4. **Browser Compatibility** - Modern browsers only
+### Development
+```bash
+pnpm dev
+```
 
-## 🛣️ Roadmap
+### Production Build
+```bash
+pnpm build
+pnpm start
+```
 
-- [ ] Real-time notifications system
-- [ ] Advanced analytics dashboard
-- [ ] Mobile app integration
-- [ ] Tournament bracket management
-- [ ] Advanced reporting features
-- [ ] API documentation
-- [ ] Multi-language support
+### Environment Configuration
+- Ensure all environment variables are set in production
+- Configure Supabase RLS policies for production security
+- Set up proper Discord webhook URLs for notifications
+
+## 🔧 Development Notes
+
+### Database Functions
+The application uses custom PostgreSQL functions for complex operations:
+- `bulletproof_user_update`: Handles user role updates with conflict resolution
+- `sync_user_profile_data`: Automatically syncs user data across tables
+
+### RLS Policies
+- Currently disabled for development (`ALTER TABLE users DISABLE ROW LEVEL SECURITY`)
+- Should be re-enabled for production with proper policies
+
+### Debug Features
+- Debug page available at `/dashboard/debug` for troubleshooting
+- API connectivity testing and error diagnosis
+- User role update testing
+
+## 📁 Project Structure
+
+```
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   ├── auth/              # Authentication pages
+│   ├── dashboard/         # Main application pages
+│   └── onboarding/        # User onboarding flow
+├── components/            # Reusable UI components
+├── hooks/                 # Custom React hooks
+├── lib/                   # Utility functions and configurations
+├── database/              # Database schema and migrations
+├── scripts/               # Database seeding scripts
+└── public/                # Static assets
+```
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is proprietary and confidential. All rights reserved.
 
-## 📞 Support
+## 🆘 Support
 
-For support or questions:
-- Create an issue on GitHub
-- Check the documentation in `/docs`
-- Review the code comments for implementation details
+For support and questions:
+- Check the debug page at `/dashboard/debug` for troubleshooting
+- Review the database logs in Supabase dashboard
+- Contact the development team for assistance
 
----
+## 🔄 Recent Updates
 
-**Note**: This application is designed for esports team management and includes features specific to competitive gaming scenarios. The modular architecture allows for easy customization to other use cases.
+- ✅ Fixed user role update system with constraint resolution
+- ✅ Implemented time-based filtering across all modules
+- ✅ Enhanced Discord portal integration
+- ✅ Improved role-based access control
+- ✅ Cleaned up debugging code and temporary files

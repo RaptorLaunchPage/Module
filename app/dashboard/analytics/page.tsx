@@ -57,6 +57,7 @@ export default function AnalyticsPage() {
   const [stats, setStats] = useState<AnalyticsStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dataFetched, setDataFetched] = useState(false)
   const [selectedTimeframe, setSelectedTimeframe] = useState('30')
   const [selectedTeam, setSelectedTeam] = useState('all')
   const [selectedMap, setSelectedMap] = useState('all')
@@ -150,6 +151,7 @@ export default function AnalyticsPage() {
       // Calculate analytics stats
       const calculatedStats = calculateAnalyticsStats(performances || [])
       setStats(calculatedStats)
+      setDataFetched(true)
       
     } catch (err: any) {
       console.error('Error loading analytics data:', err)
@@ -328,11 +330,42 @@ export default function AnalyticsPage() {
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading analytics...</p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="text-muted-foreground">Loading profile...</p>
         </div>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="text-muted-foreground">Loading analytics data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <div className="text-red-500 mb-4">
+              <BarChart3 className="h-12 w-12 mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Unable to Load Analytics</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={handleRefresh} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -458,7 +491,27 @@ export default function AnalyticsPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          {loading ? (
+          {(!dataFetched || (stats && stats.totalMatches === 0)) ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <div className="text-muted-foreground mb-4">
+                  <BarChart3 className="h-16 w-16 mx-auto" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No Analytics Data Yet</h3>
+                <p className="text-muted-foreground mb-6">
+                  {selectedTeam !== "all" || selectedMap !== "all" 
+                    ? "No performance data matches your current filters. Try adjusting the filters above."
+                    : "Start by adding some performance data to see analytics and insights."}
+                </p>
+                <Button asChild>
+                  <a href="/dashboard/performance">
+                    <Target className="h-4 w-4 mr-2" />
+                    Add Performance Data
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          ) : loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[...Array(8)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
