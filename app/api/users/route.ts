@@ -148,17 +148,7 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    const updateData: any = { role }
-
-    // Handle team assignment based on role
-    if (role === 'admin' || role === 'manager') {
-      updateData.team_id = null
-    } else if (team_id !== undefined) {
-      updateData.team_id = team_id
-    }
-
-    // Use bulletproof function to avoid ON CONFLICT issues
-    console.log('Attempting user update with data:', updateData)
+    console.log('Attempting user update:', { userId, role, team_id })
     
     // Method 1: Try the bulletproof update function (should always work)
     try {
@@ -175,17 +165,12 @@ export async function PUT(request: NextRequest) {
         // Check if the function returned an error internally
         if (bulletproofResult.error) {
           console.warn('Bulletproof function internal error:', bulletproofResult.error)
+          // Continue to backup method
         } else {
-          // Success! Fetch the updated user data
-          const { data: updatedUserData } = await userSupabase!
-            .from('users')
-            .select('*')
-            .eq('id', userId)
-            .single()
-          
+          // Success! Return the result
           return NextResponse.json({
             success: true,
-            user: updatedUserData,
+            user: bulletproofResult,
             method: 'bulletproof_function'
           })
         }
@@ -214,7 +199,7 @@ export async function PUT(request: NextRequest) {
           await userSupabase!.from('users').update({ team_id: team_id }).eq('id', userId)
         }
         
-        // Fetch the updated user data
+        // Fetch the updated user data to return
         const { data: updatedUserData } = await userSupabase!
           .from('users')
           .select('*')
@@ -233,128 +218,12 @@ export async function PUT(request: NextRequest) {
       console.warn('Minimal function error:', minimalErr.message)
     }
 
-    // Method 1b: Try using the emergency update function (no env vars needed)
-    try {
-      const { data: emergencyResult, error: emergencyError } = await userSupabase!
-        .rpc('emergency_user_update', {
-          user_id_param: userId,
-          role_param: role,
-          team_id_param: team_id || 'null'
-        })
-
-      if (!emergencyError && emergencyResult) {
-        console.log('Emergency function succeeded:', emergencyResult)
-        
-        // Fetch the updated user data
-        const { data: updatedUserData } = await userSupabase!
-          .from('users')
-          .select('*')
-          .eq('id', userId)
-          .single()
-        
-        return NextResponse.json({
-          success: true,
-          user: updatedUserData,
-          method: 'emergency_function'
-        })
-      }
-
-      console.warn('Emergency function failed:', emergencyError?.message)
-    } catch (emergencyErr: any) {
-      console.warn('Emergency function error:', emergencyErr.message)
-    }
-
-    // Method 1b: Try using the raw SQL update function
-    try {
-      const { data: rawResult, error: rawError } = await userSupabase!
-        .rpc('update_user_role_raw', {
-          p_user_id: userId,
-          p_role: role,
-          p_team_id: team_id
-        })
-
-      if (!rawError && rawResult) {
-        console.log('Raw SQL function succeeded:', rawResult)
-        return NextResponse.json({
-          success: true,
-          user: rawResult
-        })
-      }
-
-      console.warn('Raw SQL function failed:', rawError?.message)
-    } catch (rawErr: any) {
-      console.warn('Raw SQL function error:', rawErr.message)
-    }
-
-    // Method 1b: Try using the simple update function
-    try {
-      const { data: functionResult, error: functionError } = await userSupabase!
-        .rpc('simple_user_update', {
-          target_user_id: userId,
-          new_role: role,
-          new_team_id: team_id
-        })
-
-      if (!functionError && functionResult) {
-        console.log('Database function succeeded:', functionResult)
-        return NextResponse.json({
-          success: true,
-          user: functionResult
-        })
-      }
-
-      console.warn('Database function failed:', functionError?.message)
-    } catch (funcErr: any) {
-      console.warn('Database function error:', funcErr.message)
-    }
-
-    // Method 2: Try a basic update without any special options
-    try {
-      console.log('Trying basic update for user:', userId)
-      const { data: basicUpdate, error: basicError } = await userSupabase!
-        .from('users')
-        .update({ 
-          role: role,
-          ...(role === 'admin' || role === 'manager' ? { team_id: null } : {}),
-          ...(team_id !== undefined && role !== 'admin' && role !== 'manager' ? { team_id: team_id } : {})
-        })
-        .eq('id', userId)
-        .select()
-        .single()
-
-      if (!basicError && basicUpdate) {
-        console.log('Basic update succeeded:', basicUpdate)
-        return NextResponse.json({
-          success: true,
-          user: basicUpdate
-        })
-      }
-
-      console.warn('Basic update failed:', basicError?.message)
-    } catch (basicErr: any) {
-      console.warn('Basic update error:', basicErr.message)
-    }
-
-    // Method 3: Fallback to the original update method
-    const { data: updatedUser, error: updateError } = await userSupabase!
-      .from('users')
-      .update(updateData)
-      .eq('id', userId)
-      .select()
-      .single()
-
-    if (updateError) {
-      console.error('Error updating user:', updateError)
-      return NextResponse.json(
-        { error: `Failed to update user: ${updateError.message}` },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({
-      success: true,
-      user: updatedUser
-    })
+    // If both bulletproof methods failed, return error
+    console.error('All bulletproof update methods failed! User ID:', userId, 'Role:', role)
+    return NextResponse.json(
+      { error: 'Failed to update user: All update methods failed' },
+      { status: 500 }
+    )
 
   } catch (error) {
     console.error('Error in users PUT API:', error)
