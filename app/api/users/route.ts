@@ -160,7 +160,37 @@ export async function PUT(request: NextRequest) {
     // Use a more direct approach to avoid ON CONFLICT issues
     console.log('Attempting user update with data:', updateData)
     
-    // Method 1: Try using the emergency update function (no env vars needed)
+    // Method 1: Try using the super simple update function (safest)
+    try {
+      const { data: superSimpleResult, error: superSimpleError } = await userSupabase!
+        .rpc('super_simple_user_update', {
+          p_user_id: userId,
+          p_role: role
+        })
+
+      if (!superSimpleError && superSimpleResult) {
+        console.log('Super simple function succeeded:', superSimpleResult)
+        
+        // Fetch the updated user data
+        const { data: updatedUserData } = await userSupabase!
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single()
+        
+        return NextResponse.json({
+          success: true,
+          user: updatedUserData,
+          method: 'super_simple_function'
+        })
+      }
+
+      console.warn('Super simple function failed:', superSimpleError?.message)
+    } catch (superSimpleErr: any) {
+      console.warn('Super simple function error:', superSimpleErr.message)
+    }
+
+    // Method 1b: Try using the emergency update function (no env vars needed)
     try {
       const { data: emergencyResult, error: emergencyError } = await userSupabase!
         .rpc('emergency_user_update', {
