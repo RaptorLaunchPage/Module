@@ -152,12 +152,16 @@ export async function PUT(request: NextRequest) {
     
     // Method 1: Try the bulletproof update function (should always work)
     try {
+      console.log('Calling bulletproof_user_update with:', { userId, role, team_id })
+      
       const { data: bulletproofResult, error: bulletproofError } = await userSupabase!
         .rpc('bulletproof_user_update', {
           p_user_id: userId,
           p_role: role,
           p_team_id: team_id || null
         })
+
+      console.log('Bulletproof function response:', { bulletproofResult, bulletproofError })
 
       if (!bulletproofError && bulletproofResult) {
         console.log('Bulletproof function result:', bulletproofResult)
@@ -176,18 +180,24 @@ export async function PUT(request: NextRequest) {
         }
       } else {
         console.warn('Bulletproof function failed:', bulletproofError?.message)
+        console.warn('Full error object:', bulletproofError)
       }
     } catch (bulletproofErr: any) {
       console.warn('Bulletproof function error:', bulletproofErr.message)
+      console.warn('Full error:', bulletproofErr)
     }
 
     // Method 2: Try the minimal update function (backup)
     try {
+      console.log('Calling minimal_user_update with:', { userId, role })
+      
       const { data: minimalResult, error: minimalError } = await userSupabase!
         .rpc('minimal_user_update', {
           p_user_id: userId,
           p_role: role
         })
+
+      console.log('Minimal function response:', { minimalResult, minimalError })
 
       if (!minimalError && minimalResult === 'SUCCESS') {
         console.log('Minimal function succeeded')
@@ -214,8 +224,10 @@ export async function PUT(request: NextRequest) {
       }
 
       console.warn('Minimal function failed:', minimalError?.message || minimalResult)
+      console.warn('Full minimal error object:', minimalError)
     } catch (minimalErr: any) {
       console.warn('Minimal function error:', minimalErr.message)
+      console.warn('Full minimal error:', minimalErr)
     }
 
     // If both bulletproof methods failed, return error
