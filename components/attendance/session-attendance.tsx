@@ -436,17 +436,20 @@ export function SessionAttendance({ userProfile, teams, users }: SessionAttendan
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Eye className="h-5 w-5" />
-                  Other Sessions
-                  <Badge variant="outline">View Only</Badge>
+                  Tournament & Meeting Sessions
+                  <Badge variant="outline">Auto-Tracked</Badge>
                 </CardTitle>
                 <CardDescription>
-                  Tournament and meeting sessions (attendance tracked automatically)
+                  Tournament attendance auto-tracked from performance data, meetings created by admin
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {otherSessions.map((session) => {
                     const SessionIcon = SESSION_ICONS[session.session_type]
+                    const myAttendance = isPlayer ? getPlayerAttendance(session, userProfile.id) : null
+                    const autoAttendances = session.attendances?.filter(a => a.source === 'auto') || []
+                    const manualAttendances = session.attendances?.filter(a => a.source === 'manual') || []
                     
                     return (
                       <Card key={session.id} className={`border-2 ${SESSION_COLORS[session.session_type]}`}>
@@ -458,16 +461,70 @@ export function SessionAttendance({ userProfile, teams, users }: SessionAttendan
                                 <h4 className="font-medium">{session.title || session.session_subtype}</h4>
                                 <p className="text-sm text-muted-foreground">
                                   {session.session_type.charAt(0).toUpperCase() + session.session_type.slice(1)}
+                                  {session.session_type === 'tournament' && session.session_subtype === 'Match' && (
+                                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                      Auto from Performance
+                                    </span>
+                                  )}
                                 </p>
                                 {session.description && (
                                   <p className="text-sm mt-1">{session.description}</p>
                                 )}
                               </div>
                             </div>
-                            <Badge variant="outline">
-                              {session.attendances?.length || 0} attended
-                            </Badge>
+                            <div className="text-right">
+                              <Badge variant="outline" className="mb-1">
+                                {session.attendances?.length || 0} total
+                              </Badge>
+                              {session.session_type === 'tournament' && autoAttendances.length > 0 && (
+                                <div className="text-xs text-muted-foreground">
+                                  {autoAttendances.length} auto + {manualAttendances.length} manual
+                                </div>
+                              )}
+                            </div>
                           </div>
+
+                          {/* Player's attendance status for this session */}
+                          {isPlayer && myAttendance && (
+                            <div className="mt-3 pt-3 border-t">
+                              <div className="flex items-center gap-2">
+                                <Badge className={getAttendanceStatusColor(myAttendance.status)}>
+                                  {getAttendanceIcon(myAttendance.status)}
+                                  <span className="ml-1">
+                                    {myAttendance.status.charAt(0).toUpperCase() + myAttendance.status.slice(1)}
+                                  </span>
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {myAttendance.source === 'auto' ? 'Auto-tracked from performance' : 'Manually marked'}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Team attendance breakdown for coaches/admins */}
+                          {!isPlayer && session.attendances && session.attendances.length > 0 && (
+                            <div className="mt-3 pt-3 border-t">
+                              <div className="text-xs font-medium mb-2">Attendance Breakdown:</div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <span>{session.attendances.filter(a => a.status === 'present').length} Present</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                  <span>{autoAttendances.length} Auto-tracked</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                  <span>{session.attendances.filter(a => a.status === 'late').length} Late</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                                  <span>{manualAttendances.length} Manual</span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     )
