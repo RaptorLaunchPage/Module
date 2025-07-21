@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { MarkAttendance } from "@/components/attendance/mark-attendance"
+import { EnhancedMarkAttendance } from "@/components/attendance/enhanced-mark-attendance"
 import { AttendanceLogs } from "@/components/attendance/attendance-logs"
 import { AttendanceStats } from "@/components/attendance/attendance-stats"
 import { SendToDiscordButton } from "@/components/discord-portal/send-to-discord-button"
@@ -304,7 +305,7 @@ export default function AttendancePage() {
 
           <TabsContent value="mark">
             {canMarkAttendance ? (
-              <MarkAttendance 
+              <EnhancedMarkAttendance 
                 onAttendanceMarked={fetchAttendances}
                 userProfile={profile}
                 teams={teams}

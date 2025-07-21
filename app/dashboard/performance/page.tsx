@@ -176,12 +176,22 @@ export default function PerformancePage() {
   const canSubmitPerformance = userRole === 'player'
   const canViewReport = performancePermissions.canView
 
-  // Reset player filter when team changes (for admin/manager)
+  // Auto-select team for players and reset player filter when team changes
   useEffect(() => {
+    if (userRole === 'player' && profile?.team_id && selectedTeam === "all") {
+      setSelectedTeam(profile.team_id)
+    }
     if (selectedTeam !== "all" && (userRole === 'admin' || userRole === 'manager')) {
       setSelectedPlayer("all")
     }
-  }, [selectedTeam, userRole])
+  }, [selectedTeam, userRole, profile?.team_id])
+
+  // Auto-select player for their own data
+  useEffect(() => {
+    if (userRole === 'player' && profile?.id && selectedPlayer === "all") {
+      setSelectedPlayer(profile.id)
+    }
+  }, [userRole, profile?.id, selectedPlayer])
 
   // Enhanced performances with user and team names
   const enhancedPerformances = performances.map(perf => {
