@@ -93,6 +93,30 @@ export async function getAllWebhooks(): Promise<DiscordWebhook[]> {
 }
 
 /**
+ * Get a specific webhook by ID
+ */
+export async function getWebhookById(webhookId: string): Promise<DiscordWebhook | null> {
+  const { data, error } = await ensureSupabase()
+    .from('discord_webhooks')
+    .select(`
+      *,
+      teams:team_id (
+        name
+      )
+    `)
+    .eq('id', webhookId)
+    .eq('active', true)
+    .single()
+
+  if (error) {
+    console.error('Error fetching webhook by ID:', error)
+    return null
+  }
+
+  return data
+}
+
+/**
  * Create a new webhook
  */
 export async function createWebhook(webhook: DiscordWebhookInsert): Promise<{ success: boolean; webhook?: DiscordWebhook; error?: string }> {
@@ -102,11 +126,29 @@ export async function createWebhook(webhook: DiscordWebhookInsert): Promise<{ su
     return { success: false, error: validation.error }
   }
 
-  const { data, error } = await ensureSupabase()
+  // Prepare webhook data, excluding channel_name if DB doesn't support it yet
+  const webhookData = { ...webhook }
+  
+  // Try to insert with channel_name, fall back without it if column doesn't exist
+  let { data, error } = await ensureSupabase()
     .from('discord_webhooks')
-    .insert(webhook)
+    .insert(webhookData)
     .select()
     .single()
+
+  // If error mentions channel_name column, retry without it
+  if (error && error.message.includes('channel_name')) {
+    console.log('Database does not have channel_name column yet, inserting without it')
+    const { channel_name, ...webhookWithoutChannelName } = webhookData
+    const result = await ensureSupabase()
+      .from('discord_webhooks')
+      .insert(webhookWithoutChannelName)
+      .select()
+      .single()
+    
+    data = result.data
+    error = result.error
+  }
 
   if (error) {
     console.error('Error creating webhook:', error)
@@ -131,12 +173,31 @@ export async function updateWebhook(
     }
   }
 
-  const { data, error } = await ensureSupabase()
+  // Prepare update data
+  const updateData = { ...updates, updated_at: new Date().toISOString() }
+
+  // Try to update with channel_name, fall back without it if column doesn't exist
+  let { data, error } = await ensureSupabase()
     .from('discord_webhooks')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update(updateData)
     .eq('id', id)
     .select()
     .single()
+
+  // If error mentions channel_name column, retry without it
+  if (error && error.message.includes('channel_name')) {
+    console.log('Database does not have channel_name column yet, updating without it')
+    const { channel_name, ...updateWithoutChannelName } = updateData
+    const result = await ensureSupabase()
+      .from('discord_webhooks')
+      .update(updateWithoutChannelName)
+      .eq('id', id)
+      .select()
+      .single()
+    
+    data = result.data
+    error = result.error
+  }
 
   if (error) {
     console.error('Error updating webhook:', error)

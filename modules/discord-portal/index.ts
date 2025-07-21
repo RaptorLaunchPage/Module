@@ -6,6 +6,7 @@ export {
   getTeamWebhooks,
   getAdminWebhooks,
   getAllWebhooks,
+  getWebhookById,
   createWebhook,
   updateWebhook,
   deleteWebhook,

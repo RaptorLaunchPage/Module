@@ -90,7 +90,12 @@ export async function GET(request: NextRequest) {
 
     // Apply role-based filtering
     if (userData!.role === "player") {
-      query = query.eq("player_id", userData!.id)
+      // Players can see their own performance AND their team's performance
+      if (userData!.team_id) {
+        query = query.or(`player_id.eq.${userData!.id},team_id.eq.${userData!.team_id}`)
+      } else {
+        query = query.eq("player_id", userData!.id)
+      }
     } else if (userData!.role === "coach" && userData!.team_id) {
       query = query.eq("team_id", userData!.team_id)
     }

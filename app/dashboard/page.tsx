@@ -114,8 +114,9 @@ export default function OptimizedDashboardPage() {
     if (userRole === 'player') {
       actions.push(
         { title: 'Submit Performance', description: 'Log your match results', href: '/dashboard/performance', icon: Target, color: 'bg-blue-500' },
-        { title: 'View My Stats', description: 'Check your performance metrics', href: '/dashboard/analytics', icon: BarChart3, color: 'bg-green-500' },
-        { title: 'Team Roster', description: 'View team information', href: '/dashboard/team-management/roster', icon: Users, color: 'bg-purple-500' }
+        { title: 'My Team Performance', description: 'View team performance data', href: '/dashboard/performance', icon: BarChart3, color: 'bg-green-500' },
+        { title: 'Team Roster', description: 'View team information', href: '/dashboard/team-management/roster', icon: Users, color: 'bg-purple-500' },
+        { title: 'Attendance', description: 'Mark attendance', href: '/dashboard/attendance', icon: Calendar, color: 'bg-orange-500' }
       )
     } else if (userRole === 'coach') {
       actions.push(

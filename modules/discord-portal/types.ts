@@ -1,12 +1,16 @@
 import type { Database } from '@/lib/supabase'
 
 // Base types from database
-export type DiscordWebhook = Database['public']['Tables']['discord_webhooks']['Row']
+export type DiscordWebhook = Database['public']['Tables']['discord_webhooks']['Row'] & {
+  channel_name?: string // Add channel_name support until DB is updated
+}
 export type DiscordLog = Database['public']['Tables']['communication_logs']['Row']
 export type DiscordSetting = Database['public']['Tables']['communication_settings']['Row']
 
 // Insert types
-export type DiscordWebhookInsert = Database['public']['Tables']['discord_webhooks']['Insert']
+export type DiscordWebhookInsert = Database['public']['Tables']['discord_webhooks']['Insert'] & {
+  channel_name?: string // Add channel_name support until DB is updated
+}
 export type DiscordLogInsert = Database['public']['Tables']['communication_logs']['Insert']
 export type DiscordSettingInsert = Database['public']['Tables']['communication_settings']['Insert']
 
@@ -99,18 +103,32 @@ export interface RosterUpdateData {
 
 export interface PerformanceSummaryData {
   team_name: string
+  player_name?: string
+  map_filter?: string
   date_range: string
+  period_filter?: string
   total_matches: number
   avg_placement: number
-  top_performer: {
+  avg_damage: number
+  avg_survival: number
+  kd_ratio: number
+  top_performer?: {
     name: string
     kills: number
     damage: number
-  }
+  } | null
   summary_stats: {
     total_kills: number
     total_damage: number
-    best_placement: number
+    best_placement: number | null
+    matches_today: number
+    matches_week: number
+  }
+  filters_applied?: {
+    team: boolean
+    player: boolean
+    map: boolean
+    time_period: boolean
   }
 }
 

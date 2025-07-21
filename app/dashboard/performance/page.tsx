@@ -176,12 +176,22 @@ export default function PerformancePage() {
   const canSubmitPerformance = userRole === 'player'
   const canViewReport = performancePermissions.canView
 
-  // Reset player filter when team changes (for admin/manager)
+  // Auto-select team for players and reset player filter when team changes
   useEffect(() => {
+    if (userRole === 'player' && profile?.team_id && selectedTeam === "all") {
+      setSelectedTeam(profile.team_id)
+    }
     if (selectedTeam !== "all" && (userRole === 'admin' || userRole === 'manager')) {
       setSelectedPlayer("all")
     }
-  }, [selectedTeam, userRole])
+  }, [selectedTeam, userRole, profile?.team_id])
+
+  // Auto-select player for their own data
+  useEffect(() => {
+    if (userRole === 'player' && profile?.id && selectedPlayer === "all") {
+      setSelectedPlayer(profile.id)
+    }
+  }, [userRole, profile?.id, selectedPlayer])
 
   // Enhanced performances with user and team names
   const enhancedPerformances = performances.map(perf => {
@@ -252,6 +262,35 @@ export default function PerformancePage() {
     return true
   })
 
+  // Function to get formatted date range for Discord message
+  const getDateRangeText = () => {
+    switch (selectedTimePeriod) {
+      case "today":
+        return `Today (${new Date().toLocaleDateString()})`
+      case "7days":
+        const sevenDaysAgo = new Date()
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+        return `Last 7 days (${sevenDaysAgo.toLocaleDateString()} - ${new Date().toLocaleDateString()})`
+      case "30days":
+        const thirtyDaysAgo = new Date()
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+        return `Last 30 days (${thirtyDaysAgo.toLocaleDateString()} - ${new Date().toLocaleDateString()})`
+      case "custom":
+        if (customStartDate && customEndDate) {
+          return `${new Date(customStartDate).toLocaleDateString()} - ${new Date(customEndDate).toLocaleDateString()}`
+        } else if (customStartDate) {
+          return `From ${new Date(customStartDate).toLocaleDateString()}`
+        } else if (customEndDate) {
+          return `Until ${new Date(customEndDate).toLocaleDateString()}`
+        } else {
+          return "Custom range (all data)"
+        }
+      case "all":
+      default:
+        return "All time"
+    }
+  }
+
   // Calculate stats for filtered performances
   const stats = {
     totalMatches: filteredPerformances.length,
@@ -273,7 +312,8 @@ export default function PerformancePage() {
       const weekAgo = new Date()
       weekAgo.setDate(weekAgo.getDate() - 7)
       return new Date(p.created_at) >= weekAgo
-    }).length
+    }).length,
+    dateRange: getDateRangeText()
   }
 
   // Role-based filtering logic
@@ -716,18 +756,39 @@ export default function PerformancePage() {
                       team_name: selectedTeam !== 'all' 
                         ? availableTeams.find(t => t.id === selectedTeam)?.name || 'Team'
                         : 'All Teams',
-                      date_range: `${stats.totalMatches} matches`,
+                      player_name: selectedPlayer !== 'all'
+                        ? users.find(u => u.id === selectedPlayer)?.name || 'Player'
+                        : 'All Players',
+                      map_filter: selectedMap !== 'all' ? selectedMap : 'All Maps',
+                      date_range: stats.dateRange,
+                      period_filter: selectedTimePeriod,
                       total_matches: stats.totalMatches,
-                      avg_placement: stats.avgPlacement,
-                      top_performer: {
-                        name: 'Best Performer', // You could calculate this from the data
-                        kills: Math.max(...filteredPerformances.map(p => p.kills)),
-                        damage: Math.max(...filteredPerformances.map(p => p.damage))
-                      },
+                      avg_placement: Math.round(stats.avgPlacement * 100) / 100,
+                      avg_damage: Math.round(stats.avgDamage),
+                      avg_survival: Math.round(stats.avgSurvival),
+                      kd_ratio: Math.round(stats.kdRatio * 100) / 100,
+                      top_performer: filteredPerformances.length > 0 ? {
+                        name: (() => {
+                          const bestKillsPerf = filteredPerformances.reduce((prev, current) => 
+                            ((prev.kills || 0) > (current.kills || 0)) ? prev : current
+                          )
+                          return users.find(u => u.id === bestKillsPerf.player_id)?.name || 'Unknown'
+                        })(),
+                        kills: Math.max(...filteredPerformances.map(p => p.kills || 0)),
+                        damage: Math.max(...filteredPerformances.map(p => p.damage || 0))
+                      } : null,
                       summary_stats: {
                         total_kills: stats.totalKills,
                         total_damage: Math.round(stats.avgDamage * stats.totalMatches),
-                        best_placement: Math.min(...filteredPerformances.map(p => p.placement || 999))
+                        best_placement: filteredPerformances.length > 0 ? Math.min(...filteredPerformances.map(p => p.placement || 999)) : null,
+                        matches_today: stats.todayMatches,
+                        matches_week: stats.weekMatches
+                      },
+                      filters_applied: {
+                        team: selectedTeam !== 'all',
+                        player: selectedPlayer !== 'all', 
+                        map: selectedMap !== 'all',
+                        time_period: selectedTimePeriod !== 'all'
                       }
                     }}
                     teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id}

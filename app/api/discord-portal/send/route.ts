@@ -28,7 +28,8 @@ export async function POST(request: NextRequest) {
       messageType,
       data,
       teamId,
-      webhookTypes = ['team']
+      webhookTypes = ['team'],
+      webhookId
     } = await request.json()
 
     // Get user from session
@@ -110,7 +111,8 @@ export async function POST(request: NextRequest) {
       teamId: finalTeamId,
       triggeredBy: userData.id,
       isAutomatic: false,
-      webhookTypes
+      webhookTypes,
+      webhookId
     })
 
     if (result.success) {
@@ -140,12 +142,51 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const messageType = searchParams.get('messageType') as MessageType
     const dataStr = searchParams.get('data')
+    const webhookId = searchParams.get('webhookId')
 
     if (!messageType || !dataStr) {
       return NextResponse.json(
         { error: 'messageType and data parameters required' },
         { status: 400 }
       )
+    }
+
+    // Validate webhook if provided
+    if (webhookId) {
+      if (!supabase) {
+        return NextResponse.json(
+          { error: 'Service unavailable' },
+          { status: 503 }
+        )
+      }
+
+      // Verify user has access to this webhook
+      const authHeader = request.headers.get('authorization')
+      if (!authHeader) {
+        return NextResponse.json(
+          { error: 'Authorization header required' },
+          { status: 401 }
+        )
+      }
+
+      const token = authHeader.replace('Bearer ', '')
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+      if (authError || !user) {
+        return NextResponse.json(
+          { error: 'Invalid token' },
+          { status: 401 }
+        )
+      }
+
+      // Check if webhook exists and user has access
+      const { getWebhookById } = await import('@/modules/discord-portal')
+      const webhook = await getWebhookById(webhookId)
+      if (!webhook) {
+        return NextResponse.json(
+          { error: 'Webhook not found or inactive' },
+          { status: 404 }
+        )
+      }
     }
 
     const data = JSON.parse(dataStr)
