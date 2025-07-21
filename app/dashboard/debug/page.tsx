@@ -20,6 +20,7 @@ export default function DebugPage() {
     { name: 'Authentication', status: 'pending', message: 'Not tested' },
     { name: 'Teams API', status: 'pending', message: 'Not tested' },
     { name: 'Users API', status: 'pending', message: 'Not tested' },
+    { name: 'User Role Update', status: 'pending', message: 'Not tested' },
     { name: 'Performances API', status: 'pending', message: 'Not tested' },
     { name: 'Discord Portal APIs', status: 'pending', message: 'Not tested' }
   ])
@@ -89,10 +90,56 @@ export default function DebugPage() {
     }
   }
 
+  const testUserRoleUpdate = async () => {
+    updateTest('User Role Update', 'loading', 'Testing role update...')
+    try {
+      const token = await getToken()
+      if (!token) {
+        updateTest('User Role Update', 'error', 'No auth token')
+        return
+      }
+
+      // Test with current user - safe test using same role
+      const updateResponse = await fetch('/api/users', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          userId: profile?.id,
+          role: profile?.role, // Same role, safe test
+          team_id: profile?.team_id
+        })
+      })
+
+      const updateResult = await updateResponse.json()
+
+      if (!updateResponse.ok) {
+        updateTest('User Role Update', 'error', `Role update failed: ${updateResult.error}`, {
+          statusCode: updateResponse.status,
+          errorDetails: updateResult,
+          profileUsed: { id: profile?.id, role: profile?.role }
+        })
+        return
+      }
+
+      updateTest('User Role Update', 'success', `Role update worked! Method: ${updateResult.method}`, {
+        method: updateResult.method,
+        result: updateResult
+      })
+    } catch (error: any) {
+      updateTest('User Role Update', 'error', `Test failed: ${error.message}`, {
+        error: error.toString()
+      })
+    }
+  }
+
   const runAllTests = async () => {
     await testAuth()
     await testAPI('/api/teams', 'Teams API')
     await testAPI('/api/users', 'Users API')
+    await testUserRoleUpdate()
     await testAPI('/api/performances', 'Performances API')
     await testAPI('/api/discord-portal/webhooks', 'Discord Portal APIs')
   }
