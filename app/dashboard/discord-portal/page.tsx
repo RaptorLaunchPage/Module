@@ -111,13 +111,14 @@ export default function CommunicationPage() {
         const webhooksData = await webhooksResponse.json()
         setWebhooks(webhooksData || [])
       } else {
-        const errorText = await webhooksResponse.text()
-        throw new Error(`Failed to load webhooks: ${webhooksResponse.status} ${errorText}`)
+        console.warn('Failed to load webhooks:', webhooksResponse.status)
+        // Don't throw error for webhooks, just log it
+        setWebhooks([])
       }
 
       if (logsResponse.ok) {
         const logsData = await logsResponse.json()
-        const logs = logsData || []
+        const logs = logsData.logs || logsData || []
         
         // Calculate stats from logs
         const totalMessages = logs.length
@@ -138,8 +139,15 @@ export default function CommunicationPage() {
           messageTypeStats
         })
       } else {
-        const errorText = await logsResponse.text()
-        throw new Error(`Failed to load message logs: ${logsResponse.status} ${errorText}`)
+        console.warn('Failed to load logs:', logsResponse.status)
+        // Set empty stats if logs fail but don't error out completely
+        setStats({
+          totalMessages: 0,
+          successfulMessages: 0,
+          failedMessages: 0,
+          successRate: 0,
+          messageTypeStats: {}
+        })
       }
       
       setDataFetched(true)

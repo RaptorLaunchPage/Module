@@ -176,6 +176,13 @@ export default function PerformancePage() {
   const canSubmitPerformance = userRole === 'player'
   const canViewReport = performancePermissions.canView
 
+  // Reset player filter when team changes (for admin/manager)
+  useEffect(() => {
+    if (selectedTeam !== "all" && (userRole === 'admin' || userRole === 'manager')) {
+      setSelectedPlayer("all")
+    }
+  }, [selectedTeam, userRole])
+
   // Enhanced performances with user and team names
   const enhancedPerformances = performances.map(perf => {
     const user = users.find(u => u.id === perf.player_id)
@@ -225,8 +232,19 @@ export default function PerformancePage() {
     }
   }
 
-  // Filter performances based on selected filters
+  // Filter performances based on selected filters and role permissions
   const filteredPerformances = enhancedPerformances.filter(perf => {
+    // Role-based access control
+    if (userRole === 'player' && perf.player_id !== profile?.id) {
+      // Players can only see their own performance data
+      return false
+    }
+    if (userRole === 'coach' && perf.team_id !== profile?.team_id) {
+      // Coaches can only see their team's data
+      return false
+    }
+    
+    // Apply user-selected filters
     if (selectedTeam !== "all" && perf.team_id !== selectedTeam) return false
     if (selectedPlayer !== "all" && perf.player_id !== selectedPlayer) return false
     if (selectedMap !== "all" && perf.map !== selectedMap) return false
@@ -258,14 +276,47 @@ export default function PerformancePage() {
     }).length
   }
 
-  // Get unique values for filters - Admin/Manager see all, others see only relevant data
-  const availableTeams = (userRole === 'admin' || userRole === 'manager') 
-    ? teams  // Show all teams for admin/manager
-    : teams.filter(team => enhancedPerformances.some(p => p.team_id === team.id))
-    
-  const availablePlayers = (userRole === 'admin' || userRole === 'manager')
-    ? users.filter(user => user.role === 'player' || user.role === 'coach')  // Show all players/coaches for admin/manager
-    : users.filter(user => enhancedPerformances.some(p => p.player_id === user.id))
+  // Role-based filtering logic
+  const getAvailableTeams = () => {
+    if (userRole === 'admin' || userRole === 'manager') {
+      return teams  // Admin/Manager see all teams
+    } else if (userRole === 'coach') {
+      // Coach sees assigned team(s)
+      return teams.filter(team => profile?.team_id === team.id)
+    } else {
+      // Players see their own team
+      return teams.filter(team => profile?.team_id === team.id)
+    }
+  }
+
+  const getAvailablePlayers = () => {
+    if (userRole === 'admin' || userRole === 'manager') {
+      // Admin/Manager see all players, filtered by selected team if any
+      if (selectedTeam === "all") {
+        return users.filter(user => user.role === 'player' || user.role === 'coach')
+      } else {
+        return users.filter(user => 
+          (user.role === 'player' || user.role === 'coach') && 
+          user.team_id === selectedTeam
+        )
+      }
+    } else if (userRole === 'coach') {
+      // Coach sees players in their assigned team
+      return users.filter(user => 
+        (user.role === 'player' || user.role === 'coach') && 
+        user.team_id === profile?.team_id
+      )
+    } else {
+      // Players see only themselves and their team members
+      return users.filter(user => 
+        user.id === profile?.id || 
+        (user.team_id === profile?.team_id && (user.role === 'player' || user.role === 'coach'))
+      )
+    }
+  }
+
+  const availableTeams = getAvailableTeams()
+  const availablePlayers = getAvailablePlayers()
     
   const availableMaps = [...new Set(enhancedPerformances.map(p => p.map).filter(Boolean))]
 
