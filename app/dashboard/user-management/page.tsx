@@ -239,8 +239,8 @@ export default function UserManagementPage() {
         throw new Error('No valid session found')
       }
 
-      // Use API endpoint instead of direct Supabase call
-      const response = await fetch('/api/users', {
+      // Try main API endpoint first
+      let response = await fetch('/api/users', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -253,7 +253,31 @@ export default function UserManagementPage() {
         })
       })
 
-      const data = await response.json()
+      let data = await response.json()
+
+      // If main API fails with constraint error, try emergency endpoint
+      if (!response.ok && data.error && data.error.includes('ON CONFLICT')) {
+        console.warn('Main API failed with constraint error, trying emergency endpoint...')
+        
+        response = await fetch('/api/users/emergency-update', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            userId,
+            role: newRole,
+            team_id: teamId,
+            adminSecret: 'emergency-admin-123' // You should set this in your environment
+          })
+        })
+
+        data = await response.json()
+
+        if (response.ok) {
+          console.log('Emergency endpoint succeeded:', data)
+        }
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to update user')

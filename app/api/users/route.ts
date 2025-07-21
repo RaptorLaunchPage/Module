@@ -157,7 +157,32 @@ export async function PUT(request: NextRequest) {
       updateData.team_id = team_id
     }
 
-    // Try using the simple update function first (to avoid constraint issues)
+    // Use a more direct approach to avoid ON CONFLICT issues
+    console.log('Attempting user update with data:', updateData)
+    
+    // Method 1: Try using the raw SQL update function
+    try {
+      const { data: rawResult, error: rawError } = await userSupabase!
+        .rpc('update_user_role_raw', {
+          p_user_id: userId,
+          p_role: role,
+          p_team_id: team_id
+        })
+
+      if (!rawError && rawResult) {
+        console.log('Raw SQL function succeeded:', rawResult)
+        return NextResponse.json({
+          success: true,
+          user: rawResult
+        })
+      }
+
+      console.warn('Raw SQL function failed:', rawError?.message)
+    } catch (rawErr: any) {
+      console.warn('Raw SQL function error:', rawErr.message)
+    }
+
+    // Method 1b: Try using the simple update function
     try {
       const { data: functionResult, error: functionError } = await userSupabase!
         .rpc('simple_user_update', {
@@ -167,18 +192,46 @@ export async function PUT(request: NextRequest) {
         })
 
       if (!functionError && functionResult) {
+        console.log('Database function succeeded:', functionResult)
         return NextResponse.json({
           success: true,
           user: functionResult
         })
       }
 
-      console.warn('Database function failed, trying direct update:', functionError)
-    } catch (funcErr) {
-      console.warn('Database function error:', funcErr)
+      console.warn('Database function failed:', functionError?.message)
+    } catch (funcErr: any) {
+      console.warn('Database function error:', funcErr.message)
     }
 
-    // Fallback to direct update
+    // Method 2: Try a basic update without any special options
+    try {
+      console.log('Trying basic update for user:', userId)
+      const { data: basicUpdate, error: basicError } = await userSupabase!
+        .from('users')
+        .update({ 
+          role: role,
+          ...(role === 'admin' || role === 'manager' ? { team_id: null } : {}),
+          ...(team_id !== undefined && role !== 'admin' && role !== 'manager' ? { team_id: team_id } : {})
+        })
+        .eq('id', userId)
+        .select()
+        .single()
+
+      if (!basicError && basicUpdate) {
+        console.log('Basic update succeeded:', basicUpdate)
+        return NextResponse.json({
+          success: true,
+          user: basicUpdate
+        })
+      }
+
+      console.warn('Basic update failed:', basicError?.message)
+    } catch (basicErr: any) {
+      console.warn('Basic update error:', basicErr.message)
+    }
+
+    // Method 3: Fallback to the original update method
     const { data: updatedUser, error: updateError } = await userSupabase!
       .from('users')
       .update(updateData)
