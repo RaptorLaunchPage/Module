@@ -77,81 +77,111 @@ export default function UserManagementPage() {
     console.log('🔍 UserManagement: Fetching users...')
     
     try {
-      // Method 1: Direct query with auth bypass for admin
-      console.log('🔍 UserManagement: Attempting direct query...')
-      const { data: directData, error: directError } = await supabase
-        .from("users")
-        .select("*")
-        .order("created_at", { ascending: false })
-      
-      if (directData && directData.length > 0 && !directError) {
-        console.log('✅ UserManagement: Direct query successful:', directData.length, 'users')
-        setAllUsers(directData)
-        setDataSource("Direct Query")
-        return
-      }
-      
-      if (directError) {
-        console.warn('⚠️ UserManagement: Direct query failed:', directError)
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('No valid session found')
       }
 
-      // Method 2: Try with specific admin permissions
-      console.log('🔍 UserManagement: Attempting admin query...')
-      let adminResult
-      try {
-        adminResult = await supabase.rpc('get_all_users_admin')
-      } catch (rpcError) {
-        // Fallback to basic select if RPC doesn't exist
-        console.log('🔍 UserManagement: RPC not found, trying basic select...')
-        adminResult = await supabase
-          .from("users")
-          .select(`
-            id,
-            email,
-            name,
-            role,
-            team_id,
-            avatar_url,
-            created_at,
-            provider,
-            status
-          `)
-          .order("created_at", { ascending: false })
-      }
-      
-      const { data: adminData, error: adminError } = adminResult
-      
-      if (adminData && adminData.length > 0 && !adminError) {
-        console.log('✅ UserManagement: Admin query successful:', adminData.length, 'users')
-        setAllUsers(adminData)
-        setDataSource("Admin Query")
-        return
+      // Use API endpoint instead of direct Supabase call
+      console.log('🔍 UserManagement: Attempting API call...')
+      const response = await fetch('/api/users', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to fetch users')
       }
 
-      if (adminError) {
-        console.warn('⚠️ UserManagement: Admin query failed:', adminError)
-      }
+      const users = await response.json()
+      console.log('✅ UserManagement: API call successful:', users.length, 'users')
+      setAllUsers(users)
+      setDataSource("API Endpoint")
+      return
 
-      // Method 3: Emergency raw query
-      console.log('🔍 UserManagement: Attempting emergency query...')
-      const { data: emergencyData, error: emergencyError } = await supabase
-        .from("users")
-        .select("*")
-        .limit(1000) // Large limit to get all users
-      
-      if (emergencyData && !emergencyError) {
-        console.log('✅ UserManagement: Emergency query successful:', emergencyData.length, 'users')
-        setAllUsers(emergencyData || [])
-        setDataSource("Emergency Query")
-        return
-      }
-
-      // All methods failed
-      throw new Error(`All data fetching methods failed. Last error: ${emergencyError?.message || 'Unknown error'}`)
-      
     } catch (err: any) {
-      console.error('❌ UserManagement: All user fetch methods failed:', err)
-      throw new Error(`Cannot fetch users: ${err.message}`)
+      console.error('❌ UserManagement: API call failed, falling back to direct query:', err)
+      
+      try {
+        // Fallback to direct query
+        console.log('🔍 UserManagement: Attempting direct query fallback...')
+        const { data: directData, error: directError } = await supabase
+          .from("users")
+          .select("*")
+          .order("created_at", { ascending: false })
+        
+        if (directData && directData.length > 0 && !directError) {
+          console.log('✅ UserManagement: Direct query fallback successful:', directData.length, 'users')
+          setAllUsers(directData)
+          setDataSource("Direct Query (Fallback)")
+          return
+        }
+        
+        if (directError) {
+          console.warn('⚠️ UserManagement: Direct query fallback failed:', directError)
+        }
+
+        // Method 3: Try with specific admin permissions
+        console.log('🔍 UserManagement: Attempting admin query...')
+        let adminResult
+        try {
+          adminResult = await supabase.rpc('get_all_users_admin')
+        } catch (rpcError) {
+          // Fallback to basic select if RPC doesn't exist
+          console.log('🔍 UserManagement: RPC not found, trying basic select...')
+          adminResult = await supabase
+            .from("users")
+            .select(`
+              id,
+              email,
+              name,
+              role,
+              team_id,
+              avatar_url,
+              created_at,
+              provider,
+              status
+            `)
+            .order("created_at", { ascending: false })
+        }
+        
+        const { data: adminData, error: adminError } = adminResult
+        
+        if (adminData && adminData.length > 0 && !adminError) {
+          console.log('✅ UserManagement: Admin query successful:', adminData.length, 'users')
+          setAllUsers(adminData)
+          setDataSource("Admin Query")
+          return
+        }
+
+        if (adminError) {
+          console.warn('⚠️ UserManagement: Admin query failed:', adminError)
+        }
+
+        // Method 4: Emergency raw query
+        console.log('🔍 UserManagement: Attempting emergency query...')
+        const { data: emergencyData, error: emergencyError } = await supabase
+          .from("users")
+          .select("*")
+          .limit(1000) // Large limit to get all users
+        
+        if (emergencyData && !emergencyError) {
+          console.log('✅ UserManagement: Emergency query successful:', emergencyData.length, 'users')
+          setAllUsers(emergencyData || [])
+          setDataSource("Emergency Query")
+          return
+        }
+
+        // All methods failed
+        throw new Error(`All data fetching methods failed. Last error: ${emergencyError?.message || 'Unknown error'}`)
+        
+      } catch (fallbackErr: any) {
+        console.error('❌ UserManagement: All user fetch methods failed:', fallbackErr)
+        throw new Error(`Cannot fetch users: ${fallbackErr.message}`)
+      }
     }
   }
 
@@ -203,29 +233,37 @@ export default function UserManagementPage() {
     console.log('🔄 UserManagement: Updating user role:', { userId, newRole, teamId })
     
     try {
-      const updateData: any = { role: newRole }
-      
-      // Handle team assignment based on role
-      if (newRole === 'admin' || newRole === 'manager') {
-        updateData.team_id = null
-      } else if (teamId !== undefined) {
-        updateData.team_id = teamId
+      // Get auth token
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('No valid session found')
       }
 
-      const { error } = await supabase
-        .from("users")
-        .update(updateData)
-        .eq("id", userId)
+      // Use API endpoint instead of direct Supabase call
+      const response = await fetch('/api/users', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          userId,
+          role: newRole,
+          team_id: teamId
+        })
+      })
 
-      if (error) {
-        throw error
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update user')
       }
 
-      // Update local state
+      // Update local state with the returned user data
       setAllUsers(users => 
         users.map(user => 
           user.id === userId 
-            ? { ...user, ...updateData }
+            ? { ...user, ...data.user }
             : user
         )
       )

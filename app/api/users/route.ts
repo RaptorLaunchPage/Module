@@ -106,3 +106,83 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+// PUT - Update user role and team
+export async function PUT(request: NextRequest) {
+  try {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 503 }
+      )
+    }
+
+    const { userData, userSupabase, error, status } = await getUserFromRequest(request)
+    if (error) {
+      return NextResponse.json({ error }, { status })
+    }
+
+    // Check permissions - only admin can update user roles
+    if (userData!.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Only administrators can update user roles' },
+        { status: 403 }
+      )
+    }
+
+    const { userId, role, team_id } = await request.json()
+
+    if (!userId || !role) {
+      return NextResponse.json(
+        { error: 'User ID and role are required' },
+        { status: 400 }
+      )
+    }
+
+    // Validate role
+    const validRoles = ['admin', 'manager', 'coach', 'analyst', 'player', 'pending_player']
+    if (!validRoles.includes(role)) {
+      return NextResponse.json(
+        { error: 'Invalid role specified' },
+        { status: 400 }
+      )
+    }
+
+    const updateData: any = { role }
+
+    // Handle team assignment based on role
+    if (role === 'admin' || role === 'manager') {
+      updateData.team_id = null
+    } else if (team_id !== undefined) {
+      updateData.team_id = team_id
+    }
+
+    // Update user using authenticated client
+    const { data: updatedUser, error: updateError } = await userSupabase!
+      .from('users')
+      .update(updateData)
+      .eq('id', userId)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error('Error updating user:', updateError)
+      return NextResponse.json(
+        { error: `Failed to update user: ${updateError.message}` },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      user: updatedUser
+    })
+
+  } catch (error) {
+    console.error('Error in users PUT API:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
