@@ -93,6 +93,30 @@ export async function getAllWebhooks(): Promise<DiscordWebhook[]> {
 }
 
 /**
+ * Get a specific webhook by ID
+ */
+export async function getWebhookById(webhookId: string): Promise<DiscordWebhook | null> {
+  const { data, error } = await ensureSupabase()
+    .from('discord_webhooks')
+    .select(`
+      *,
+      teams:team_id (
+        name
+      )
+    `)
+    .eq('id', webhookId)
+    .eq('active', true)
+    .single()
+
+  if (error) {
+    console.error('Error fetching webhook by ID:', error)
+    return null
+  }
+
+  return data
+}
+
+/**
  * Create a new webhook
  */
 export async function createWebhook(webhook: DiscordWebhookInsert): Promise<{ success: boolean; webhook?: DiscordWebhook; error?: string }> {
