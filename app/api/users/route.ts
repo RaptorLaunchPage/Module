@@ -157,19 +157,62 @@ export async function PUT(request: NextRequest) {
       updateData.team_id = team_id
     }
 
-    // Use a more direct approach to avoid ON CONFLICT issues
+    // Use bulletproof function to avoid ON CONFLICT issues
     console.log('Attempting user update with data:', updateData)
     
-    // Method 1: Try using the super simple update function (safest)
+    // Method 1: Try the bulletproof update function (should always work)
     try {
-      const { data: superSimpleResult, error: superSimpleError } = await userSupabase!
-        .rpc('super_simple_user_update', {
+      const { data: bulletproofResult, error: bulletproofError } = await userSupabase!
+        .rpc('bulletproof_user_update', {
+          p_user_id: userId,
+          p_role: role,
+          p_team_id: team_id || null
+        })
+
+      if (!bulletproofError && bulletproofResult) {
+        console.log('Bulletproof function result:', bulletproofResult)
+        
+        // Check if the function returned an error internally
+        if (bulletproofResult.error) {
+          console.warn('Bulletproof function internal error:', bulletproofResult.error)
+        } else {
+          // Success! Fetch the updated user data
+          const { data: updatedUserData } = await userSupabase!
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .single()
+          
+          return NextResponse.json({
+            success: true,
+            user: updatedUserData,
+            method: 'bulletproof_function'
+          })
+        }
+      } else {
+        console.warn('Bulletproof function failed:', bulletproofError?.message)
+      }
+    } catch (bulletproofErr: any) {
+      console.warn('Bulletproof function error:', bulletproofErr.message)
+    }
+
+    // Method 2: Try the minimal update function (backup)
+    try {
+      const { data: minimalResult, error: minimalError } = await userSupabase!
+        .rpc('minimal_user_update', {
           p_user_id: userId,
           p_role: role
         })
 
-      if (!superSimpleError && superSimpleResult) {
-        console.log('Super simple function succeeded:', superSimpleResult)
+      if (!minimalError && minimalResult === 'SUCCESS') {
+        console.log('Minimal function succeeded')
+        
+        // Manually update team_id if needed (since minimal function only updates role)
+        if (role === 'admin' || role === 'manager') {
+          await userSupabase!.from('users').update({ team_id: null }).eq('id', userId)
+        } else if (team_id !== undefined) {
+          await userSupabase!.from('users').update({ team_id: team_id }).eq('id', userId)
+        }
         
         // Fetch the updated user data
         const { data: updatedUserData } = await userSupabase!
@@ -181,13 +224,13 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({
           success: true,
           user: updatedUserData,
-          method: 'super_simple_function'
+          method: 'minimal_function'
         })
       }
 
-      console.warn('Super simple function failed:', superSimpleError?.message)
-    } catch (superSimpleErr: any) {
-      console.warn('Super simple function error:', superSimpleErr.message)
+      console.warn('Minimal function failed:', minimalError?.message || minimalResult)
+    } catch (minimalErr: any) {
+      console.warn('Minimal function error:', minimalErr.message)
     }
 
     // Method 1b: Try using the emergency update function (no env vars needed)
