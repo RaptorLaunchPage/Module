@@ -1,13 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/hooks/use-auth"
-import { MessageSquare, Send, Eye, Loader2 } from "lucide-react"
+import { MessageSquare, Send, Eye, Loader2, Webhook, AlertCircle } from "lucide-react"
 import type { MessageType } from "@/modules/discord-portal"
 
 interface SendToDiscordButtonProps {
@@ -37,6 +39,16 @@ interface DiscordEmbed {
   timestamp?: string
 }
 
+interface AvailableWebhook {
+  id: string
+  hook_url: string
+  channel_name?: string
+  type: 'team' | 'admin' | 'global'
+  active: boolean
+  team_id?: string
+  teams?: { name: string } | null
+}
+
 export function SendToDiscordButton({
   messageType,
   data,
@@ -53,9 +65,85 @@ export function SendToDiscordButton({
   const [isLoading, setIsLoading] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [preview, setPreview] = useState<{ embeds: DiscordEmbed[] } | null>(null)
+  const [availableWebhooks, setAvailableWebhooks] = useState<AvailableWebhook[]>([])
+  const [selectedWebhookId, setSelectedWebhookId] = useState<string>("")
+  const [loadingWebhooks, setLoadingWebhooks] = useState(false)
 
   // Check if user has permission to send messages
   const canSendMessages = profile?.role && ['admin', 'manager', 'coach', 'analyst'].includes(profile.role)
+
+  // Load available webhooks when dialog opens
+  useEffect(() => {
+    if (isOpen && canSendMessages) {
+      loadAvailableWebhooks()
+    }
+  }, [isOpen, canSendMessages])
+
+  const loadAvailableWebhooks = async () => {
+    setLoadingWebhooks(true)
+    try {
+      const token = await getToken()
+      const response = await fetch('/api/discord-portal/webhooks', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const webhooks = data.webhooks || data || []
+        
+        // Filter webhooks based on the requested webhook types and user permissions
+        const filteredWebhooks = webhooks.filter((webhook: AvailableWebhook) => {
+          if (!webhook.active) return false
+          
+          // Always include admin and global webhooks if requested
+          if (['admin', 'global'].includes(webhook.type) && webhookTypes.includes(webhook.type as any)) {
+            return true
+          }
+          
+          // For team webhooks, check if it matches the requested team or if no specific team is requested
+          if (webhook.type === 'team' && webhookTypes.includes('team')) {
+            // If specific team is requested, only show that team's webhooks
+            if (teamId) {
+              return webhook.team_id === teamId
+            }
+            // If no specific team, show all team webhooks (for admin/manager users)
+            return true
+          }
+          
+          return false
+        })
+
+        setAvailableWebhooks(filteredWebhooks)
+        
+        // Auto-select first webhook if only one available
+        if (filteredWebhooks.length === 1) {
+          setSelectedWebhookId(filteredWebhooks[0].id)
+        } else if (filteredWebhooks.length === 0) {
+          toast({
+            title: "No Webhooks Available",
+            description: "No active Discord webhooks found. Please configure webhooks first.",
+            variant: "destructive"
+          })
+        }
+      } else {
+        console.error('Failed to load webhooks')
+        toast({
+          title: "Error Loading Webhooks",
+          description: "Failed to load available Discord webhooks",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      console.error('Error loading webhooks:', error)
+      toast({
+        title: "Error Loading Webhooks",
+        description: "Network error while loading webhooks",
+        variant: "destructive"
+      })
+    } finally {
+      setLoadingWebhooks(false)
+    }
+  }
 
   const generatePreview = async () => {
     if (!canSendMessages) return
@@ -63,7 +151,16 @@ export function SendToDiscordButton({
     setIsLoading(true)
     try {
       const token = await getToken()
-      const response = await fetch(`/api/discord-portal/send?messageType=${messageType}&data=${encodeURIComponent(JSON.stringify(data))}`, {
+      const queryParams = new URLSearchParams({
+        messageType,
+        data: JSON.stringify(data)
+      })
+      
+      if (selectedWebhookId) {
+        queryParams.append('webhookId', selectedWebhookId)
+      }
+
+      const response = await fetch(`/api/discord-portal/send?${queryParams}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -93,7 +190,14 @@ export function SendToDiscordButton({
   }
 
   const sendMessage = async () => {
-    if (!canSendMessages) return
+    if (!canSendMessages || !selectedWebhookId) {
+      toast({
+        title: "No Webhook Selected",
+        description: "Please select a Discord webhook to send the message",
+        variant: "destructive"
+      })
+      return
+    }
 
     setIsSending(true)
     try {
@@ -108,7 +212,8 @@ export function SendToDiscordButton({
           messageType,
           data,
           teamId,
-          webhookTypes
+          webhookTypes,
+          webhookId: selectedWebhookId
         })
       })
 
@@ -162,6 +267,31 @@ export function SendToDiscordButton({
     return names[type] || type
   }
 
+  const getWebhookDisplayName = (webhook: AvailableWebhook) => {
+    const channelName = webhook.channel_name || '#unknown-channel'
+    const teamName = webhook.teams?.name || 'Unknown Team'
+    
+    switch (webhook.type) {
+      case 'team':
+        return `${channelName} (${teamName})`
+      case 'admin':
+        return `${channelName} (Admin)`
+      case 'global':
+        return `${channelName} (Global)`
+      default:
+        return channelName
+    }
+  }
+
+  const getWebhookTypeColor = (type: string) => {
+    switch (type) {
+      case 'team': return 'bg-blue-100 text-blue-800'
+      case 'admin': return 'bg-purple-100 text-purple-800'
+      case 'global': return 'bg-green-100 text-green-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
   if (!canSendMessages) {
     return null // Don't show button if user can't send messages
   }
@@ -200,6 +330,75 @@ export function SendToDiscordButton({
               {webhookTypes.includes('global') && ' Global'}
             </Badge>
           </div>
+
+          {/* Webhook Selection */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Webhook className="h-4 w-4" />
+                Select Discord Channel
+              </CardTitle>
+              <CardDescription>
+                Choose which Discord channel to send this message to
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingWebhooks ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Loading available channels...
+                </div>
+              ) : availableWebhooks.length === 0 ? (
+                <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    <div className="text-sm">
+                      <div className="font-medium text-yellow-800">No webhooks found</div>
+                      <div className="text-yellow-700">Configure Discord webhooks first to send messages</div>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setIsOpen(false)
+                      window.open('/dashboard/discord-portal/webhooks', '_blank')
+                    }}
+                  >
+                    Setup Webhooks
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Select value={selectedWebhookId} onValueChange={setSelectedWebhookId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a Discord channel..." />
+                    </SelectTrigger>
+                                         <SelectContent>
+                       {availableWebhooks.map((webhook) => (
+                         <SelectItem key={webhook.id} value={webhook.id}>
+                           <div className="flex items-center gap-2 w-full">
+                             <span className={`px-2 py-1 text-xs rounded ${getWebhookTypeColor(webhook.type)}`}>
+                               {webhook.type}
+                             </span>
+                             <span className="truncate">{getWebhookDisplayName(webhook)}</span>
+                           </div>
+                         </SelectItem>
+                       ))}
+                     </SelectContent>
+                  </Select>
+                  
+                  {selectedWebhookId && (
+                    <div className="text-sm text-muted-foreground">
+                      Selected: {getWebhookDisplayName(availableWebhooks.find(w => w.id === selectedWebhookId)!)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Separator />
 
           {/* Preview Section */}
           <Card>
@@ -275,26 +474,50 @@ export function SendToDiscordButton({
           </Card>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setIsOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={sendMessage} 
-              disabled={!preview || isSending}
-            >
-              {isSending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" />
-                  Send to Discord
-                </>
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-muted-foreground">
+              {availableWebhooks.length > 0 && !selectedWebhookId && (
+                "Please select a Discord channel to continue"
               )}
-            </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={generatePreview}
+                disabled={!selectedWebhookId || loadingWebhooks}
+                variant="outline"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Preview
+                  </>
+                )}
+              </Button>
+              <Button 
+                onClick={sendMessage} 
+                disabled={!preview || isSending || !selectedWebhookId}
+              >
+                {isSending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    Send to Discord
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

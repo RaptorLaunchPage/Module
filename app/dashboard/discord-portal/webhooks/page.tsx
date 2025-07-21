@@ -29,6 +29,7 @@ interface DiscordWebhook {
   id: string
   team_id: string | null
   hook_url: string
+  channel_name?: string
   type: 'team' | 'admin' | 'global'
   active: boolean
   created_at: string
@@ -53,6 +54,7 @@ export default function WebhooksPage() {
     hook_url: '',
     type: 'team' as 'team' | 'admin' | 'global',
     team_id: '',
+    channel_name: '',
     active: true
   })
   const [validating, setValidating] = useState(false)
@@ -258,6 +260,7 @@ export default function WebhooksPage() {
       hook_url: '',
       type: 'team',
       team_id: '',
+      channel_name: '',
       active: true
     })
     setEditingWebhook(null)
@@ -268,6 +271,7 @@ export default function WebhooksPage() {
       hook_url: webhook.hook_url,
       type: webhook.type,
       team_id: webhook.team_id || '',
+      channel_name: webhook.channel_name || '',
       active: webhook.active
     })
     setEditingWebhook(webhook)
@@ -361,6 +365,20 @@ export default function WebhooksPage() {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="channel_name">Discord Channel Name</Label>
+                <Input
+                  id="channel_name"
+                  type="text"
+                  placeholder="e.g., #general, #performance-updates, #team-alerts"
+                  value={formData.channel_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, channel_name: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the Discord channel name where messages will be sent (for easy identification)
+                </p>
+              </div>
+
               {formData.type === 'team' && (
                 <div className="space-y-2">
                   <Label htmlFor="team_id">Team</Label>
@@ -444,6 +462,7 @@ export default function WebhooksPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Type</TableHead>
+                      <TableHead>Channel</TableHead>
                       <TableHead>Team</TableHead>
                       <TableHead>URL</TableHead>
                       <TableHead>Status</TableHead>
@@ -458,6 +477,11 @@ export default function WebhooksPage() {
                           <Badge className={getTypeColor(webhook.type)}>
                             {webhook.type}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm">
+                            {webhook.channel_name || '#unknown-channel'}
+                          </span>
                         </TableCell>
                         <TableCell>
                           {webhook.teams?.name || webhook.type === 'team' ? 'Unknown Team' : '-'}

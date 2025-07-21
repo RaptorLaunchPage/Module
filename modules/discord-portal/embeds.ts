@@ -126,42 +126,91 @@ export function formatRosterUpdateEmbed(data: RosterUpdateData): DiscordEmbed {
  * Format performance summary embed
  */
 export function formatPerformanceSummaryEmbed(data: PerformanceSummaryData): DiscordEmbed {
-  return {
-    ...getBaseEmbed('performance_summary'),
-    title: '📊 Performance Summary',
-    description: `Performance report for **${data.team_name}**`,
-    fields: [
+  // Build description based on filters applied
+  let description = `Performance report for **${data.team_name}**`
+  
+  const filtersApplied = []
+  if (data.filters_applied?.player) {
+    filtersApplied.push(`Player: **${data.player_name}**`)
+  }
+  if (data.filters_applied?.map) {
+    filtersApplied.push(`Map: **${data.map_filter}**`)
+  }
+  
+  if (filtersApplied.length > 0) {
+    description += `\n🔍 Filters: ${filtersApplied.join(' • ')}`
+  }
+
+  const fields = [
+    {
+      name: '📅 Date Range',
+      value: data.date_range,
+      inline: false
+    },
+    {
+      name: '🎯 Total Matches',
+      value: data.total_matches.toString(),
+      inline: true
+    },
+    {
+      name: '🏆 Avg Placement',
+      value: data.total_matches > 0 ? `#${data.avg_placement}` : 'No data',
+      inline: true
+    },
+    {
+      name: '💀 K/D Ratio',
+      value: data.total_matches > 0 ? data.kd_ratio.toString() : 'No data',
+      inline: true
+    }
+  ]
+
+  // Add performance metrics if we have data
+  if (data.total_matches > 0) {
+    fields.push(
       {
-        name: '📅 Period',
-        value: data.date_range,
-        inline: false
-      },
-      {
-        name: '🎯 Total Matches',
-        value: data.total_matches.toString(),
+        name: '💥 Average Damage',
+        value: data.avg_damage.toLocaleString(),
         inline: true
       },
       {
-        name: '🏆 Average Placement',
-        value: `#${data.avg_placement.toFixed(1)}`,
+        name: '⏱️ Avg Survival',
+        value: `${Math.round(data.avg_survival)} seconds`,
         inline: true
       },
       {
         name: '⭐ Best Placement',
-        value: `#${data.summary_stats.best_placement}`,
-        inline: true
-      },
-      {
-        name: '🔥 Top Performer',
-        value: `**${data.top_performer.name}**\n${data.top_performer.kills} kills | ${data.top_performer.damage.toLocaleString()} damage`,
-        inline: false
-      },
-      {
-        name: '📈 Team Totals',
-        value: `**${data.summary_stats.total_kills}** kills\n**${data.summary_stats.total_damage.toLocaleString()}** damage`,
+        value: data.summary_stats.best_placement ? `#${data.summary_stats.best_placement}` : 'No data',
         inline: true
       }
-    ]
+    )
+
+    // Add top performer if available
+    if (data.top_performer) {
+      fields.push({
+        name: '🔥 Top Performer',
+        value: `**${data.top_performer.name}**\n${data.top_performer.kills} kills • ${data.top_performer.damage.toLocaleString()} damage`,
+        inline: false
+      })
+    }
+
+    // Add team totals
+    fields.push({
+      name: '📈 Team Statistics',
+      value: [
+        `**${data.summary_stats.total_kills}** total kills`,
+        `**${data.summary_stats.total_damage.toLocaleString()}** total damage`,
+        `**${data.summary_stats.matches_today}** matches today`,
+        `**${data.summary_stats.matches_week}** matches this week`
+      ].join('\n'),
+      inline: true
+    })
+  }
+
+  return {
+    ...getBaseEmbed('performance_summary'),
+    title: '📊 Performance Summary',
+    description,
+    fields
   }
 }
 

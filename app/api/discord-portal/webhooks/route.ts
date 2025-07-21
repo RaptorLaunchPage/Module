@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
-    const { hook_url, type, team_id, active = true } = await request.json()
+    const { hook_url, type, team_id, channel_name, active = true } = await request.json()
 
     // Check permissions
     const canManageWebhooks = userData!.role === 'admin' || 
@@ -177,6 +177,7 @@ export async function POST(request: NextRequest) {
       hook_url,
       type,
       team_id: type === 'team' ? team_id : null,
+      channel_name,
       active,
       created_by: userData!.id
     }

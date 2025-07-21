@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { MarkAttendance } from "@/components/attendance/mark-attendance"
+import { EnhancedMarkAttendance } from "@/components/attendance/enhanced-mark-attendance"
+import { SessionAttendance } from "@/components/attendance/session-attendance"
 import { AttendanceLogs } from "@/components/attendance/attendance-logs"
 import { AttendanceStats } from "@/components/attendance/attendance-stats"
 import { SendToDiscordButton } from "@/components/discord-portal/send-to-discord-button"
@@ -286,11 +288,15 @@ export default function AttendancePage() {
         </Card>
 
         {/* Main Content */}
-        <Tabs defaultValue="mark" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="sessions" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="sessions" className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Sessions
+            </TabsTrigger>
             <TabsTrigger value="mark" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              Mark Attendance
+              Enhanced Mark
             </TabsTrigger>
             <TabsTrigger value="logs" className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
@@ -302,9 +308,17 @@ export default function AttendancePage() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="sessions">
+            <SessionAttendance 
+              userProfile={profile}
+              teams={teams}
+              users={users}
+            />
+          </TabsContent>
+
           <TabsContent value="mark">
             {canMarkAttendance ? (
-              <MarkAttendance 
+              <EnhancedMarkAttendance 
                 onAttendanceMarked={fetchAttendances}
                 userProfile={profile}
                 teams={teams}

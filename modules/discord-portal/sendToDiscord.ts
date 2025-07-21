@@ -8,7 +8,7 @@ import type {
   AutomationKey
 } from './types'
 import { formatEmbed } from './embeds'
-import { getTeamWebhooks, getAdminWebhooks, isAutomationEnabled } from './webhookService'
+import { getTeamWebhooks, getAdminWebhooks, getWebhookById, isAutomationEnabled } from './webhookService'
 
 // Use the same Supabase client configuration as the main app
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -41,7 +41,8 @@ export async function sendToDiscord({
   teamId,
   triggeredBy,
   isAutomatic = false,
-  webhookTypes = ['team']
+  webhookTypes = ['team'],
+  webhookId
 }: {
   messageType: MessageType
   data: any
@@ -49,6 +50,7 @@ export async function sendToDiscord({
   triggeredBy?: string
   isAutomatic?: boolean
   webhookTypes?: ('team' | 'admin' | 'global')[]
+  webhookId?: string
 }): Promise<SendMessageResponse> {
   try {
     // If this is an automatic message, check if automation is enabled
@@ -66,12 +68,26 @@ export async function sendToDiscord({
     }
 
     // Get appropriate webhooks
-    const webhooks = await getWebhooksForMessage(teamId, webhookTypes)
-    
-    if (webhooks.length === 0) {
-      return { 
-        success: false, 
-        error: `No active webhooks found for ${webhookTypes.join(', ')} notifications` 
+    let webhooks
+    if (webhookId) {
+      // Use specific webhook if provided
+      const specificWebhook = await getWebhookById(webhookId)
+      if (!specificWebhook) {
+        return { 
+          success: false, 
+          error: 'Selected webhook not found or inactive' 
+        }
+      }
+      webhooks = [specificWebhook]
+    } else {
+      // Use the existing logic to get webhooks by type
+      webhooks = await getWebhooksForMessage(teamId, webhookTypes)
+      
+      if (webhooks.length === 0) {
+        return { 
+          success: false, 
+          error: `No active webhooks found for ${webhookTypes.join(', ')} notifications` 
+        }
       }
     }
 
