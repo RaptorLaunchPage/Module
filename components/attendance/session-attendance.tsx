@@ -436,11 +436,11 @@ export function SessionAttendance({ userProfile, teams, users }: SessionAttendan
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Eye className="h-5 w-5" />
-                  Tournament & Meeting Sessions
+                  Scrims & Meeting Sessions
                   <Badge variant="outline">Auto-Tracked</Badge>
                 </CardTitle>
                 <CardDescription>
-                  Tournament attendance auto-tracked from performance data, meetings created by admin
+                  Scrims attendance auto-tracked from performance data, meetings created by admin
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -461,7 +461,7 @@ export function SessionAttendance({ userProfile, teams, users }: SessionAttendan
                                 <h4 className="font-medium">{session.title || session.session_subtype}</h4>
                                 <p className="text-sm text-muted-foreground">
                                   {session.session_type.charAt(0).toUpperCase() + session.session_type.slice(1)}
-                                  {session.session_type === 'tournament' && session.session_subtype === 'Match' && (
+                                  {session.session_type === 'tournament' && session.session_subtype === 'Scrims' && (
                                     <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                                       Auto from Performance
                                     </span>

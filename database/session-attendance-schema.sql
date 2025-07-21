@@ -285,9 +285,9 @@ BEGIN
     SELECT 
         NEW.team_id,
         'tournament',
-        'Match',
+        'Scrims',
         performance_date,
-        'Auto-generated Match Session',
+        'Auto-generated Scrims Session',
         false,
         NEW.player_id
     WHERE NOT EXISTS (
@@ -295,7 +295,7 @@ BEGIN
         WHERE team_id = NEW.team_id 
         AND date = performance_date 
         AND session_type = 'tournament'
-        AND session_subtype = 'Match'
+        AND session_subtype = 'Scrims'
     )
     RETURNING id INTO match_session_id;
 
@@ -306,7 +306,7 @@ BEGIN
         WHERE team_id = NEW.team_id 
         AND date = performance_date 
         AND session_type = 'tournament'
-        AND session_subtype = 'Match';
+        AND session_subtype = 'Scrims';
     END IF;
 
     -- Create attendance record

@@ -49,10 +49,8 @@ interface EnhancedMarkAttendanceProps {
 
 const SESSION_TYPES = [
   { value: "practice", label: "Practice Session", icon: Target, color: "bg-blue-500" },
-  { value: "scrim", label: "Scrimming", icon: Trophy, color: "bg-purple-500" },
-  { value: "tournament", label: "Tournament", icon: Crown, color: "bg-yellow-500" },
-  { value: "meeting", label: "Team Meeting", icon: Coffee, color: "bg-green-500" },
-  { value: "training", label: "Training", icon: Gamepad2, color: "bg-red-500" }
+  { value: "tournament", label: "Scrims/Tournament", icon: Trophy, color: "bg-purple-500" },
+  { value: "meeting", label: "Team Meeting", icon: Coffee, color: "bg-green-500" }
 ]
 
 export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams, users }: EnhancedMarkAttendanceProps) {

@@ -27,8 +27,8 @@ Your session-wise attendance system now includes **both manual attendance** (for
 ### **Performance → Attendance Flow**
 ```typescript
 1. Player submits performance data
-2. System checks if tournament session exists for that date/team
-3. If not, creates new tournament session (type: 'tournament', subtype: 'Match')
+2. System checks if scrims session exists for that date/team
+3. If not, creates new scrims session (type: 'tournament', subtype: 'Scrims')
 4. Creates attendance record with status: 'present', source: 'auto'
 5. Links attendance to performance via slot_id
 ```
@@ -61,12 +61,12 @@ BEGIN
         team_id, session_type, session_subtype, date, 
         title, is_mandatory, created_by
     )
-    SELECT NEW.team_id, 'tournament', 'Match', performance_date,
-           'Auto-generated Match Session', false, NEW.player_id
+    SELECT NEW.team_id, 'tournament', 'Scrims', performance_date,
+           'Auto-generated Scrims Session', false, NEW.player_id
     WHERE NOT EXISTS (
         SELECT 1 FROM public.sessions 
         WHERE team_id = NEW.team_id AND date = performance_date 
-        AND session_type = 'tournament' AND session_subtype = 'Match'
+        AND session_type = 'tournament' AND session_subtype = 'Scrims'
     )
     RETURNING id INTO match_session_id;
 
@@ -105,7 +105,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 ```typescript
 {
   session_type: 'tournament', 
-  session_subtype: 'Match',
+  session_subtype: 'Scrims',
   is_mandatory: false,
   attendance_source: 'auto' // from performance data
 }
@@ -183,11 +183,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 4. **After Cutoff**: System auto-marks remaining players as Absent
 5. **Coach View**: See team attendance summary in real-time
 
-### **Tournament/Match Flow**
-1. **Performance Submission**: Player submits match performance data
-2. **Auto-Session Creation**: System creates tournament session for that date/team
+### **Scrims/Tournament Flow**
+1. **Performance Submission**: Player submits match/scrims performance data
+2. **Auto-Session Creation**: System creates scrims session for that date/team
 3. **Auto-Attendance**: Creates attendance record (status: present, source: auto)
-4. **UI Display**: Tournament session shows with "Auto from Performance" badge
+4. **UI Display**: Scrims session shows with "Auto from Performance" badge
 5. **Team View**: Coaches see auto-tracked attendance vs manual attendance
 
 ### **Meeting Flow**
