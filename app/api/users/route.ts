@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Initialize Supabase client with anon key (safer for development)
+// Initialize Supabase client with anon key
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -50,7 +50,7 @@ async function getUserFromRequest(request: NextRequest) {
   return { userData, userSupabase }
 }
 
-// GET - Fetch users
+// GET - Fetch users with role-based filtering
 export async function GET(request: NextRequest) {
   try {
     if (!supabaseUrl || !supabaseAnonKey) {
@@ -148,154 +148,35 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.log('Attempting user update:', { userId, role, team_id })
-    
-    // Method 1: Try the bulletproof update function (should always work)
-    try {
-      console.log('Calling bulletproof_user_update with:', { userId, role, team_id })
-      
-      const { data: bulletproofResult, error: bulletproofError } = await userSupabase!
-        .rpc('bulletproof_user_update', {
-          p_user_id: userId,
-          p_role: role,
-          p_team_id: team_id || null
-        })
+    // Use bulletproof function to update user role
+    const { data: result, error: updateError } = await userSupabase!
+      .rpc('bulletproof_user_update', {
+        p_user_id: userId,
+        p_role: role,
+        p_team_id: team_id || null
+      })
 
-      console.log('Bulletproof function response:', { bulletproofResult, bulletproofError })
-
-      if (!bulletproofError && bulletproofResult) {
-        console.log('Bulletproof function result:', bulletproofResult)
-        
-        // Check if the function returned an error internally
-        if (bulletproofResult.error) {
-          console.warn('Bulletproof function internal error:', bulletproofResult.error)
-          // Continue to backup method
-        } else {
-          // Success! Return the result
-          return NextResponse.json({
-            success: true,
-            user: bulletproofResult,
-            method: 'bulletproof_function'
-          })
-        }
-      } else {
-        console.warn('Bulletproof function failed:', bulletproofError?.message)
-        console.warn('Full error object:', bulletproofError)
-      }
-    } catch (bulletproofErr: any) {
-      console.warn('Bulletproof function error:', bulletproofErr.message)
-      console.warn('Full error:', bulletproofErr)
+    if (updateError || !result) {
+      console.error('Error updating user:', updateError)
+      return NextResponse.json(
+        { error: 'Failed to update user' },
+        { status: 500 }
+      )
     }
 
-    // Method 2: Try the minimal update function (backup)
-    try {
-      console.log('Calling minimal_user_update with:', { userId, role })
-      
-      const { data: minimalResult, error: minimalError } = await userSupabase!
-        .rpc('minimal_user_update', {
-          p_user_id: userId,
-          p_role: role
-        })
-
-      console.log('Minimal function response:', { minimalResult, minimalError })
-
-      if (!minimalError && minimalResult === 'SUCCESS') {
-        console.log('Minimal function succeeded')
-        
-        // Manually update team_id if needed (since minimal function only updates role)
-        if (role === 'admin' || role === 'manager') {
-          await userSupabase!.from('users').update({ team_id: null }).eq('id', userId)
-        } else if (team_id !== undefined) {
-          await userSupabase!.from('users').update({ team_id: team_id }).eq('id', userId)
-        }
-        
-        // Fetch the updated user data to return
-        const { data: updatedUserData } = await userSupabase!
-          .from('users')
-          .select('*')
-          .eq('id', userId)
-          .single()
-        
-        return NextResponse.json({
-          success: true,
-          user: updatedUserData,
-          method: 'minimal_function'
-        })
-      }
-
-      console.warn('Minimal function failed:', minimalError?.message || minimalResult)
-      console.warn('Full minimal error object:', minimalError)
-    } catch (minimalErr: any) {
-      console.warn('Minimal function error:', minimalErr.message)
-      console.warn('Full minimal error:', minimalErr)
+    // Check if the function returned an error internally
+    if (result.error) {
+      console.error('Update function error:', result.error)
+      return NextResponse.json(
+        { error: result.error },
+        { status: 500 }
+      )
     }
 
-    // Method 3: Emergency fallback - direct table update (no functions)
-    try {
-      console.log('Trying emergency direct update as last resort')
-      
-      const updateData: any = { role, updated_at: new Date().toISOString() }
-      
-      // Handle team assignment
-      if (role === 'admin' || role === 'manager') {
-        updateData.team_id = null
-      } else if (team_id !== undefined) {
-        updateData.team_id = team_id
-      }
-      
-      console.log('Direct update attempt with data:', updateData)
-      console.log('Target user ID:', userId)
-      
-      const { data: directUpdate, error: directError } = await userSupabase!
-        .from('users')
-        .update(updateData)
-        .eq('id', userId)
-        .select()
-        .single()
-
-      console.log('Direct update response:', { directUpdate, directError })
-
-      if (!directError && directUpdate) {
-        console.log('Emergency direct update succeeded:', directUpdate)
-        return NextResponse.json({
-          success: true,
-          user: directUpdate,
-          method: 'emergency_direct_update'
-        })
-      }
-
-      console.error('Emergency direct update failed:', directError?.message)
-      console.error('Direct update error details:', JSON.stringify(directError, null, 2))
-      console.error('Error code:', directError?.code)
-      console.error('Error hint:', directError?.hint)
-    } catch (directErr: any) {
-      console.error('Emergency direct update error:', directErr.message)
-    }
-
-    // Method 4: Super basic test - just try to read the user first
-    try {
-      console.log('Testing if we can even read the user...')
-      const { data: userCheck, error: userCheckError } = await userSupabase!
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single()
-
-      console.log('User read test:', { userCheck, userCheckError })
-      
-      if (userCheckError) {
-        console.error('Cannot even read user - this is an RLS issue!')
-      }
-    } catch (readErr: any) {
-      console.error('User read test error:', readErr.message)
-    }
-
-    // If even direct update failed, return error
-    console.error('ALL update methods failed! User ID:', userId, 'Role:', role)
-    return NextResponse.json(
-      { error: 'Failed to update user: All update methods failed including direct update' },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      success: true,
+      user: result
+    })
 
   } catch (error) {
     console.error('Error in users PUT API:', error)

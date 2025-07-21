@@ -113,34 +113,18 @@ export default function DebugPage() {
         })
       })
 
-      let updateResult
-      let responseText = ''
-      
-      try {
-        updateResult = await updateResponse.json()
-      } catch (parseError) {
-        responseText = await updateResponse.text()
-        updateResult = { error: 'Failed to parse response', responseText }
-      }
+      const updateResult = await updateResponse.json()
 
       if (!updateResponse.ok) {
         updateTest('User Role Update', 'error', `Role update failed: ${updateResult.error}`, {
           statusCode: updateResponse.status,
-          errorDetails: updateResult,
-          profileUsed: { id: profile?.id, role: profile?.role },
-          requestBody: {
-            userId: profile?.id,
-            role: profile?.role,
-            team_id: profile?.team_id
-          }
+          errorDetails: updateResult
         })
         return
       }
 
-      updateTest('User Role Update', 'success', `Role update worked! Method: ${updateResult.method}`, {
-        method: updateResult.method,
-        result: updateResult,
-        fullResponse: updateResult
+      updateTest('User Role Update', 'success', `Role update successful!`, {
+        result: updateResult
       })
     } catch (error: any) {
       updateTest('User Role Update', 'error', `Test failed: ${error.message}`, {
