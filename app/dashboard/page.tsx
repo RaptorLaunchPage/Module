@@ -96,6 +96,7 @@ export default function OptimizedDashboardPage() {
   const [recentPerformances, setRecentPerformances] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dataFetched, setDataFetched] = useState(false)
   const [selectedTimeframe, setSelectedTimeframe] = useState('30')
   const [cacheStats, setCacheStats] = useState<any>(null)
 
@@ -179,6 +180,7 @@ export default function OptimizedDashboardPage() {
       
       const endTime = Date.now()
       console.log(`✅ Dashboard loaded in ${endTime - startTime}ms`)
+      setDataFetched(true)
       
     } catch (error: any) {
       console.error('Dashboard loading error:', error)
@@ -400,8 +402,31 @@ export default function OptimizedDashboardPage() {
         </div>
       </div>
 
-      {/* Performance Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Performance Metrics Cards or No Data State */}
+      {dataFetched && stats && stats.totalMatches === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="text-muted-foreground mb-4">
+              <Activity className="h-16 w-16 mx-auto" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Welcome to Your Dashboard!</h3>
+            <p className="text-muted-foreground mb-6">
+              Start by exploring the features available to you as a {roleInfo.label.toLowerCase()}.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              {quickActions.slice(0, 2).map((action, index) => (
+                <Button key={index} asChild variant={index === 0 ? "default" : "outline"}>
+                  <a href={action.href}>
+                    <action.icon className="h-4 w-4 mr-2" />
+                    {action.title}
+                  </a>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -450,6 +475,7 @@ export default function OptimizedDashboardPage() {
           </CardContent>
         </Card>
       </div>
+      )}  {/* End of metrics conditional */}
 
       {/* Quick Actions */}
       <Card>

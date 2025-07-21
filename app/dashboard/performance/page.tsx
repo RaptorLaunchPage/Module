@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
-import { supabase } from "@/lib/supabase"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,6 +12,7 @@ import { OCRExtract } from "@/components/performance/ocr-extract"
 import { PerformanceDashboard } from "@/components/performance/performance-dashboard"
 import { PlayerPerformanceSubmit } from "@/components/performance/player-performance-submit"
 import { PerformanceReportSimple } from "@/components/performance/performance-report-simple"
+import { SendToDiscordButton } from "@/components/discord-portal/send-to-discord-button"
 import { 
   Target, 
   Plus, 
@@ -23,7 +23,9 @@ import {
   Zap, 
   Shield,
   Filter,
-  BarChart3
+  BarChart3,
+  RefreshCw,
+  Users
 } from "lucide-react"
 import type { Database } from "@/lib/supabase"
 import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
@@ -48,85 +50,117 @@ type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 type Team = Database["public"]["Tables"]["teams"]["Row"]
 
 export default function PerformancePage() {
-  const { profile } = useAuth()
+  const { profile, getToken } = useAuth()
   const [performances, setPerformances] = useState<Performance[]>([])
   const [users, setUsers] = useState<UserProfile[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [dataFetched, setDataFetched] = useState(false)
   const [addPerformanceOpen, setAddPerformanceOpen] = useState(false)
   const [selectedTeam, setSelectedTeam] = useState<string>("all")
   const [selectedPlayer, setSelectedPlayer] = useState<string>("all")
   const [selectedMap, setSelectedMap] = useState<string>("all")
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<string>("all")
+  const [customStartDate, setCustomStartDate] = useState<string>("")
+  const [customEndDate, setCustomEndDate] = useState<string>("")
 
   useEffect(() => {
-    fetchPerformances()
-    fetchUsers()
-    fetchTeams()
+    if (profile) {
+      loadAllData()
+    }
   }, [profile])
 
-  const fetchPerformances = async () => {
-    if (!profile) return
-
+  const loadAllData = async () => {
+    setLoading(true)
+    setError(null)
+    
     try {
-      let query = supabase
-        .from("performances")
-        .select(`
-          *,
-          users!player_id(id, name, email),
-          teams!inner(id, name),
-          slots(id, time_range, date)
-        `)
-
-      // Apply role-based filtering
-      if (profile.role === "player") {
-        query = query.eq("player_id", profile.id)
-      } else if (profile.role === "coach" && profile.team_id) {
-        query = query.eq("team_id", profile.team_id)
-      }
-      // Admin, manager, and analyst can see all performances (no filtering)
-
-      const { data, error } = await query.order("created_at", { ascending: false })
-
-      if (error) throw error
-      setPerformances(data || [])
-    } catch (error) {
-      console.error("Error fetching performances:", error)
+      await Promise.all([
+        fetchPerformances(),
+        fetchUsers(),
+        fetchTeams()
+      ])
+      setDataFetched(true)
+    } catch (err) {
+      console.error('Error loading data:', err)
+      setError('Failed to load performance data. Please try refreshing the page.')
     } finally {
       setLoading(false)
     }
   }
 
+  const fetchPerformances = async () => {
+    if (!profile) return
+
+    try {
+      const token = await getToken()
+      
+      const response = await fetch('/api/performances', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API Error:', response.status, errorText)
+        throw new Error(`API Error ${response.status}: ${errorText}`)
+      }
+
+      const data = await response.json()
+      setPerformances(data || [])
+    } catch (error) {
+      console.error("Error fetching performances:", error)
+      throw error
+    }
+  }
+
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase.from("users").select("*").order("name")
-
-      if (error) {
-        console.error("Database error fetching users:", error)
-        setUsers([])
-        return
-      }
+      const token = await getToken()
       
+      const response = await fetch('/api/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Users API Error:', response.status, errorText)
+        throw new Error(`Users API Error ${response.status}: ${errorText}`)
+      }
+
+      const data = await response.json()
       setUsers(data || [])
     } catch (error) {
       console.error("Error fetching users:", error)
-      setUsers([])
+      throw error
     }
   }
 
   const fetchTeams = async () => {
     try {
-      const { data, error } = await supabase.from("teams").select("*").order("name")
-
-      if (error) {
-        console.error("Database error fetching teams:", error)
-        setTeams([])
-        return
-      }
+      const token = await getToken()
       
+      const response = await fetch('/api/teams', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Teams API Error:', response.status, errorText)
+        throw new Error(`Teams API Error ${response.status}: ${errorText}`)
+      }
+
+      const data = await response.json()
       setTeams(data || [])
     } catch (error) {
       console.error("Error fetching teams:", error)
-      setTeams([])
+      throw error
     }
   }
 
@@ -142,11 +176,79 @@ export default function PerformancePage() {
   const canSubmitPerformance = userRole === 'player'
   const canViewReport = performancePermissions.canView
 
-  // Filter performances based on selected filters
-  const filteredPerformances = performances.filter(perf => {
+  // Reset player filter when team changes (for admin/manager)
+  useEffect(() => {
+    if (selectedTeam !== "all" && (userRole === 'admin' || userRole === 'manager')) {
+      setSelectedPlayer("all")
+    }
+  }, [selectedTeam, userRole])
+
+  // Enhanced performances with user and team names
+  const enhancedPerformances = performances.map(perf => {
+    const user = users.find(u => u.id === perf.player_id)
+    const team = teams.find(t => t.id === perf.team_id)
+    
+    return {
+      ...perf,
+      users: user ? { id: user.id, name: user.name || 'Unknown', email: user.email } : perf.users,
+      teams: team ? { id: team.id, name: team.name } : perf.teams
+    }
+  })
+
+  // Helper function to filter by time period
+  const isWithinTimePeriod = (dateString: string) => {
+    if (selectedTimePeriod === "all") return true
+    
+    const date = new Date(dateString)
+    const now = new Date()
+    
+    switch (selectedTimePeriod) {
+      case "today":
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const tomorrow = new Date(today)
+        tomorrow.setDate(today.getDate() + 1)
+        return date >= today && date < tomorrow
+        
+      case "7days":
+        const sevenDaysAgo = new Date()
+        sevenDaysAgo.setDate(now.getDate() - 7)
+        return date >= sevenDaysAgo
+        
+      case "30days":
+        const thirtyDaysAgo = new Date()
+        thirtyDaysAgo.setDate(now.getDate() - 30)
+        return date >= thirtyDaysAgo
+        
+      case "custom":
+        if (!customStartDate && !customEndDate) return true
+        const start = customStartDate ? new Date(customStartDate) : new Date(0)
+        const end = customEndDate ? new Date(customEndDate) : new Date()
+        end.setHours(23, 59, 59, 999) // Include the entire end date
+        return date >= start && date <= end
+        
+      default:
+        return true
+    }
+  }
+
+  // Filter performances based on selected filters and role permissions
+  const filteredPerformances = enhancedPerformances.filter(perf => {
+    // Role-based access control
+    if (userRole === 'player' && perf.player_id !== profile?.id) {
+      // Players can only see their own performance data
+      return false
+    }
+    if (userRole === 'coach' && perf.team_id !== profile?.team_id) {
+      // Coaches can only see their team's data
+      return false
+    }
+    
+    // Apply user-selected filters
     if (selectedTeam !== "all" && perf.team_id !== selectedTeam) return false
     if (selectedPlayer !== "all" && perf.player_id !== selectedPlayer) return false
     if (selectedMap !== "all" && perf.map !== selectedMap) return false
+    if (!isWithinTimePeriod(perf.created_at)) return false
     return true
   })
 
@@ -158,6 +260,8 @@ export default function PerformancePage() {
       filteredPerformances.reduce((sum, p) => sum + (p.damage || 0), 0) / filteredPerformances.length : 0,
     avgSurvival: filteredPerformances.length > 0 ? 
       filteredPerformances.reduce((sum, p) => sum + (p.survival_time || 0), 0) / filteredPerformances.length : 0,
+    avgPlacement: filteredPerformances.length > 0 ? 
+      filteredPerformances.reduce((sum, p) => sum + (p.placement || 0), 0) / filteredPerformances.length : 0,
     kdRatio: filteredPerformances.length > 0 ? 
       filteredPerformances.reduce((sum, p) => sum + (p.kills || 0), 0) / filteredPerformances.length : 0,
     todayMatches: filteredPerformances.filter(p => {
@@ -172,14 +276,49 @@ export default function PerformancePage() {
     }).length
   }
 
-  // Get unique values for filters
-  const availableTeams = teams.filter(team => 
-    performances.some(p => p.team_id === team.id)
-  )
-  const availablePlayers = users.filter(user => 
-    performances.some(p => p.player_id === user.id)
-  )
-  const availableMaps = [...new Set(performances.map(p => p.map).filter(Boolean))]
+  // Role-based filtering logic
+  const getAvailableTeams = () => {
+    if (userRole === 'admin' || userRole === 'manager') {
+      return teams  // Admin/Manager see all teams
+    } else if (userRole === 'coach') {
+      // Coach sees assigned team(s)
+      return teams.filter(team => profile?.team_id === team.id)
+    } else {
+      // Players see their own team
+      return teams.filter(team => profile?.team_id === team.id)
+    }
+  }
+
+  const getAvailablePlayers = () => {
+    if (userRole === 'admin' || userRole === 'manager') {
+      // Admin/Manager see all players, filtered by selected team if any
+      if (selectedTeam === "all") {
+        return users.filter(user => user.role === 'player' || user.role === 'coach')
+      } else {
+        return users.filter(user => 
+          (user.role === 'player' || user.role === 'coach') && 
+          user.team_id === selectedTeam
+        )
+      }
+    } else if (userRole === 'coach') {
+      // Coach sees players in their assigned team
+      return users.filter(user => 
+        (user.role === 'player' || user.role === 'coach') && 
+        user.team_id === profile?.team_id
+      )
+    } else {
+      // Players see only themselves and their team members
+      return users.filter(user => 
+        user.id === profile?.id || 
+        (user.team_id === profile?.team_id && (user.role === 'player' || user.role === 'coach'))
+      )
+    }
+  }
+
+  const availableTeams = getAvailableTeams()
+  const availablePlayers = getAvailablePlayers()
+    
+  const availableMaps = [...new Set(enhancedPerformances.map(p => p.map).filter(Boolean))]
 
   const requiresUsers = canViewDashboard || canAddPerformance || canUseOCR
 
@@ -189,16 +328,65 @@ export default function PerformancePage() {
   }
 
   if (!profile) {
-    return <div className="text-center py-8 text-muted-foreground">Loading user profile...</div>
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="text-muted-foreground">Loading user profile...</p>
+        </div>
+      </div>
+    )
   }
 
-  if (requiresUsers && users.length === 0 && !loading) {
+  if (loading) {
     return (
-      <div className="text-center py-8">
-        <h2 className="text-xl font-semibold mb-2">No User Data Available</h2>
-        <p className="text-muted-foreground">
-          Unable to load user data. Please contact your administrator.
-        </p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="text-muted-foreground">Loading performance data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <div className="text-red-500 mb-4">
+              <Target className="h-12 w-12 mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Unable to Load Data</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={loadAllData} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (requiresUsers && users.length === 0 && dataFetched) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <div className="text-muted-foreground mb-4">
+              <Users className="h-12 w-12 mx-auto" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No Users Found</h3>
+            <p className="text-muted-foreground mb-4">
+              No user data is available yet. Please contact your administrator.
+            </p>
+            <Button onClick={loadAllData} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -309,10 +497,10 @@ export default function PerformancePage() {
                 <Filter className="h-5 w-5" />
                 Filters
               </CardTitle>
-              <CardDescription>Filter performance data by team, player, and map</CardDescription>
+              <CardDescription>Filter performance data by team, player, map, and time period</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Team</label>
                   <Select value={selectedTeam} onValueChange={setSelectedTeam}>
@@ -363,12 +551,73 @@ export default function PerformancePage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Time Period</label>
+                  <Select value={selectedTimePeriod} onValueChange={setSelectedTimePeriod}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Time</SelectItem>
+                      <SelectItem value="today">Today</SelectItem>
+                      <SelectItem value="7days">Last 7 Days</SelectItem>
+                      <SelectItem value="30days">Last 30 Days</SelectItem>
+                      <SelectItem value="custom">Custom Range</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
+              {/* Custom Date Range */}
+              {selectedTimePeriod === "custom" && (
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Start Date</label>
+                    <input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">End Date</label>
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Stats Cards or No Data State */}
+          {filteredPerformances.length === 0 && dataFetched ? (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <div className="text-muted-foreground mb-4">
+                  <Target className="h-16 w-16 mx-auto" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No Performance Data Yet</h3>
+                <p className="text-muted-foreground mb-6">
+                  {selectedTeam !== "all" || selectedPlayer !== "all" || selectedMap !== "all" 
+                    ? "No performances match your current filters. Try adjusting the filters above."
+                    : "Start tracking performance by adding your first match data."}
+                </p>
+                {(canAddPerformance && !isAnalyst) && (
+                  <Button onClick={() => setAddPerformanceOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add First Performance
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
@@ -453,6 +702,44 @@ export default function PerformancePage() {
               </CardContent>
             </Card>
           </div>
+          )}  {/* End of stats cards conditional */}
+
+          {/* Send to Discord */}
+          {filteredPerformances.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  Share Performance Report
+                  <SendToDiscordButton
+                    messageType="performance_summary"
+                    data={{
+                      team_name: selectedTeam !== 'all' 
+                        ? availableTeams.find(t => t.id === selectedTeam)?.name || 'Team'
+                        : 'All Teams',
+                      date_range: `${stats.totalMatches} matches`,
+                      total_matches: stats.totalMatches,
+                      avg_placement: stats.avgPlacement,
+                      top_performer: {
+                        name: 'Best Performer', // You could calculate this from the data
+                        kills: Math.max(...filteredPerformances.map(p => p.kills)),
+                        damage: Math.max(...filteredPerformances.map(p => p.damage))
+                      },
+                      summary_stats: {
+                        total_kills: stats.totalKills,
+                        total_damage: Math.round(stats.avgDamage * stats.totalMatches),
+                        best_placement: Math.min(...filteredPerformances.map(p => p.placement || 999))
+                      }
+                    }}
+                    teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id}
+                    variant="outline"
+                  />
+                </CardTitle>
+                <CardDescription>
+                  Send current performance summary to Discord
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
 
           {/* Performance Data */}
           {loading ? (

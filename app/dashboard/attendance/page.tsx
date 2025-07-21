@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { MarkAttendance } from "@/components/attendance/mark-attendance"
 import { AttendanceLogs } from "@/components/attendance/attendance-logs"
 import { AttendanceStats } from "@/components/attendance/attendance-stats"
+import { SendToDiscordButton } from "@/components/discord-portal/send-to-discord-button"
 import { 
   CalendarCheck, 
   Plus, 
@@ -50,15 +51,36 @@ export default function AttendancePage() {
   const [users, setUsers] = useState<UserProfile[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [dataFetched, setDataFetched] = useState(false)
   const [selectedTeam, setSelectedTeam] = useState<string>("all")
   const [selectedSession, setSelectedSession] = useState<string>("all")
   const [selectedDate, setSelectedDate] = useState<string>("")
 
   useEffect(() => {
-    fetchAttendances()
-    fetchUsers()
-    fetchTeams()
+    if (profile) {
+      loadAllData()
+    }
   }, [profile])
+
+  const loadAllData = async () => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      await Promise.all([
+        fetchAttendances(),
+        fetchUsers(),
+        fetchTeams()
+      ])
+      setDataFetched(true)
+    } catch (err) {
+      console.error('Error loading attendance data:', err)
+      setError('Failed to load attendance data. Please try refreshing the page.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const fetchAttendances = async () => {
     if (!profile) return
@@ -87,8 +109,7 @@ export default function AttendancePage() {
       setAttendances(data || [])
     } catch (error) {
       console.error("Error fetching attendances:", error)
-    } finally {
-      setLoading(false)
+      throw error
     }
   }
 
@@ -315,12 +336,57 @@ export default function AttendancePage() {
           </TabsContent>
 
           <TabsContent value="stats">
-            <AttendanceStats 
-              attendances={attendances}
-              teams={teams}
-              users={users}
-              userRole={userRole}
-            />
+            <div className="space-y-6">
+              <AttendanceStats 
+                attendances={attendances}
+                teams={teams}
+                users={users}
+                userRole={userRole}
+              />
+              
+              {/* Send to Discord */}
+              {filteredAttendances.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      Share Attendance Report
+                      <SendToDiscordButton
+                        messageType="attendance_summary"
+                        data={{
+                          team_name: selectedTeam !== 'all' 
+                            ? teams.find(t => t.id === selectedTeam)?.name || 'Team'
+                            : 'All Teams',
+                          date_range: selectedDate || 'All time',
+                          total_sessions: filteredAttendances.length,
+                          present_count: filteredAttendances.filter(a => a.status === 'Present').length,
+                          absent_count: filteredAttendances.filter(a => a.status === 'Absent').length,
+                          attendance_rate: filteredAttendances.length > 0 
+                            ? (filteredAttendances.filter(a => a.status === 'Present').length / filteredAttendances.length) * 100
+                            : 0,
+                          top_attendees: users
+                            .map(user => {
+                              const userAttendances = filteredAttendances.filter(a => a.player_id === user.id)
+                              const presentCount = userAttendances.filter(a => a.status === 'Present').length
+                              return {
+                                name: user.name || user.email,
+                                percentage: userAttendances.length > 0 ? (presentCount / userAttendances.length) * 100 : 0
+                              }
+                            })
+                            .filter(u => u.percentage > 0)
+                            .sort((a, b) => b.percentage - a.percentage)
+                            .slice(0, 5)
+                        }}
+                        teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id}
+                        variant="outline"
+                      />
+                    </CardTitle>
+                    <CardDescription>
+                      Send current attendance summary to Discord
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
