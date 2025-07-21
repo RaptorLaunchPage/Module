@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { 
   MessageSquare, 
   Webhook, 
@@ -34,6 +35,9 @@ export default function CommunicationPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dataFetched, setDataFetched] = useState(false)
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<string>("30days")
+  const [customStartDate, setCustomStartDate] = useState<string>("")
+  const [customEndDate, setCustomEndDate] = useState<string>("")
 
   const permissions = DashboardPermissions.getPermissions(profile?.role)
 
@@ -41,7 +45,7 @@ export default function CommunicationPage() {
     if (profile?.id) {
       loadDashboardData()
     }
-  }, [profile])
+  }, [profile, selectedTimePeriod, customStartDate, customEndDate])
 
   const loadDashboardData = async () => {
     if (!profile?.id) return
@@ -51,12 +55,54 @@ export default function CommunicationPage() {
     try {
       const token = await getToken()
       
+      // Calculate date range for time period filtering
+      const getDateRange = () => {
+        const now = new Date()
+        let startDate = null
+        
+        switch (selectedTimePeriod) {
+          case "today":
+            startDate = new Date()
+            startDate.setHours(0, 0, 0, 0)
+            break
+          case "7days":
+            startDate = new Date()
+            startDate.setDate(now.getDate() - 7)
+            break
+          case "30days":
+            startDate = new Date()
+            startDate.setDate(now.getDate() - 30)
+            break
+          case "custom":
+            if (customStartDate) {
+              startDate = new Date(customStartDate)
+            }
+            break
+          default:
+            break
+        }
+        
+        return startDate
+      }
+
+      const startDate = getDateRange()
+      const logsParams = new URLSearchParams()
+      logsParams.append('limit', '100')
+      if (startDate) {
+        logsParams.append('startDate', startDate.toISOString())
+      }
+      if (selectedTimePeriod === "custom" && customEndDate) {
+        const endDate = new Date(customEndDate)
+        endDate.setHours(23, 59, 59, 999)
+        logsParams.append('endDate', endDate.toISOString())
+      }
+
       // Load webhooks and stats in parallel
       const [webhooksResponse, logsResponse] = await Promise.all([
         fetch('/api/discord-portal/webhooks', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('/api/discord-portal/logs?limit=100', {
+        fetch(`/api/discord-portal/logs?${logsParams}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ])
@@ -155,10 +201,51 @@ export default function CommunicationPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-                  <h1 className="text-3xl font-bold mb-2">Discord Portal</h1>
-          <p className="text-muted-foreground">
-            Manage Discord notifications, webhooks, and message logs
-          </p>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Discord Portal</h1>
+            <p className="text-muted-foreground">
+              Manage Discord notifications, webhooks, and message logs
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Select value={selectedTimePeriod} onValueChange={setSelectedTimePeriod}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="7days">Last 7 Days</SelectItem>
+                <SelectItem value="30days">Last 30 Days</SelectItem>
+                <SelectItem value="custom">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        {/* Custom Date Range */}
+        {selectedTimePeriod === "custom" && (
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Start Date</label>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">End Date</label>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats Overview or No Data State */}
@@ -196,7 +283,12 @@ export default function CommunicationPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats?.totalMessages || 0}</div>
-            <p className="text-xs text-muted-foreground">Last 30 days</p>
+            <p className="text-xs text-muted-foreground">
+              {selectedTimePeriod === "today" ? "Today" :
+               selectedTimePeriod === "7days" ? "Last 7 days" :
+               selectedTimePeriod === "30days" ? "Last 30 days" :
+               selectedTimePeriod === "custom" ? "Custom range" : "All time"}
+            </p>
           </CardContent>
         </Card>
 

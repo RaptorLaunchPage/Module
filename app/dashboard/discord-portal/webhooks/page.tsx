@@ -87,7 +87,7 @@ export default function WebhooksPage() {
 
       if (teamsRes.ok) {
         const teamsData = await teamsRes.json()
-        setTeams(teamsData.teams || [])
+        setTeams(teamsData || [])  // API returns array directly, not nested in .teams
       }
     } catch (error) {
       console.error('Error loading data:', error)

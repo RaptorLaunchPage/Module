@@ -61,6 +61,9 @@ export default function PerformancePage() {
   const [selectedTeam, setSelectedTeam] = useState<string>("all")
   const [selectedPlayer, setSelectedPlayer] = useState<string>("all")
   const [selectedMap, setSelectedMap] = useState<string>("all")
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<string>("all")
+  const [customStartDate, setCustomStartDate] = useState<string>("")
+  const [customEndDate, setCustomEndDate] = useState<string>("")
 
   useEffect(() => {
     if (profile) {
@@ -185,11 +188,49 @@ export default function PerformancePage() {
     }
   })
 
+  // Helper function to filter by time period
+  const isWithinTimePeriod = (dateString: string) => {
+    if (selectedTimePeriod === "all") return true
+    
+    const date = new Date(dateString)
+    const now = new Date()
+    
+    switch (selectedTimePeriod) {
+      case "today":
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        const tomorrow = new Date(today)
+        tomorrow.setDate(today.getDate() + 1)
+        return date >= today && date < tomorrow
+        
+      case "7days":
+        const sevenDaysAgo = new Date()
+        sevenDaysAgo.setDate(now.getDate() - 7)
+        return date >= sevenDaysAgo
+        
+      case "30days":
+        const thirtyDaysAgo = new Date()
+        thirtyDaysAgo.setDate(now.getDate() - 30)
+        return date >= thirtyDaysAgo
+        
+      case "custom":
+        if (!customStartDate && !customEndDate) return true
+        const start = customStartDate ? new Date(customStartDate) : new Date(0)
+        const end = customEndDate ? new Date(customEndDate) : new Date()
+        end.setHours(23, 59, 59, 999) // Include the entire end date
+        return date >= start && date <= end
+        
+      default:
+        return true
+    }
+  }
+
   // Filter performances based on selected filters
   const filteredPerformances = enhancedPerformances.filter(perf => {
     if (selectedTeam !== "all" && perf.team_id !== selectedTeam) return false
     if (selectedPlayer !== "all" && perf.player_id !== selectedPlayer) return false
     if (selectedMap !== "all" && perf.map !== selectedMap) return false
+    if (!isWithinTimePeriod(perf.created_at)) return false
     return true
   })
 
@@ -217,13 +258,15 @@ export default function PerformancePage() {
     }).length
   }
 
-  // Get unique values for filters
-  const availableTeams = teams.filter(team => 
-    enhancedPerformances.some(p => p.team_id === team.id)
-  )
-  const availablePlayers = users.filter(user => 
-    enhancedPerformances.some(p => p.player_id === user.id)
-  )
+  // Get unique values for filters - Admin/Manager see all, others see only relevant data
+  const availableTeams = (userRole === 'admin' || userRole === 'manager') 
+    ? teams  // Show all teams for admin/manager
+    : teams.filter(team => enhancedPerformances.some(p => p.team_id === team.id))
+    
+  const availablePlayers = (userRole === 'admin' || userRole === 'manager')
+    ? users.filter(user => user.role === 'player' || user.role === 'coach')  // Show all players/coaches for admin/manager
+    : users.filter(user => enhancedPerformances.some(p => p.player_id === user.id))
+    
   const availableMaps = [...new Set(enhancedPerformances.map(p => p.map).filter(Boolean))]
 
   const requiresUsers = canViewDashboard || canAddPerformance || canUseOCR
@@ -403,10 +446,10 @@ export default function PerformancePage() {
                 <Filter className="h-5 w-5" />
                 Filters
               </CardTitle>
-              <CardDescription>Filter performance data by team, player, and map</CardDescription>
+              <CardDescription>Filter performance data by team, player, map, and time period</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Team</label>
                   <Select value={selectedTeam} onValueChange={setSelectedTeam}>
@@ -457,7 +500,47 @@ export default function PerformancePage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Time Period</label>
+                  <Select value={selectedTimePeriod} onValueChange={setSelectedTimePeriod}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Time</SelectItem>
+                      <SelectItem value="today">Today</SelectItem>
+                      <SelectItem value="7days">Last 7 Days</SelectItem>
+                      <SelectItem value="30days">Last 30 Days</SelectItem>
+                      <SelectItem value="custom">Custom Range</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
+              {/* Custom Date Range */}
+              {selectedTimePeriod === "custom" && (
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Start Date</label>
+                    <input
+                      type="date"
+                      value={customStartDate}
+                      onChange={(e) => setCustomStartDate(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">End Date</label>
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
