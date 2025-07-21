@@ -89,6 +89,11 @@ GRANT EXECUTE ON FUNCTION simple_user_update(UUID, TEXT, UUID) TO authenticated;
 
 -- Verification
 SELECT 'Migration completed successfully' as status;
+
+-- Verify constraint was created
+SELECT constraint_name, check_clause 
+FROM information_schema.check_constraints 
+WHERE constraint_name = 'users_role_check';
 ```
 
 ### Step 2: Verify the Fix
@@ -97,7 +102,7 @@ SELECT 'Migration completed successfully' as status;
 ```sql
 SELECT constraint_name, check_clause 
 FROM information_schema.check_constraints 
-WHERE table_name = 'users' AND constraint_name = 'users_role_check';
+WHERE constraint_name = 'users_role_check';
 ```
 
 2. **Check current user roles:**
@@ -148,6 +153,14 @@ CHECK (role IN ('admin', 'manager', 'coach', 'analyst', 'player', 'pending_playe
 3. **Check for invalid existing roles:**
 ```sql
 SELECT DISTINCT role FROM users WHERE role NOT IN ('admin', 'manager', 'coach', 'analyst', 'player', 'pending_player');
+```
+
+4. **Alternative constraint verification:**
+```sql
+-- Check constraints on users table
+SELECT conname, consrc 
+FROM pg_constraint 
+WHERE conrelid = 'users'::regclass AND contype = 'c';
 ```
 
 ### If you have authentication issues:

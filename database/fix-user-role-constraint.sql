@@ -176,6 +176,6 @@ GRANT EXECUTE ON FUNCTION update_user_role_admin(UUID, TEXT, UUID) TO authentica
 
 -- Verification queries (comment out in production)
 -- SELECT role, COUNT(*) FROM users GROUP BY role;
--- SELECT constraint_name, check_clause FROM information_schema.check_constraints WHERE table_name = 'users';
+-- SELECT constraint_name, check_clause FROM information_schema.check_constraints WHERE constraint_name = 'users_role_check';
 
 COMMIT;
