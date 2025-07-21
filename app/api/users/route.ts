@@ -230,10 +230,45 @@ export async function PUT(request: NextRequest) {
       console.warn('Full minimal error:', minimalErr)
     }
 
-    // If both bulletproof methods failed, return error
-    console.error('All bulletproof update methods failed! User ID:', userId, 'Role:', role)
+    // Method 3: Emergency fallback - direct table update (no functions)
+    try {
+      console.log('Trying emergency direct update as last resort')
+      
+      const updateData: any = { role, updated_at: new Date().toISOString() }
+      
+      // Handle team assignment
+      if (role === 'admin' || role === 'manager') {
+        updateData.team_id = null
+      } else if (team_id !== undefined) {
+        updateData.team_id = team_id
+      }
+      
+      const { data: directUpdate, error: directError } = await userSupabase!
+        .from('users')
+        .update(updateData)
+        .eq('id', userId)
+        .select()
+        .single()
+
+      if (!directError && directUpdate) {
+        console.log('Emergency direct update succeeded:', directUpdate)
+        return NextResponse.json({
+          success: true,
+          user: directUpdate,
+          method: 'emergency_direct_update'
+        })
+      }
+
+      console.error('Emergency direct update failed:', directError?.message)
+      console.error('Direct update error details:', directError)
+    } catch (directErr: any) {
+      console.error('Emergency direct update error:', directErr.message)
+    }
+
+    // If even direct update failed, return error
+    console.error('ALL update methods failed! User ID:', userId, 'Role:', role)
     return NextResponse.json(
-      { error: 'Failed to update user: All update methods failed' },
+      { error: 'Failed to update user: All update methods failed including direct update' },
       { status: 500 }
     )
 
