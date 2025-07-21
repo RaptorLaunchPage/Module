@@ -157,7 +157,28 @@ export async function PUT(request: NextRequest) {
       updateData.team_id = team_id
     }
 
-    // Update user using authenticated client
+    // Try using the simple update function first (to avoid constraint issues)
+    try {
+      const { data: functionResult, error: functionError } = await userSupabase!
+        .rpc('simple_user_update', {
+          target_user_id: userId,
+          new_role: role,
+          new_team_id: team_id
+        })
+
+      if (!functionError && functionResult) {
+        return NextResponse.json({
+          success: true,
+          user: functionResult
+        })
+      }
+
+      console.warn('Database function failed, trying direct update:', functionError)
+    } catch (funcErr) {
+      console.warn('Database function error:', funcErr)
+    }
+
+    // Fallback to direct update
     const { data: updatedUser, error: updateError } = await userSupabase!
       .from('users')
       .update(updateData)
