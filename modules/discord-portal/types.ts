@@ -1,12 +1,16 @@
 import type { Database } from '@/lib/supabase'
 
 // Base types from database
-export type DiscordWebhook = Database['public']['Tables']['discord_webhooks']['Row']
+export type DiscordWebhook = Database['public']['Tables']['discord_webhooks']['Row'] & {
+  channel_name?: string // Add channel_name support until DB is updated
+}
 export type DiscordLog = Database['public']['Tables']['communication_logs']['Row']
 export type DiscordSetting = Database['public']['Tables']['communication_settings']['Row']
 
 // Insert types
-export type DiscordWebhookInsert = Database['public']['Tables']['discord_webhooks']['Insert']
+export type DiscordWebhookInsert = Database['public']['Tables']['discord_webhooks']['Insert'] & {
+  channel_name?: string // Add channel_name support until DB is updated
+}
 export type DiscordLogInsert = Database['public']['Tables']['communication_logs']['Insert']
 export type DiscordSettingInsert = Database['public']['Tables']['communication_settings']['Insert']
 

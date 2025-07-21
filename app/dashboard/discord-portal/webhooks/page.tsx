@@ -373,7 +373,6 @@ export default function WebhooksPage() {
                   placeholder="e.g., #general, #performance-updates, #team-alerts"
                   value={formData.channel_name}
                   onChange={(e) => setFormData(prev => ({ ...prev, channel_name: e.target.value }))}
-                  required
                 />
                 <p className="text-xs text-muted-foreground">
                   Enter the Discord channel name where messages will be sent (for easy identification)

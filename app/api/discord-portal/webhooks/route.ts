@@ -148,9 +148,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate required fields
-    if (!hook_url || !type || !channel_name) {
+    if (!hook_url || !type) {
       return NextResponse.json(
-        { error: 'hook_url, type, and channel_name are required' },
+        { error: 'hook_url and type are required' },
         { status: 400 }
       )
     }
