@@ -36,7 +36,8 @@ const iconMap = {
   UserCheck,
   User,
   CalendarCheck,
-  UserPlus
+  UserPlus,
+  Settings
 }
 
 interface NewDashboardLayoutProps {

@@ -117,6 +117,16 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     mobileOrder: 9
   },
   {
+    id: 'admin-settings',
+    title: 'System Settings',
+    description: 'System configuration and agreement enforcement',
+    icon: 'Settings',
+    path: '/dashboard/admin/settings',
+    allowedRoles: ['admin'],
+    showInNavigation: true,
+    mobileOrder: 10
+  },
+  {
     id: 'profile',
     title: 'Profile',
     description: 'Personal profile and settings',
