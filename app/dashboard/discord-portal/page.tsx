@@ -39,19 +39,20 @@ export default function CommunicationPage() {
   const [customStartDate, setCustomStartDate] = useState<string>("")
   const [customEndDate, setCustomEndDate] = useState<string>("")
 
-  const permissions = DashboardPermissions.getPermissions(profile?.role)
+  const permissions = DashboardPermissions.getPermissions(profile?.role || 'player')
 
   useEffect(() => {
     if (profile?.id) {
       loadDashboardData()
     }
-  }, [profile, selectedTimePeriod, customStartDate, customEndDate])
+  }, [profile?.id, selectedTimePeriod, customStartDate, customEndDate])
 
   const loadDashboardData = async () => {
     if (!profile?.id) return
 
     setLoading(true)
     setError(null)
+    setDataFetched(false)
     try {
       const token = await getToken()
       
@@ -108,39 +109,57 @@ export default function CommunicationPage() {
       ])
 
       if (webhooksResponse.ok) {
-        const webhooksData = await webhooksResponse.json()
-        setWebhooks(webhooksData || [])
+        try {
+          const webhooksData = await webhooksResponse.json()
+          setWebhooks(Array.isArray(webhooksData?.webhooks) ? webhooksData.webhooks : 
+                     Array.isArray(webhooksData) ? webhooksData : [])
+        } catch (parseError) {
+          console.warn('Failed to parse webhooks response:', parseError)
+          setWebhooks([])
+        }
       } else {
         console.warn('Failed to load webhooks:', webhooksResponse.status)
-        // Don't throw error for webhooks, just log it
         setWebhooks([])
       }
 
       if (logsResponse.ok) {
-        const logsData = await logsResponse.json()
-        const logs = logsData.logs || logsData || []
-        
-        // Calculate stats from logs
-        const totalMessages = logs.length
-        const successfulMessages = logs.filter((log: any) => log.status === 'success').length
-        const failedMessages = logs.filter((log: any) => log.status === 'failed').length
-        const successRate = totalMessages > 0 ? (successfulMessages / totalMessages) * 100 : 0
+        try {
+          const logsData = await logsResponse.json()
+          const logs = Array.isArray(logsData?.logs) ? logsData.logs : 
+                      Array.isArray(logsData) ? logsData : []
+          
+          // Calculate stats from logs
+          const totalMessages = logs.length
+          const successfulMessages = logs.filter((log: any) => log?.status === 'success').length
+          const failedMessages = logs.filter((log: any) => log?.status === 'failed').length
+          const successRate = totalMessages > 0 ? (successfulMessages / totalMessages) * 100 : 0
 
-        const messageTypeStats = logs.reduce((acc: Record<string, number>, log: any) => {
-          acc[log.message_type] = (acc[log.message_type] || 0) + 1
-          return acc
-        }, {})
+          const messageTypeStats = logs.reduce((acc: Record<string, number>, log: any) => {
+            if (log?.message_type) {
+              acc[log.message_type] = (acc[log.message_type] || 0) + 1
+            }
+            return acc
+          }, {})
 
-        setStats({
-          totalMessages,
-          successfulMessages,
-          failedMessages,
-          successRate,
-          messageTypeStats
-        })
+          setStats({
+            totalMessages,
+            successfulMessages,
+            failedMessages,
+            successRate,
+            messageTypeStats
+          })
+        } catch (parseError) {
+          console.warn('Failed to parse logs response:', parseError)
+          setStats({
+            totalMessages: 0,
+            successfulMessages: 0,
+            failedMessages: 0,
+            successRate: 0,
+            messageTypeStats: {}
+          })
+        }
       } else {
         console.warn('Failed to load logs:', logsResponse.status)
-        // Set empty stats if logs fail but don't error out completely
         setStats({
           totalMessages: 0,
           successfulMessages: 0,
@@ -159,7 +178,7 @@ export default function CommunicationPage() {
     }
   }
 
-      if (!permissions.viewDiscordPortal) {
+  if (!permissions.viewDiscordPortal) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card>
