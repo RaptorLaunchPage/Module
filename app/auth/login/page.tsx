@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
+import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { Eye, EyeOff, LogIn, RefreshCw, Home, Shield } from "lucide-react"
 
 export default function LoginPage() {
@@ -92,38 +93,12 @@ export default function LoginPage() {
 
   // Show loading screen while auth is initializing
   if (!isInitialized) {
-    return (
-      <VideoBackground>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-black/60 backdrop-blur-md border border-white/20 shadow-xl">
-            <CardContent className="flex items-center justify-center p-8">
-              <div className="text-center">
-                <RefreshCw className="h-8 w-8 text-white animate-spin mx-auto mb-4" />
-                <p className="text-white">Initializing...</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </VideoBackground>
-    )
+    return <FullPageLoader state="connecting" customDescription="Initializing authentication" />
   }
 
   // Don't show login form if user is already authenticated
   if (user && profile) {
-    return (
-      <VideoBackground>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-black/60 backdrop-blur-md border border-white/20 shadow-xl">
-            <CardContent className="flex items-center justify-center p-8">
-              <div className="text-center">
-                <RefreshCw className="h-8 w-8 text-white animate-spin mx-auto mb-4" />
-                <p className="text-white">Redirecting to dashboard...</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </VideoBackground>
-    )
+    return <FullPageLoader state="redirecting" customDescription="Redirecting to dashboard" />
   }
 
   return (
