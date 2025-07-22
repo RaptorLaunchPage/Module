@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
     const performanceData = await request.json()
 
     // Validate required fields
-    const requiredFields = ['match_date', 'map', 'placement']
+    const requiredFields = ['match_number', 'map']
     const missingFields = requiredFields.filter(field => !performanceData[field])
     
     if (missingFields.length > 0) {
@@ -174,16 +174,15 @@ export async function POST(request: NextRequest) {
       .insert({
         player_id: performanceData.player_id || userData!.id,
         team_id: performanceData.team_id,
-        match_date: performanceData.match_date,
+        match_number: performanceData.match_number,
+        slot: performanceData.slot || null,
         map: performanceData.map,
-        placement: performanceData.placement,
+        placement: performanceData.placement || null,
         kills: performanceData.kills || 0,
         damage: performanceData.damage || 0,
         survival_time: performanceData.survival_time || 0,
         assists: performanceData.assists || 0,
-        revives: performanceData.revives || 0,
-        match_type: performanceData.match_type || 'Scrims',
-        notes: performanceData.notes || null
+        added_by: userData!.id
       })
       .select()
       .single()
@@ -222,11 +221,12 @@ export async function POST(request: NextRequest) {
 // Helper function to create match attendance
 async function createMatchAttendance(userSupabase: any, performance: any, userData: any) {
   // Check if session already exists for this match
+  const sessionDate = new Date().toISOString().split('T')[0] // Use current date
   const { data: existingSession, error: sessionCheckError } = await userSupabase
     .from('sessions')
     .select('id')
     .eq('team_id', performance.team_id)
-    .eq('date', performance.match_date)
+    .eq('date', sessionDate)
     .eq('session_type', 'tournament')
     .eq('session_subtype', 'Scrims')
     .single()
@@ -235,8 +235,8 @@ async function createMatchAttendance(userSupabase: any, performance: any, userDa
 
   // Create session if it doesn't exist
   if (!sessionId) {
-    const matchDate = new Date(performance.match_date)
-    const sessionTitle = `${performance.match_type || 'Scrims'} - ${performance.map}`
+    const sessionTitle = `Match ${performance.match_number} - ${performance.map}`
+    const sessionDate = new Date().toISOString().split('T')[0] // Use current date since we don't have match_date
     
     const { data: newSession, error: sessionCreateError } = await userSupabase
       .from('sessions')
@@ -244,7 +244,7 @@ async function createMatchAttendance(userSupabase: any, performance: any, userDa
         team_id: performance.team_id,
         session_type: 'tournament',
         session_subtype: 'Scrims',
-        date: performance.match_date,
+        date: sessionDate,
         start_time: '18:00:00', // Default match time
         end_time: '22:00:00',
         cutoff_time: null, // No cutoff for match sessions
@@ -277,7 +277,7 @@ async function createMatchAttendance(userSupabase: any, performance: any, userDa
       .insert({
         player_id: performance.player_id,
         team_id: performance.team_id,
-        date: performance.match_date,
+        date: sessionDate,
         session_time: 'Scrims', // Keep for compatibility
         session_id: sessionId,
         status: 'present',

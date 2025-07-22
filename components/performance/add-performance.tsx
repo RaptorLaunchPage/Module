@@ -60,7 +60,7 @@ export function AddPerformance({ users, onPerformanceAdded }: AddPerformanceProp
         player_id: formData.player_id,
         team_id: selectedPlayer?.team_id || null,
         match_number: Number.parseInt(formData.match_number),
-        slot: Number.parseInt(formData.slot),
+        slot: formData.slot || null,
         map: formData.map,
         placement: formData.placement ? Number.parseInt(formData.placement) : null,
         kills: Number.parseInt(formData.kills) || 0,

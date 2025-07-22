@@ -174,7 +174,7 @@ export default function AttendancePage() {
 
   // Get quick stats
   const todayAttendances = attendances.filter(a => a.date === new Date().toISOString().split('T')[0])
-  const presentToday = todayAttendances.filter(a => a.status === 'Present' || a.status === 'Auto (Match)').length
+  const presentToday = todayAttendances.filter(a => a.status === 'present' || a.status === 'auto').length
   const totalPlayersToday = todayAttendances.length
 
   if (loading) {
@@ -398,18 +398,18 @@ export default function AttendancePage() {
                             : 'All Teams',
                           date_range: selectedDate || 'All time',
                           total_sessions: filteredAttendances.length,
-                          present_count: filteredAttendances.filter(a => a.status === 'Present').length,
-                          absent_count: filteredAttendances.filter(a => a.status === 'Absent').length,
-                          attendance_rate: filteredAttendances.length > 0 
-                            ? (filteredAttendances.filter(a => a.status === 'Present').length / filteredAttendances.length) * 100
-                            : 0,
+                                  present_count: filteredAttendances.filter(a => a.status === 'present').length,
+        absent_count: filteredAttendances.filter(a => a.status === 'absent').length,
+        attendance_rate: filteredAttendances.length > 0 
+          ? (filteredAttendances.filter(a => a.status === 'present').length / filteredAttendances.length) * 100
+          : 0,
                           top_attendees: users
                             .map(user => {
                               const userAttendances = filteredAttendances.filter(a => a.player_id === user.id)
-                              const presentCount = userAttendances.filter(a => a.status === 'Present').length
-                              return {
-                                name: user.name || user.email,
-                                percentage: userAttendances.length > 0 ? (presentCount / userAttendances.length) * 100 : 0
+                                              const presentCount = userAttendances.filter(a => a.status === 'present').length
+                return {
+                  name: user.name || user.email,
+                  percentage: userAttendances.length > 0 ? (presentCount / userAttendances.length) * 100 : 0
                               }
                             })
                             .filter(u => u.percentage > 0)

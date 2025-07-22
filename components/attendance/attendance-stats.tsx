@@ -62,7 +62,7 @@ export function AttendanceStats({ attendances, teams, users, userRole }: Attenda
   const stats = useMemo(() => {
     // Overall Stats
     const totalRecords = attendances.length
-    const presentRecords = attendances.filter(a => a.status === 'Present' || a.status === 'Auto (Match)').length
+    const presentRecords = attendances.filter(a => a.status === 'present' || a.status === 'auto').length
     const overallAttendanceRate = totalRecords > 0 ? (presentRecords / totalRecords) * 100 : 0
 
     // Current month stats
@@ -72,7 +72,7 @@ export function AttendanceStats({ attendances, teams, users, userRole }: Attenda
       const date = new Date(a.date)
       return date.getMonth() === currentMonth && date.getFullYear() === currentYear
     })
-    const currentMonthPresent = currentMonthAttendances.filter(a => a.status === 'Present' || a.status === 'Auto (Match)').length
+    const currentMonthPresent = currentMonthAttendances.filter(a => a.status === 'present' || a.status === 'auto').length
     const currentMonthRate = currentMonthAttendances.length > 0 ? (currentMonthPresent / currentMonthAttendances.length) * 100 : 0
 
     // Session-wise stats
@@ -86,7 +86,7 @@ export function AttendanceStats({ attendances, teams, users, userRole }: Attenda
     attendances.forEach(a => {
       if (sessionStats[a.session_time as keyof typeof sessionStats]) {
         sessionStats[a.session_time as keyof typeof sessionStats].total++
-        if (a.status === 'Present' || a.status === 'Auto (Match)') {
+        if (a.status === 'present' || a.status === 'auto') {
           sessionStats[a.session_time as keyof typeof sessionStats].present++
         }
       }
@@ -95,7 +95,7 @@ export function AttendanceStats({ attendances, teams, users, userRole }: Attenda
     // Team-wise stats
     const teamStats = teams.map(team => {
       const teamAttendances = attendances.filter(a => a.team_id === team.id)
-      const teamPresent = teamAttendances.filter(a => a.status === 'Present' || a.status === 'Auto (Match)').length
+      const teamPresent = teamAttendances.filter(a => a.status === 'present' || a.status === 'auto').length
       const teamPlayers = users.filter(u => u.team_id === team.id && u.role === 'player').length
       
       return {
@@ -112,7 +112,7 @@ export function AttendanceStats({ attendances, teams, users, userRole }: Attenda
       .filter(u => u.role === 'player')
       .map(player => {
         const playerAttendances = attendances.filter(a => a.player_id === player.id)
-        const playerPresent = playerAttendances.filter(a => a.status === 'Present' || a.status === 'Auto (Match)').length
+        const playerPresent = playerAttendances.filter(a => a.status === 'present' || a.status === 'auto').length
         
         return {
           player,
@@ -134,7 +134,7 @@ export function AttendanceStats({ attendances, teams, users, userRole }: Attenda
 
     const dailyStats = last7Days.map(date => {
       const dayAttendances = attendances.filter(a => a.date === date)
-      const dayPresent = dayAttendances.filter(a => a.status === 'Present' || a.status === 'Auto (Match)').length
+              const dayPresent = dayAttendances.filter(a => a.status === 'present' || a.status === 'auto').length
       
       return {
         date,

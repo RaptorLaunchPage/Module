@@ -349,29 +349,80 @@ export type Database = {
           player_id: string
           team_id: string
           date: string
-          session_time: "Morning" | "Evening" | "Night" | "Match"
-          status: "Present" | "Absent" | "Auto (Match)"
+          session_time: string
+          status: "present" | "late" | "absent" | "auto"
           marked_by: string | null
           slot_id: string | null
+          session_id: string | null
+          source: "manual" | "auto" | "system"
           created_at: string
         }
         Insert: {
           player_id: string
           team_id: string
           date: string
-          session_time: "Morning" | "Evening" | "Night" | "Match"
-          status: "Present" | "Absent" | "Auto (Match)"
+          session_time: string
+          status: "present" | "late" | "absent" | "auto"
           marked_by?: string | null
           slot_id?: string | null
+          session_id?: string | null
+          source?: "manual" | "auto" | "system"
         }
         Update: {
           player_id?: string
           team_id?: string
           date?: string
-          session_time?: "Morning" | "Evening" | "Night" | "Match"
-          status?: "Present" | "Absent" | "Auto (Match)"
+          session_time?: string
+          status?: "present" | "late" | "absent" | "auto"
           marked_by?: string | null
           slot_id?: string | null
+          session_id?: string | null
+          source?: "manual" | "auto" | "system"
+        }
+      }
+      sessions: {
+        Row: {
+          id: string
+          team_id: string
+          session_type: "practice" | "tournament" | "meeting"
+          session_subtype: string | null
+          date: string
+          start_time: string | null
+          end_time: string | null
+          cutoff_time: string | null
+          title: string | null
+          description: string | null
+          is_mandatory: boolean
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          team_id: string
+          session_type: "practice" | "tournament" | "meeting"
+          session_subtype?: string | null
+          date: string
+          start_time?: string | null
+          end_time?: string | null
+          cutoff_time?: string | null
+          title?: string | null
+          description?: string | null
+          is_mandatory?: boolean
+          created_by: string
+        }
+        Update: {
+          team_id?: string
+          session_type?: "practice" | "tournament" | "meeting"
+          session_subtype?: string | null
+          date?: string
+          start_time?: string | null
+          end_time?: string | null
+          cutoff_time?: string | null
+          title?: string | null
+          description?: string | null
+          is_mandatory?: boolean
+          created_by?: string
+          updated_at?: string
         }
       }
       admin_config: {
