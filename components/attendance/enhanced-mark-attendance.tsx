@@ -309,7 +309,11 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
                         size="sm"
                         variant={player.status === 'present' ? 'default' : 'outline'}
                         onClick={() => updatePlayerStatus(player.id, 'present')}
-                        className="text-xs h-8"
+                        className={`text-xs h-8 ${
+                          player.status === 'present' 
+                            ? 'bg-green-500/80 hover:bg-green-500/90 text-white border-green-500/40' 
+                            : 'bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40'
+                        }`}
                       >
                         Present
                       </Button>
@@ -317,7 +321,11 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
                         size="sm"
                         variant={player.status === 'late' ? 'default' : 'outline'}
                         onClick={() => updatePlayerStatus(player.id, 'late')}
-                        className="text-xs h-8"
+                        className={`text-xs h-8 ${
+                          player.status === 'late' 
+                            ? 'bg-amber-500/80 hover:bg-amber-500/90 text-white border-amber-500/40' 
+                            : 'bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40'
+                        }`}
                       >
                         Late
                       </Button>
@@ -325,7 +333,11 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
                         size="sm"
                         variant={player.status === 'absent' ? 'default' : 'outline'}
                         onClick={() => updatePlayerStatus(player.id, 'absent')}
-                        className="text-xs h-8"
+                        className={`text-xs h-8 ${
+                          player.status === 'absent' 
+                            ? 'bg-red-500/80 hover:bg-red-500/90 text-white border-red-500/40' 
+                            : 'bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40'
+                        }`}
                       >
                         Absent
                       </Button>
@@ -336,11 +348,12 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
             </div>
 
             {/* Quick Actions */}
-            <div className="flex gap-2 mt-6 pt-4 border-t">
+            <div className="flex gap-2 mt-6 pt-4 border-t border-white/20">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setPlayersAttendance(prev => prev.map(p => ({ ...p, status: 'present' })))}
+                className="bg-green-500/20 border-green-500/40 text-green-100 hover:bg-green-500/30 hover:border-green-500/60"
               >
                 Mark All Present
               </Button>
@@ -348,6 +361,7 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
                 variant="outline"
                 size="sm"
                 onClick={() => setPlayersAttendance(prev => prev.map(p => ({ ...p, status: 'absent' })))}
+                className="bg-red-500/20 border-red-500/40 text-red-100 hover:bg-red-500/30 hover:border-red-500/60"
               >
                 Mark All Absent
               </Button>
@@ -355,6 +369,7 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
                 variant="outline"
                 size="sm"
                 onClick={() => setPlayersAttendance(prev => prev.map(p => ({ ...p, status: 'unset' })))}
+                className="bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40"
               >
                 Clear All
               </Button>
@@ -364,7 +379,7 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
             <Button 
               onClick={handleSubmit}
               disabled={loading || !sessionType || !selectedTeam || unmarkedCount === playersAttendance.length}
-              className="w-full mt-6"
+              className="w-full mt-6 bg-primary/80 hover:bg-primary/90 text-white border-primary/40"
               size="lg"
             >
               {loading ? (
