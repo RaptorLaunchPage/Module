@@ -5,6 +5,7 @@ import "./globals.css"
 import { AuthProvider } from "@/hooks/use-auth"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
+import { AgreementEnforcementWrapper } from "@/components/agreement-enforcement-wrapper"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -24,7 +25,9 @@ export default function RootLayout({
       <body className={`${inter.className} bg-transparent`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider>
-            {children}
+            <AgreementEnforcementWrapper>
+              {children}
+            </AgreementEnforcementWrapper>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>
