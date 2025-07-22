@@ -32,7 +32,9 @@ import {
   ChevronRight,
   Play,
   Clock,
-  Plus
+  Plus,
+  MessageSquare,
+  Webhook
 } from 'lucide-react'
 import Link from 'next/link'
 // Removed PerformanceDashboard import as we're using a simplified version
@@ -48,6 +50,14 @@ interface DashboardStats {
   activeTeams: number
   activePlayers: number
   todayMatches: number
+  // Enhanced admin stats
+  totalTeams: number
+  overallMatches: number
+  roi: number
+  overallAttendanceRate: number
+  totalWinnings: number
+  activeWebhooks: number
+  totalDiscordMessages: number
   weekMatches: number
   avgPlacement: number
 }
@@ -153,6 +163,115 @@ export default function OptimizedDashboardPage() {
     return () => clearInterval(interval)
   }, [])
 
+  const normalizeStats = (baseStats: any): DashboardStats => {
+    return {
+      totalMatches: baseStats.totalMatches || 0,
+      totalKills: baseStats.totalKills || 0,
+      avgDamage: baseStats.avgDamage || 0,
+      avgSurvival: baseStats.avgSurvival || 0,
+      kdRatio: baseStats.kdRatio || 0,
+      totalExpense: baseStats.totalExpense || 0,
+      totalProfitLoss: baseStats.totalProfitLoss || 0,
+      activeTeams: baseStats.activeTeams || 0,
+      activePlayers: baseStats.activePlayers || 0,
+      todayMatches: baseStats.todayMatches || 0,
+      weekMatches: baseStats.weekMatches || 0,
+      avgPlacement: baseStats.avgPlacement || 0,
+      // Default values for admin-only stats
+      totalTeams: 0,
+      overallMatches: baseStats.totalMatches || 0,
+      roi: 0,
+      overallAttendanceRate: 0,
+      totalWinnings: Math.max(0, baseStats.totalProfitLoss || 0),
+      activeWebhooks: 0,
+      totalDiscordMessages: 0
+    }
+  }
+
+  const loadEnhancedAdminStats = async (baseStats: any): Promise<DashboardStats> => {
+    try {
+      const [teamsResponse, attendanceResponse, webhooksResponse, logsResponse] = await Promise.all([
+        fetch('/api/teams'),
+        fetch('/api/sessions/daily-practice'),
+        fetch('/api/discord-portal/webhooks'),
+        fetch('/api/discord-portal/logs')
+      ])
+
+      // Calculate total teams
+      const teamsData = teamsResponse.ok ? await teamsResponse.json() : []
+      const totalTeams = Array.isArray(teamsData) ? teamsData.length : 0
+      const activeTeams = Array.isArray(teamsData) ? teamsData.filter(t => t.status === 'active').length : 0
+
+      // Calculate attendance rate
+      let overallAttendanceRate = 0
+      if (attendanceResponse.ok) {
+        const attendanceData = await attendanceResponse.json()
+        const sessions = attendanceData.sessions || []
+        const totalSessions = sessions.length
+        const attendedSessions = sessions.filter((s: any) => 
+          s.attendances && s.attendances.some((a: any) => ['present', 'late'].includes(a.status))
+        ).length
+        overallAttendanceRate = totalSessions > 0 ? (attendedSessions / totalSessions) * 100 : 0
+      }
+
+      // Calculate Discord stats
+      let activeWebhooks = 0
+      let totalDiscordMessages = 0
+      
+      if (webhooksResponse.ok) {
+        const webhooksData = await webhooksResponse.json()
+        const webhooks = Array.isArray(webhooksData?.webhooks) ? webhooksData.webhooks : 
+                        Array.isArray(webhooksData) ? webhooksData : []
+        activeWebhooks = webhooks.filter((w: any) => w.active).length
+      }
+
+      if (logsResponse.ok) {
+        const logsData = await logsResponse.json()
+        const logs = Array.isArray(logsData?.logs) ? logsData.logs : 
+                    Array.isArray(logsData) ? logsData : []
+        totalDiscordMessages = logs.length
+      }
+
+      // Calculate ROI (assuming total winnings exist in base stats)
+      const roi = baseStats.totalExpense > 0 ? 
+        ((baseStats.totalProfitLoss - baseStats.totalExpense) / baseStats.totalExpense) * 100 : 0
+
+      return {
+        totalMatches: baseStats.totalMatches || 0,
+        totalKills: baseStats.totalKills || 0,
+        avgDamage: baseStats.avgDamage || 0,
+        avgSurvival: baseStats.avgSurvival || 0,
+        kdRatio: baseStats.kdRatio || 0,
+        totalExpense: baseStats.totalExpense || 0,
+        totalProfitLoss: baseStats.totalProfitLoss || 0,
+        activeTeams: baseStats.activeTeams || 0,
+        activePlayers: baseStats.activePlayers || 0,
+        todayMatches: baseStats.todayMatches || 0,
+        weekMatches: baseStats.weekMatches || 0,
+        avgPlacement: baseStats.avgPlacement || 0,
+        totalTeams,
+        overallMatches: baseStats.totalMatches || 0,
+        roi,
+        overallAttendanceRate,
+        totalWinnings: Math.max(0, baseStats.totalProfitLoss || 0),
+        activeWebhooks,
+        totalDiscordMessages
+      }
+    } catch (error) {
+      console.warn('Failed to load enhanced admin stats:', error)
+      return {
+        ...baseStats,
+        totalTeams: 0,
+        overallMatches: baseStats.totalMatches,
+        roi: 0,
+        overallAttendanceRate: 0,
+        totalWinnings: 0,
+        activeWebhooks: 0,
+        totalDiscordMessages: 0
+      }
+    }
+  }
+
   const loadDashboardData = async () => {
     if (!profile) return
     
@@ -165,7 +284,14 @@ export default function OptimizedDashboardPage() {
       
       // Use optimized data service with caching
       const dashboardStats = await dataService.getDashboardStats(profile.id, selectedTimeframe)
-      setStats(dashboardStats)
+      
+      // Enhance stats for admin/manager roles
+      if (['admin', 'manager'].includes(userRole)) {
+        const enhancedStats = await loadEnhancedAdminStats(dashboardStats)
+        setStats(enhancedStats)
+      } else {
+        setStats(normalizeStats(dashboardStats))
+      }
       
       // Load recent performances with caching
       const performances = await dataService.getPerformances({ 
@@ -427,55 +553,225 @@ export default function OptimizedDashboardPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-blue-100 text-sm font-medium">Total Matches</p>
-                <p className="text-2xl font-bold">{formatNumber(stats?.totalMatches || 0)}</p>
-              </div>
-              <Target className="h-8 w-8 text-blue-200" />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          {/* Team & Organization Overview */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Team & Organization Overview
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-100 text-sm font-medium">Total Teams</p>
+                      <p className="text-2xl font-bold">{formatNumber(stats?.totalTeams || 0)}</p>
+                      <p className="text-blue-200 text-xs">{formatNumber(stats?.activeTeams || 0)} active</p>
+                    </div>
+                    <Users className="h-8 w-8 text-blue-200" />
+                  </div>
+                </CardContent>
+              </Card>
 
-        <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-red-100 text-sm font-medium">Total Kills</p>
-                <p className="text-2xl font-bold">{formatNumber(stats?.totalKills || 0)}</p>
-              </div>
-              <Crosshair className="h-8 w-8 text-red-200" />
-            </div>
-          </CardContent>
-        </Card>
+              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-green-100 text-sm font-medium">Active Players</p>
+                      <p className="text-2xl font-bold">{formatNumber(stats?.activePlayers || 0)}</p>
+                      <p className="text-green-200 text-xs">Across all teams</p>
+                    </div>
+                    <Shield className="h-8 w-8 text-green-200" />
+                  </div>
+                </CardContent>
+              </Card>
 
-        <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-100 text-sm font-medium">Avg Damage</p>
-                <p className="text-2xl font-bold">{formatNumber(stats?.avgDamage || 0)}</p>
-              </div>
-              <Zap className="h-8 w-8 text-orange-200" />
-            </div>
-          </CardContent>
-        </Card>
+              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-orange-100 text-sm font-medium">Overall Matches</p>
+                      <p className="text-2xl font-bold">{formatNumber(stats?.overallMatches || 0)}</p>
+                      <p className="text-orange-200 text-xs">{formatNumber(stats?.todayMatches || 0)} today</p>
+                    </div>
+                    <Target className="h-8 w-8 text-orange-200" />
+                  </div>
+                </CardContent>
+              </Card>
 
-        <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm font-medium">K/D Ratio</p>
-                <p className="text-2xl font-bold">{(stats?.kdRatio || 0).toFixed(2)}</p>
-              </div>
-              <Medal className="h-8 w-8 text-purple-200" />
+              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-purple-100 text-sm font-medium">Combined K/D</p>
+                      <p className="text-2xl font-bold">{(stats?.kdRatio || 0).toFixed(2)}</p>
+                      <p className="text-purple-200 text-xs">{formatNumber(stats?.totalKills || 0)} total kills</p>
+                    </div>
+                    <Crosshair className="h-8 w-8 text-purple-200" />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+
+          {/* Financial Overview */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Financial Overview
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-emerald-100 text-sm font-medium">Total Winnings</p>
+                      <p className="text-2xl font-bold">${formatNumber(stats?.totalWinnings || 0)}</p>
+                      <p className="text-emerald-200 text-xs">Prize money earned</p>
+                    </div>
+                    <Trophy className="h-8 w-8 text-emerald-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-red-100 text-sm font-medium">Total Expenses</p>
+                      <p className="text-2xl font-bold">${formatNumber(stats?.totalExpense || 0)}</p>
+                      <p className="text-red-200 text-xs">Operational costs</p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-red-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-cyan-100 text-sm font-medium">ROI</p>
+                      <p className="text-2xl font-bold">{(stats?.roi || 0).toFixed(1)}%</p>
+                      <p className="text-cyan-200 text-xs">Return on investment</p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-cyan-200" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Performance & Attendance */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Performance & Attendance
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-indigo-100 text-sm font-medium">Attendance Rate</p>
+                      <p className="text-2xl font-bold">{(stats?.overallAttendanceRate || 0).toFixed(1)}%</p>
+                      <p className="text-indigo-200 text-xs">Overall attendance</p>
+                    </div>
+                    <Calendar className="h-8 w-8 text-indigo-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-pink-100 text-sm font-medium">Avg Damage</p>
+                      <p className="text-2xl font-bold">{formatNumber(stats?.avgDamage || 0)}</p>
+                      <p className="text-pink-200 text-xs">Combined average</p>
+                    </div>
+                    <Zap className="h-8 w-8 text-pink-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-yellow-100 text-sm font-medium">Avg Survival</p>
+                      <p className="text-2xl font-bold">{formatNumber(stats?.avgSurvival || 0)}s</p>
+                      <p className="text-yellow-200 text-xs">Average survival time</p>
+                    </div>
+                    <Clock className="h-8 w-8 text-yellow-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-teal-500 to-teal-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-teal-100 text-sm font-medium">Top Performance</p>
+                      <p className="text-xl font-bold">{topPerformers.topPlayer?.name || 'N/A'}</p>
+                      <p className="text-teal-200 text-xs">{topPerformers.topPlayer?.value || 0} kills avg</p>
+                    </div>
+                    <Star className="h-8 w-8 text-teal-200" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Communication & Discord */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Communication & Discord
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Card className="bg-gradient-to-r from-violet-500 to-violet-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-violet-100 text-sm font-medium">Active Webhooks</p>
+                      <p className="text-2xl font-bold">{formatNumber(stats?.activeWebhooks || 0)}</p>
+                      <p className="text-violet-200 text-xs">Discord integrations</p>
+                    </div>
+                    <Webhook className="h-8 w-8 text-violet-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-slate-500 to-slate-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-slate-100 text-sm font-medium">Messages Sent</p>
+                      <p className="text-2xl font-bold">{formatNumber(stats?.totalDiscordMessages || 0)}</p>
+                      <p className="text-slate-200 text-xs">Total Discord messages</p>
+                    </div>
+                    <MessageSquare className="h-8 w-8 text-slate-200" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-amber-500 to-amber-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-amber-100 text-sm font-medium">Live Leaderboard</p>
+                      <p className="text-xl font-bold">{topPerformers.topTeam?.name || 'N/A'}</p>
+                      <p className="text-amber-200 text-xs">Top performing team</p>
+                    </div>
+                    <Crown className="h-8 w-8 text-amber-200" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
       )}  {/* End of metrics conditional */}
 
       {/* Quick Actions */}

@@ -64,7 +64,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     path: '/dashboard/team-management/teams',
     allowedRoles: ['admin', 'manager', 'coach'],
     showInNavigation: true,
-    mobileOrder: 5
+    mobileOrder: 6
   },
   {
     id: 'finance',
@@ -74,7 +74,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     path: '/dashboard/finance',
     allowedRoles: ['admin', 'manager'],
     showInNavigation: true,
-    mobileOrder: 6
+    mobileOrder: 7
   },
   {
     id: 'users',
@@ -84,7 +84,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     path: '/dashboard/user-management',
     allowedRoles: ['admin'],
     showInNavigation: true,
-    mobileOrder: 7
+    mobileOrder: 8
   },
   {
     id: 'attendance',
@@ -97,14 +97,24 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     mobileOrder: 4
   },
   {
+    id: 'tryouts',
+    title: 'Tryouts',
+    description: 'Manage team tryouts and player recruitment',
+    icon: 'UserPlus',
+    path: '/dashboard/tryouts',
+    allowedRoles: ['admin', 'manager', 'coach'],
+    showInNavigation: true,
+    mobileOrder: 5
+  },
+  {
     id: 'discord-portal',
     title: 'Discord Portal',
     description: 'Discord notifications and webhook management',
     icon: 'MessageSquare',
     path: '/dashboard/discord-portal',
-    allowedRoles: ['admin', 'manager', 'coach', 'analyst'],
+    allowedRoles: ['admin'],
     showInNavigation: true,
-    mobileOrder: 8
+    mobileOrder: 9
   },
   {
     id: 'profile',
