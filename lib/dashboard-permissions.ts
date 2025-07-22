@@ -127,6 +127,16 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     mobileOrder: 10
   },
   {
+    id: 'agreement-management',
+    title: 'Agreement Management',
+    description: 'Create and edit user agreements',
+    icon: 'FileText',
+    path: '/dashboard/admin/agreements',
+    allowedRoles: ['admin'],
+    showInNavigation: true,
+    mobileOrder: 11
+  },
+  {
     id: 'profile',
     title: 'Profile',
     description: 'Personal profile and settings',
