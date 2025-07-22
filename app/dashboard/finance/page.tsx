@@ -631,7 +631,7 @@ export default function FinancePage() {
         <div className="text-center space-y-4">
           <DollarSign className="h-16 w-16 text-red-500 mx-auto" />
           <div>
-            <h3 className="text-xl font-semibold text-gray-900">Access Denied</h3>
+            <h3 className="text-xl font-semibold text-white">Access Denied</h3>
             <p className="text-gray-600">You don't have permission to access financial data.</p>
             <p className="text-sm text-gray-500 mt-2">Current role: {profile?.role}</p>
             <p className="text-xs text-gray-400">Required: admin or manager role</p>
@@ -671,7 +671,7 @@ export default function FinancePage() {
             <div className="text-center space-y-4">
               <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">Failed to Load Financial Data</h3>
+                <h3 className="text-xl font-semibold text-white">Failed to Load Financial Data</h3>
                 <p className="text-gray-600 mt-2">{error}</p>
                 <Button onClick={handleRefresh} className="mt-4">
                   <RefreshCw className="h-4 w-4 mr-2" />

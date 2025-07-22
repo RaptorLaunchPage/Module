@@ -306,7 +306,7 @@ export default function SlotsPage() {
     return (
       <div className="space-y-6">
         <div className="p-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+                      <h2 className="text-2xl font-bold text-white mb-2">Access Denied</h2>
           <p className="text-gray-600">You don't have permission to access team management.</p>
         </div>
       </div>
