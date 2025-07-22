@@ -85,36 +85,28 @@ export default function TryoutsPage() {
   const loadTryouts = async () => {
     try {
       setLoading(true)
-      // Mock data for now
-      setTryouts([
-        {
-          id: '1',
-          name: 'Raptors Main - July 2025',
-          purpose: 'existing_team',
-          target_roles: ['Entry', 'IGL'],
-          team_ids: [],
-          type: 'scrim',
-          open_to_public: true,
-          application_deadline: '2025-01-31T23:59:59Z',
-          evaluation_method: 'mixed',
-          additional_links: [],
-          status: 'active',
-          description: 'Looking for skilled players to join our main roster for the upcoming season.',
-          requirements: null,
-          created_by: profile?.id || '',
-          created_at: '2025-01-15T10:00:00Z',
-          updated_at: '2025-01-15T10:00:00Z',
-          launched_at: '2025-01-15T12:00:00Z',
-          closed_at: null,
-          _count: {
-            applications: 15,
-            invitations: 8,
-            selections: 2
-          }
+      const token = await getToken()
+      
+      const response = await fetch('/api/tryouts', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      ])
-    } catch (error) {
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch tryouts')
+      }
+
+      const data = await response.json()
+      setTryouts(data.tryouts || [])
+    } catch (error: any) {
       console.error('Error loading tryouts:', error)
+      toast({
+        title: "Error",
+        description: error.message || "Failed to load tryouts",
+        variant: "destructive"
+      })
     } finally {
       setLoading(false)
     }

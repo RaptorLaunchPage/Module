@@ -25,15 +25,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
-    // Fetch tryouts with counts
+    // Fetch tryouts with application counts
     const { data: tryouts, error } = await supabase
       .from('tryouts')
       .select(`
         *,
-        creator:created_by(name, email),
-        _count:tryout_applications(count)
+        creator:created_by(name, email)
       `)
       .order('created_at', { ascending: false })
+
+    // Get application counts separately since Supabase doesn't support aggregate joins
+    if (tryouts && !error) {
+      for (const tryout of tryouts) {
+        const { count } = await supabase
+          .from('tryout_applications')
+          .select('*', { count: 'exact', head: true })
+          .eq('tryout_id', tryout.id)
+        
+        tryout._count = { applications: count || 0 }
+      }
+    }
 
     if (error) {
       console.error('Database error:', error)

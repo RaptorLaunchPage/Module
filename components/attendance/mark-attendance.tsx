@@ -120,7 +120,7 @@ export function MarkAttendance({ onAttendanceMarked, userProfile, teams, users }
         team_id: selectedTeam,
         date: selectedDate,
         session_time: sessionTime,
-        status: 'Present',
+        status: 'present',
         marked_by: userProfile.id
       }))
 
