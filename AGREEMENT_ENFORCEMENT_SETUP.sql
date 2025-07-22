@@ -117,6 +117,15 @@ BEGIN
     );
   END IF;
   
+  -- Skip agreement enforcement for admin users
+  IF p_role = 'admin' THEN
+    RETURN jsonb_build_object(
+      'requires_agreement', false,
+      'status', 'admin_bypass',
+      'message', 'Admin users are exempt from agreement enforcement'
+    );
+  END IF;
+  
   -- Get user's agreement record
   SELECT * INTO agreement_record
   FROM public.user_agreements

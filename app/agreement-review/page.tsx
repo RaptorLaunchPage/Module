@@ -134,9 +134,13 @@ export default function AgreementReviewPage() {
       if (success) {
         toast({
           title: "Agreement Declined",
-          description: "You have declined the agreement. Please contact an administrator.",
+          description: "You have declined the agreement. Logging out...",
           variant: "destructive"
         })
+        // Log out the user after declining
+        setTimeout(() => {
+          window.location.href = '/auth/login'
+        }, 2000)
       }
     } catch (error) {
       toast({
@@ -146,6 +150,17 @@ export default function AgreementReviewPage() {
       })
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // Emergency bypass for admins
+  const handleEmergencyBypass = () => {
+    if (profile?.role === 'admin') {
+      toast({
+        title: "Admin Bypass",
+        description: "Using emergency admin bypass. Redirecting to dashboard...",
+      })
+      router.push('/dashboard')
     }
   }
 
@@ -302,6 +317,26 @@ export default function AgreementReviewPage() {
               <p className="text-center text-sm text-muted-foreground mt-4">
                 You must read the complete agreement before accepting.
               </p>
+            )}
+
+            {/* Emergency Admin Bypass */}
+            {profile?.role === 'admin' && (
+              <div className="mt-6 pt-4 border-t">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Admin Emergency Access
+                  </p>
+                  <Button
+                    onClick={handleEmergencyBypass}
+                    variant="ghost"
+                    size="sm"
+                    className="text-orange-600 hover:text-orange-700"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Emergency Bypass
+                  </Button>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>

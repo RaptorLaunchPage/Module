@@ -9,8 +9,8 @@ export const CURRENT_AGREEMENT_VERSIONS = {
   manager: 1,
   analyst: 1,
   tryout: 1,
-  admin: 1,
   pending_player: 1
+  // Note: admin role is exempt from agreement enforcement
 } as const;
 
 export type AgreementRole = keyof typeof CURRENT_AGREEMENT_VERSIONS;
