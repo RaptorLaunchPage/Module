@@ -189,28 +189,28 @@ export default function AttendancePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4 md:p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <CalendarCheck className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+              <CalendarCheck className="h-8 w-8 text-white" />
               Attendance Management
             </h1>
-            <p className="text-gray-600 mt-1">
+            <p className="text-white/80 mt-1">
               Track practice sessions and match attendance
             </p>
           </div>
 
           {/* Quick Stats */}
           <div className="flex gap-4">
-            <Card className="px-4 py-2">
+            <Card className="px-4 py-2 bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
+                <CheckCircle className="h-4 w-4 text-green-400" />
                 <div>
-                  <p className="text-sm text-gray-600">Present Today</p>
-                  <p className="font-semibold">{presentToday}/{totalPlayersToday}</p>
+                  <p className="text-sm text-white/80">Present Today</p>
+                  <p className="font-semibold text-white">{presentToday}/{totalPlayersToday}</p>
                 </div>
               </div>
             </Card>
@@ -218,9 +218,9 @@ export default function AttendancePage() {
         </div>
 
         {/* Filters */}
-        <Card>
+        <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-white">
               <Filter className="h-5 w-5" />
               Filters
             </CardTitle>
@@ -229,12 +229,12 @@ export default function AttendancePage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {canViewAllTeams && (
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Team</label>
+                  <label className="text-sm font-medium mb-2 block text-white">Team</label>
                   <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-white/8 backdrop-blur-md border-white/25 text-white">
                       <SelectValue placeholder="Select team" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white/10 backdrop-blur-md border-white/20 text-white">
                       <SelectItem value="all">All Teams</SelectItem>
                       {teams.map((team) => (
                         <SelectItem key={team.id} value={team.id}>
@@ -247,12 +247,12 @@ export default function AttendancePage() {
               )}
               
               <div>
-                <label className="text-sm font-medium mb-2 block">Session</label>
+                <label className="text-sm font-medium mb-2 block text-white">Session</label>
                 <Select value={selectedSession} onValueChange={setSelectedSession}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white/8 backdrop-blur-md border-white/25 text-white">
                     <SelectValue placeholder="Select session" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white/10 backdrop-blur-md border-white/20 text-white">
                     <SelectItem value="all">All Sessions</SelectItem>
                     <SelectItem value="Morning">Morning</SelectItem>
                     <SelectItem value="Evening">Evening</SelectItem>
@@ -263,12 +263,12 @@ export default function AttendancePage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Date</label>
+                <label className="text-sm font-medium mb-2 block text-white">Date</label>
                 <input
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-10 w-full rounded-md border border-white/25 bg-white/8 backdrop-blur-md px-3 py-2 text-sm text-white placeholder:text-white/50 focus:bg-white/12 focus:border-white/40 focus:outline-none"
                 />
               </div>
 
@@ -280,7 +280,7 @@ export default function AttendancePage() {
                     setSelectedSession("all")
                     setSelectedDate("")
                   }}
-                  className="w-full"
+                  className="w-full bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40"
                 >
                   Clear Filters
                 </Button>
