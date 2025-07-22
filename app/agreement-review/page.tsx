@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import ReactMarkdown from 'react-markdown'
 import { VideoBackground } from "@/components/video-background"
+import { FullPageLoader } from "@/components/ui/full-page-loader"
 
 interface AgreementContent {
   role: string
@@ -179,23 +180,7 @@ export default function AgreementReviewPage() {
   }, [authLoading, agreementStatus, router])
 
   if (authLoading || loading) {
-    return (
-      <VideoBackground>
-        <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
-        <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
-        
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
-            <CardContent className="flex items-center justify-center p-8">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                <p className="text-white">Loading agreement...</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </VideoBackground>
-    )
+    return <FullPageLoader state="checking-agreement" customDescription="Loading agreement data" />
   }
 
   if (!user || !profile) {
