@@ -4,8 +4,8 @@ import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { useAgreementEnforcement, useAgreementDevOverride } from "@/hooks/use-agreement-enforcement"
-import { Card, CardContent } from "@/components/ui/card"
-import { Shield, AlertTriangle } from "lucide-react"
+import { FullPageLoader } from "@/components/ui/full-page-loader"
+import { AlertTriangle } from "lucide-react"
 
 interface AgreementEnforcementWrapperProps {
   children: React.ReactNode
@@ -71,16 +71,11 @@ export function AgreementEnforcementWrapper({ children }: AgreementEnforcementWr
   // Show loading screen while checking agreement status
   if ((authLoading || loading) && user && profile) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex items-center justify-center p-8">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Checking agreement status...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <FullPageLoader 
+        state="checking-agreement"
+        showBackground={false}
+        size="md"
+      />
     )
   }
 
@@ -94,22 +89,13 @@ export function AgreementEnforcementWrapper({ children }: AgreementEnforcementWr
     !isRouteAllowed(pathname)
   ) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex items-center justify-center p-8">
-            <div className="text-center">
-              <Shield className="h-12 w-12 text-orange-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Agreement Required</h3>
-              <p className="text-muted-foreground mb-4">
-                You need to review and accept the user agreement to continue.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Redirecting to agreement review...
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <FullPageLoader 
+        state="redirecting"
+        customTitle="Agreement Required"
+        customDescription="You need to review and accept the user agreement to continue. Redirecting to agreement review"
+        showBackground={false}
+        size="md"
+      />
     )
   }
 

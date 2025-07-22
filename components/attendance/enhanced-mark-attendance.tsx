@@ -189,41 +189,41 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
   return (
     <div className="space-y-6">
       {/* Session Setup */}
-      <Card>
+      <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-white">
             <Calendar className="h-5 w-5" />
             Session Setup
           </CardTitle>
-          <CardDescription>Configure the attendance session details</CardDescription>
+          <CardDescription className="text-white/80">Configure the attendance session details</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Date */}
             <div>
-              <Label htmlFor="date" className="text-sm font-medium mb-2 block">Date</Label>
+              <Label htmlFor="date" className="text-sm font-medium mb-2 block text-white">Date</Label>
               <input
                 id="date"
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 max={new Date().toISOString().split('T')[0]}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-10 w-full rounded-md border border-white/25 bg-white/8 backdrop-blur-md px-3 py-2 text-sm text-white focus:bg-white/12 focus:border-white/40 focus:outline-none"
               />
             </div>
 
             {/* Team Selection */}
             <div>
-              <Label className="text-sm font-medium mb-2 block">Team</Label>
+              <Label className="text-sm font-medium mb-2 block text-white">Team</Label>
               <Select value={selectedTeam} onValueChange={setSelectedTeam} disabled={isPlayer || isCoach}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white/8 backdrop-blur-md border-white/25 text-white">
                   <SelectValue placeholder="Select team" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white/10 backdrop-blur-md border-white/20 text-white">
                   {availableTeams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">{team.tier}</Badge>
+                        <Badge variant="outline" className="bg-white/20 text-white border-white/30">{team.tier}</Badge>
                         {team.name}
                       </div>
                     </SelectItem>
@@ -235,22 +235,22 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
 
           {/* Session Type */}
           <div>
-            <Label className="text-sm font-medium mb-3 block">Session Type</Label>
+            <Label className="text-sm font-medium mb-3 block text-white">Session Type</Label>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               {SESSION_TYPES.map((type) => (
                 <button
                   key={type.value}
                   onClick={() => setSessionType(type.value)}
-                  className={`p-3 rounded-lg border-2 transition-all ${
+                  className={`p-3 rounded-lg border-2 transition-all backdrop-blur-sm ${
                     sessionType === type.value
-                      ? 'border-primary bg-primary/10 shadow-md'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-primary bg-primary/20 shadow-md'
+                      : 'border-white/30 bg-white/5 hover:border-white/40 hover:bg-white/10'
                   }`}
                 >
                   <div className={`${type.color} p-2 rounded-md text-white mx-auto mb-2 w-fit`}>
                     <type.icon className="h-4 w-4" />
                   </div>
-                  <p className="text-xs font-medium text-center">{type.label}</p>
+                  <p className="text-xs font-medium text-center text-white">{type.label}</p>
                 </button>
               ))}
             </div>
@@ -260,21 +260,21 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
 
       {/* Player Attendance */}
       {selectedTeam && teamPlayers.length > 0 && (
-        <Card>
+        <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex items-center justify-between text-white">
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
                 Mark Attendance
               </div>
               <div className="flex gap-2 text-sm">
-                {presentCount > 0 && <Badge className="bg-green-100 text-green-800">{presentCount} Present</Badge>}
-                {lateCount > 0 && <Badge className="bg-yellow-100 text-yellow-800">{lateCount} Late</Badge>}
-                {absentCount > 0 && <Badge className="bg-red-100 text-red-800">{absentCount} Absent</Badge>}
-                {unmarkedCount > 0 && <Badge variant="outline">{unmarkedCount} Unmarked</Badge>}
+                {presentCount > 0 && <Badge className="bg-green-500/20 text-green-100 border-green-500/30">{presentCount} Present</Badge>}
+                {lateCount > 0 && <Badge className="bg-amber-500/20 text-amber-100 border-amber-500/30">{lateCount} Late</Badge>}
+                {absentCount > 0 && <Badge className="bg-red-500/20 text-red-100 border-red-500/30">{absentCount} Absent</Badge>}
+                {unmarkedCount > 0 && <Badge variant="outline" className="bg-white/20 text-white border-white/30">{unmarkedCount} Unmarked</Badge>}
               </div>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-white/80">
               Click on each player to mark their attendance status
             </CardDescription>
           </CardHeader>
@@ -283,20 +283,20 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
               {playersAttendance.map((player) => (
                 <Card 
                   key={player.id} 
-                  className={`cursor-pointer transition-all hover:shadow-md ${getStatusColor(player.status)} border-2`}
+                  className={`cursor-pointer transition-all hover:shadow-md bg-white/5 backdrop-blur-sm border-white/20 hover:bg-white/10 border-2`}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center gap-3 mb-3">
-                      <Avatar className="h-12 w-12">
+                      <Avatar className="h-12 w-12 border-2 border-white/30">
                         <AvatarImage src={player.avatar_url} />
-                        <AvatarFallback>
+                        <AvatarFallback className="bg-white/20 text-white">
                           {player.name.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <p className="font-medium text-sm">{player.name}</p>
+                        <p className="font-medium text-sm text-white">{player.name}</p>
                         {player.in_game_role && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
                             {player.in_game_role}
                           </Badge>
                         )}
@@ -309,7 +309,11 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
                         size="sm"
                         variant={player.status === 'present' ? 'default' : 'outline'}
                         onClick={() => updatePlayerStatus(player.id, 'present')}
-                        className="text-xs h-8"
+                        className={`text-xs h-8 ${
+                          player.status === 'present' 
+                            ? 'bg-green-500/80 hover:bg-green-500/90 text-white border-green-500/40' 
+                            : 'bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40'
+                        }`}
                       >
                         Present
                       </Button>
@@ -317,7 +321,11 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
                         size="sm"
                         variant={player.status === 'late' ? 'default' : 'outline'}
                         onClick={() => updatePlayerStatus(player.id, 'late')}
-                        className="text-xs h-8"
+                        className={`text-xs h-8 ${
+                          player.status === 'late' 
+                            ? 'bg-amber-500/80 hover:bg-amber-500/90 text-white border-amber-500/40' 
+                            : 'bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40'
+                        }`}
                       >
                         Late
                       </Button>
@@ -325,7 +333,11 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
                         size="sm"
                         variant={player.status === 'absent' ? 'default' : 'outline'}
                         onClick={() => updatePlayerStatus(player.id, 'absent')}
-                        className="text-xs h-8"
+                        className={`text-xs h-8 ${
+                          player.status === 'absent' 
+                            ? 'bg-red-500/80 hover:bg-red-500/90 text-white border-red-500/40' 
+                            : 'bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40'
+                        }`}
                       >
                         Absent
                       </Button>
@@ -336,11 +348,12 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
             </div>
 
             {/* Quick Actions */}
-            <div className="flex gap-2 mt-6 pt-4 border-t">
+            <div className="flex gap-2 mt-6 pt-4 border-t border-white/20">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setPlayersAttendance(prev => prev.map(p => ({ ...p, status: 'present' })))}
+                className="bg-green-500/20 border-green-500/40 text-green-100 hover:bg-green-500/30 hover:border-green-500/60"
               >
                 Mark All Present
               </Button>
@@ -348,6 +361,7 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
                 variant="outline"
                 size="sm"
                 onClick={() => setPlayersAttendance(prev => prev.map(p => ({ ...p, status: 'absent' })))}
+                className="bg-red-500/20 border-red-500/40 text-red-100 hover:bg-red-500/30 hover:border-red-500/60"
               >
                 Mark All Absent
               </Button>
@@ -355,6 +369,7 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
                 variant="outline"
                 size="sm"
                 onClick={() => setPlayersAttendance(prev => prev.map(p => ({ ...p, status: 'unset' })))}
+                className="bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40"
               >
                 Clear All
               </Button>
@@ -364,7 +379,7 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
             <Button 
               onClick={handleSubmit}
               disabled={loading || !sessionType || !selectedTeam || unmarkedCount === playersAttendance.length}
-              className="w-full mt-6"
+              className="w-full mt-6 bg-primary/80 hover:bg-primary/90 text-white border-primary/40"
               size="lg"
             >
               {loading ? (
@@ -385,11 +400,11 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
 
       {/* Empty State */}
       {selectedTeam && teamPlayers.length === 0 && (
-        <Card>
+        <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
           <CardContent className="p-8 text-center">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Players Found</h3>
-            <p className="text-muted-foreground">
+            <Users className="h-12 w-12 text-white/60 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2 text-white">No Players Found</h3>
+            <p className="text-white/80">
               No active players found for the selected team.
             </p>
           </CardContent>

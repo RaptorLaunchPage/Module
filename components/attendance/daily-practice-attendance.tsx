@@ -229,7 +229,12 @@ export function DailyPracticeAttendance({ userProfile, teams, users }: DailyPrac
             Mark attendance for any one practice session per day to be counted present
           </p>
         </div>
-        <Button onClick={loadDailySessions} variant="outline" size="sm">
+        <Button 
+          onClick={loadDailySessions} 
+          variant="outline" 
+          size="sm"
+          className="bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40"
+        >
           <Calendar className="h-4 w-4 mr-2" />
           Refresh
         </Button>
@@ -321,7 +326,7 @@ export function DailyPracticeAttendance({ userProfile, teams, users }: DailyPrac
                             onClick={() => markAttendance(session.id, 'present')}
                             disabled={markingAttendance === session.id}
                             size="sm"
-                            className="flex-1"
+                            className="flex-1 bg-green-500/80 hover:bg-green-500/90 text-white border-green-500/40"
                           >
                             {markingAttendance === session.id ? (
                               <Loader2 className="h-3 w-3 animate-spin" />
@@ -336,6 +341,7 @@ export function DailyPracticeAttendance({ userProfile, teams, users }: DailyPrac
                             disabled={markingAttendance === session.id}
                             size="sm"
                             variant="outline"
+                            className="bg-amber-500/20 border-amber-500/40 text-amber-100 hover:bg-amber-500/30 hover:border-amber-500/60"
                           >
                             Late
                           </Button>
