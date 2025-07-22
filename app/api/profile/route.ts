@@ -116,7 +116,7 @@ export async function PUT(request: NextRequest) {
     
     if (updateError) {
       console.error('Profile update error:', updateError)
-      return NextResponse.json({ error: 'Update failed' }, { status: 500 })
+      return NextResponse.json({ error: `Update failed: ${updateError.message}` }, { status: 500 })
     }
     
     return NextResponse.json({ 
@@ -134,43 +134,27 @@ export async function PUT(request: NextRequest) {
 function sanitizeUpdates(updates: any, role: string, isOwnProfile: boolean) {
   const allowedFields = new Set<string>()
   
+  // Start with basic fields that definitely exist in the database
+  const basicFields = [
+    'name', 'bio', 'contact_number', 'instagram_handle', 'discord_id',
+    'device_info', 'device_model', 'ram', 'fps', 'storage', 'gyroscope_enabled',
+    'experience', 'gaming_experience', 'favorite_game', 'favorite_games',
+    'preferred_role', 'in_game_role'
+  ]
+  
+  // New fields that might not exist yet
+  const newFields = [
+    'full_name', 'display_name', 'date_of_birth', 'address',
+    'bgmi_id', 'bgmi_tier', 'bgmi_points', 'control_layout',
+    'sensitivity_settings', 'hud_layout_code', 'game_stats', 'achievements',
+    'social_links', 'emergency_contact_name', 'emergency_contact_number',
+    'profile_visibility', 'auto_sync_tryout_data', 'preferred_language', 'timezone'
+  ]
+  
   // Basic fields all users can edit on their own profile
   if (isOwnProfile) {
-    allowedFields.add('full_name')
-    allowedFields.add('display_name')
-    allowedFields.add('bio')
-    allowedFields.add('contact_number')
-    allowedFields.add('date_of_birth')
-    allowedFields.add('address')
-    allowedFields.add('bgmi_id')
-    allowedFields.add('bgmi_tier')
-    allowedFields.add('bgmi_points')
-    allowedFields.add('preferred_role')
-    allowedFields.add('in_game_role')
-    allowedFields.add('control_layout')
-    allowedFields.add('sensitivity_settings')
-    allowedFields.add('hud_layout_code')
-    allowedFields.add('game_stats')
-    allowedFields.add('achievements')
-    allowedFields.add('device_info')
-    allowedFields.add('device_model')
-    allowedFields.add('ram')
-    allowedFields.add('fps')
-    allowedFields.add('storage')
-    allowedFields.add('gyroscope_enabled')
-    allowedFields.add('instagram_handle')
-    allowedFields.add('discord_id')
-    allowedFields.add('social_links')
-    allowedFields.add('emergency_contact_name')
-    allowedFields.add('emergency_contact_number')
-    allowedFields.add('profile_visibility')
-    allowedFields.add('auto_sync_tryout_data')
-    allowedFields.add('preferred_language')
-    allowedFields.add('timezone')
-    allowedFields.add('experience')
-    allowedFields.add('gaming_experience')
-    allowedFields.add('favorite_game')
-    allowedFields.add('favorite_games')
+    basicFields.forEach(field => allowedFields.add(field))
+    newFields.forEach(field => allowedFields.add(field))
   }
   
   // Admin and manager can edit everything
@@ -181,6 +165,7 @@ function sanitizeUpdates(updates: any, role: string, isOwnProfile: boolean) {
   // Coach can edit limited fields for team members
   if (role === 'coach' && !isOwnProfile) {
     allowedFields.clear()
+    allowedFields.add('name')
     allowedFields.add('full_name')
     allowedFields.add('display_name')
     allowedFields.add('in_game_role')
@@ -195,7 +180,17 @@ function sanitizeUpdates(updates: any, role: string, isOwnProfile: boolean) {
   Object.keys(updates).forEach(key => {
     if (allowedFields.has(key)) {
       sanitized[key] = updates[key]
+    } else {
+      console.log(`Field '${key}' not allowed for role '${role}', isOwnProfile: ${isOwnProfile}`)
     }
+  })
+  
+  console.log('Sanitization result:', {
+    role,
+    isOwnProfile,
+    originalKeys: Object.keys(updates),
+    allowedKeys: Array.from(allowedFields),
+    sanitizedKeys: Object.keys(sanitized)
   })
   
   return sanitized

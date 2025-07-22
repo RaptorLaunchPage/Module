@@ -10,6 +10,7 @@ import { BGMIGamingSection } from "@/components/profile/bgmi-gaming-section"
 import { ProfileSearch } from "@/components/profile/profile-search"
 import { UserProfile, canViewProfile, canEditProfile } from "@/lib/profile-utils"
 import { useToast } from "@/hooks/use-toast"
+import { useAuthToken } from "@/hooks/use-auth-token"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,6 +32,7 @@ import {
 export default function ProfilePage() {
   const { profile: currentProfile, loading: authLoading } = useAuth()
   const { toast } = useToast()
+  const authToken = useAuthToken()
   const searchParams = useSearchParams()
   const targetUserId = searchParams.get('userId')
   
@@ -70,11 +72,9 @@ export default function ProfilePage() {
       
       setLoading(true)
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('supabase_token') : null
-        
         const response = await fetch(`/api/profile?userId=${targetUserId}`, {
           headers: {
-            'Authorization': token ? `Bearer ${token}` : '',
+            'Authorization': authToken ? `Bearer ${authToken}` : '',
             'Content-Type': 'application/json'
           }
         })
@@ -133,15 +133,36 @@ export default function ProfilePage() {
   }, [displayProfile])
 
   const handleProfileUpdate = async (updates: Partial<UserProfile>) => {
-    if (!displayProfile || !currentProfile) return
+    if (!displayProfile || !currentProfile) {
+      toast({
+        title: "Update Failed",
+        description: "Profile data not available",
+        variant: "destructive"
+      })
+      return
+    }
+    
+    if (!authToken) {
+      toast({
+        title: "Update Failed", 
+        description: "Authentication token not available",
+        variant: "destructive"
+      })
+      return
+    }
     
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('supabase_token') : null
+      console.log('Sending profile update:', { 
+        userId: displayProfile.id, 
+        updates,
+        currentUserRole: currentProfile.role,
+        canEdit: canEdit
+      })
       
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
+          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -150,11 +171,12 @@ export default function ProfilePage() {
         })
       })
       
-      if (!response.ok) {
-        throw new Error('Update failed')
-      }
-      
       const data = await response.json()
+      console.log('API response:', data)
+      
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP ${response.status}`)
+      }
       
       if (isOwnProfile) {
         // Update current profile in auth context
