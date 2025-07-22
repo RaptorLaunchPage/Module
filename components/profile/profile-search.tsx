@@ -22,6 +22,7 @@ import {
   Target
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useAuthToken } from '@/hooks/use-auth-token'
 
 interface ProfileSearchProps {
   onSelectProfile: (profile: UserProfile) => void
@@ -49,6 +50,7 @@ interface SearchResult {
 
 export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearchProps) {
   const { toast } = useToast()
+  const authToken = useAuthToken()
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -81,7 +83,7 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
       
       const response = await fetch(`/api/profile/search?${params}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('supabase_token')}`,
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
           'Content-Type': 'application/json'
         }
       })

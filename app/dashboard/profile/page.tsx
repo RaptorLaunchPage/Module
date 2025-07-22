@@ -70,9 +70,11 @@ export default function ProfilePage() {
       
       setLoading(true)
       try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('supabase_token') : null
+        
         const response = await fetch(`/api/profile?userId=${targetUserId}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('supabase_token')}`,
+            'Authorization': token ? `Bearer ${token}` : '',
             'Content-Type': 'application/json'
           }
         })
@@ -134,10 +136,12 @@ export default function ProfilePage() {
     if (!displayProfile || !currentProfile) return
     
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('supabase_token') : null
+      
       const response = await fetch('/api/profile', {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('supabase_token')}`,
+          'Authorization': token ? `Bearer ${token}` : '',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
