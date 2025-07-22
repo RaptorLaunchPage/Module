@@ -261,15 +261,15 @@ export default function AdminSettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <Label className="text-sm font-medium">Environment</Label>
-                <p className="text-sm text-muted-foreground">
+              <div className="p-3 bg-white/10 backdrop-blur-md border-white/20 rounded-lg">
+                <Label className="text-sm font-medium text-white">Environment</Label>
+                <p className="text-sm text-white/70">
                   {process.env.NODE_ENV || 'Unknown'}
                 </p>
               </div>
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <Label className="text-sm font-medium">Client Override</Label>
-                <p className="text-sm text-muted-foreground">
+              <div className="p-3 bg-white/10 backdrop-blur-md border-white/20 rounded-lg">
+                <Label className="text-sm font-medium text-white">Client Override</Label>
+                <p className="text-sm text-white/70">
                   {process.env.NEXT_PUBLIC_DISABLE_AGREEMENT_ENFORCEMENT === 'true' ? 'Active' : 'Inactive'}
                 </p>
               </div>

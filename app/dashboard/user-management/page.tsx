@@ -374,7 +374,7 @@ export default function UserManagementPage() {
         {users.length === 0 ? (
           <div className="text-center py-8">
             <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <p className="text-lg font-medium text-gray-900">No {title.toLowerCase()} found</p>
+                            <p className="text-lg font-medium text-white">No {title.toLowerCase()} found</p>
             <p className="text-gray-500">No users with this provider type</p>
           </div>
         ) : (
@@ -473,7 +473,7 @@ export default function UserManagementPage() {
         <div className="text-center space-y-4">
           <XCircle className="h-16 w-16 text-red-500 mx-auto" />
           <div>
-            <h3 className="text-xl font-semibold text-gray-900">Access Denied</h3>
+            <h3 className="text-xl font-semibold text-white">Access Denied</h3>
             <p className="text-gray-600">Admin role required to access user management</p>
             <p className="text-sm text-gray-500 mt-2">Current role: {profile?.role || 'Unknown'}</p>
           </div>
@@ -577,7 +577,7 @@ export default function UserManagementPage() {
               <div className="space-y-2">
                 <Label>Team Assignment</Label>
                 {editingUser.role === 'admin' || editingUser.role === 'manager' ? (
-                  <div className="p-2 bg-gray-50 rounded text-sm text-gray-600">
+                  <div className="p-2 bg-white/10 backdrop-blur-md border-white/20 rounded text-sm text-white/80">
                     Admin and Manager roles don't require team assignment
                   </div>
                 ) : (
