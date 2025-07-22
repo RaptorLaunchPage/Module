@@ -278,28 +278,27 @@ export default function CommunicationPage() {
         <TabsContent value="overview" className="space-y-6">
           {/* Custom Date Range */}
           {selectedTimePeriod === "custom" && (
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Start Date</label>
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Start Date</label>
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">End Date</label>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">End Date</label>
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-          </div>
-        )}
-      </div>
+          )}
 
       {/* Stats Overview or No Data State */}
       {!dataFetched || (dataFetched && !stats) || (stats && stats.totalMessages === 0) ? (
@@ -486,8 +485,8 @@ export default function CommunicationPage() {
               <p className="text-sm">Messages will appear here once you start sending notifications</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
         </TabsContent>
 
         <TabsContent value="webhooks" className="space-y-6">

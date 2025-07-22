@@ -163,7 +163,32 @@ export default function OptimizedDashboardPage() {
     return () => clearInterval(interval)
   }, [])
 
-  const loadEnhancedAdminStats = async (baseStats: DashboardStats): Promise<DashboardStats> => {
+  const normalizeStats = (baseStats: any): DashboardStats => {
+    return {
+      totalMatches: baseStats.totalMatches || 0,
+      totalKills: baseStats.totalKills || 0,
+      avgDamage: baseStats.avgDamage || 0,
+      avgSurvival: baseStats.avgSurvival || 0,
+      kdRatio: baseStats.kdRatio || 0,
+      totalExpense: baseStats.totalExpense || 0,
+      totalProfitLoss: baseStats.totalProfitLoss || 0,
+      activeTeams: baseStats.activeTeams || 0,
+      activePlayers: baseStats.activePlayers || 0,
+      todayMatches: baseStats.todayMatches || 0,
+      weekMatches: baseStats.weekMatches || 0,
+      avgPlacement: baseStats.avgPlacement || 0,
+      // Default values for admin-only stats
+      totalTeams: 0,
+      overallMatches: baseStats.totalMatches || 0,
+      roi: 0,
+      overallAttendanceRate: 0,
+      totalWinnings: Math.max(0, baseStats.totalProfitLoss || 0),
+      activeWebhooks: 0,
+      totalDiscordMessages: 0
+    }
+  }
+
+  const loadEnhancedAdminStats = async (baseStats: any): Promise<DashboardStats> => {
     try {
       const [teamsResponse, attendanceResponse, webhooksResponse, logsResponse] = await Promise.all([
         fetch('/api/teams'),
@@ -212,13 +237,23 @@ export default function OptimizedDashboardPage() {
         ((baseStats.totalProfitLoss - baseStats.totalExpense) / baseStats.totalExpense) * 100 : 0
 
       return {
-        ...baseStats,
+        totalMatches: baseStats.totalMatches || 0,
+        totalKills: baseStats.totalKills || 0,
+        avgDamage: baseStats.avgDamage || 0,
+        avgSurvival: baseStats.avgSurvival || 0,
+        kdRatio: baseStats.kdRatio || 0,
+        totalExpense: baseStats.totalExpense || 0,
+        totalProfitLoss: baseStats.totalProfitLoss || 0,
+        activeTeams: baseStats.activeTeams || 0,
+        activePlayers: baseStats.activePlayers || 0,
+        todayMatches: baseStats.todayMatches || 0,
+        weekMatches: baseStats.weekMatches || 0,
+        avgPlacement: baseStats.avgPlacement || 0,
         totalTeams,
-        activeTeams,
-        overallMatches: baseStats.totalMatches,
+        overallMatches: baseStats.totalMatches || 0,
         roi,
         overallAttendanceRate,
-        totalWinnings: Math.max(0, baseStats.totalProfitLoss), // Assuming winnings are positive P&L
+        totalWinnings: Math.max(0, baseStats.totalProfitLoss || 0),
         activeWebhooks,
         totalDiscordMessages
       }
@@ -255,7 +290,7 @@ export default function OptimizedDashboardPage() {
         const enhancedStats = await loadEnhancedAdminStats(dashboardStats)
         setStats(enhancedStats)
       } else {
-        setStats(dashboardStats)
+        setStats(normalizeStats(dashboardStats))
       }
       
       // Load recent performances with caching
@@ -680,7 +715,7 @@ export default function OptimizedDashboardPage() {
                     <div>
                       <p className="text-teal-100 text-sm font-medium">Top Performance</p>
                       <p className="text-xl font-bold">{topPerformers.topPlayer?.name || 'N/A'}</p>
-                      <p className="text-teal-200 text-xs">{topPerformers.topPlayer?.kills || 0} kills avg</p>
+                      <p className="text-teal-200 text-xs">{topPerformers.topPlayer?.value || 0} kills avg</p>
                     </div>
                     <Star className="h-8 w-8 text-teal-200" />
                   </div>
