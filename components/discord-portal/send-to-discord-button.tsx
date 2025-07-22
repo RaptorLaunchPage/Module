@@ -69,7 +69,7 @@ export function SendToDiscordButton({
   const [selectedWebhookId, setSelectedWebhookId] = useState<string>("")
   const [loadingWebhooks, setLoadingWebhooks] = useState(false)
 
-  // Check if user has permission to send messages
+  // Check if user has permission to send messages (Admin, Manager, Coach, Analyst only - NOT Player)
   const canSendMessages = profile?.role && ['admin', 'manager', 'coach', 'analyst'].includes(profile.role)
 
   // Load available webhooks when dialog opens

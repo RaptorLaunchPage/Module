@@ -102,7 +102,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     description: 'Discord notifications and webhook management',
     icon: 'MessageSquare',
     path: '/dashboard/discord-portal',
-    allowedRoles: ['admin', 'manager', 'coach', 'analyst'],
+    allowedRoles: ['admin'],
     showInNavigation: true,
     mobileOrder: 8
   },
