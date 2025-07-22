@@ -4,14 +4,11 @@ import { supabase } from '@/lib/supabase'
 export async function getUser(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader) {
       return null
     }
 
-    const token = authHeader.substring(7)
-    
-    // For now, we'll use a simplified approach
-    // In a real app, you'd validate the JWT token properly
+    const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error } = await supabase.auth.getUser(token)
     
     if (error || !user) {
@@ -20,27 +17,32 @@ export async function getUser(request: NextRequest) {
 
     return user
   } catch (error) {
-    console.error('Auth error:', error)
+    console.error('Error getting user from token:', error)
     return null
   }
 }
 
-export async function getUserProfile(userId: string) {
+export async function getUserWithProfile(request: NextRequest) {
   try {
-    const { data: profile, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single()
-
-    if (error) {
-      console.error('Profile fetch error:', error)
-      return null
+    const user = await getUser(request)
+    if (!user) {
+      return { user: null, profile: null }
     }
 
-    return profile
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError)
+      return { user, profile: null }
+    }
+
+    return { user, profile }
   } catch (error) {
-    console.error('Profile error:', error)
-    return null
+    console.error('Error getting user with profile:', error)
+    return { user: null, profile: null }
   }
 }
