@@ -105,6 +105,8 @@ export default function OnboardingPage() {
           bio: formData.bio,
           role: 'player', // Update role from pending_player to player
           onboarding_completed: true,
+          auto_sync_tryout_data: true, // Enable auto-sync by default
+          last_profile_update: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', profile.id)
