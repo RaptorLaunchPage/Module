@@ -61,7 +61,7 @@ export type Database = {
           id: string
           email: string
           name: string | null
-          role: "admin" | "manager" | "coach" | "player" | "analyst" | "pending_player" | "awaiting_approval"
+          role: "admin" | "manager" | "coach" | "player" | "analyst" | "pending_player" | "tryout"
           role_level: number | null
           team_id: string | null
           avatar_url: string | null
@@ -89,12 +89,31 @@ export type Database = {
           onboarding_completed: boolean | null
           last_login: string | null
           updated_at: string | null
+          // New BGMI-specific fields
+          bgmi_id: string | null
+          bgmi_tier: "Bronze" | "Silver" | "Gold" | "Platinum" | "Diamond" | "Crown" | "Ace" | "Conqueror" | null
+          bgmi_points: number | null
+          sensitivity_settings: Json | null
+          control_layout: "2-finger" | "3-finger" | "4-finger" | "5-finger" | "6-finger" | null
+          hud_layout_code: string | null
+          game_stats: Json | null
+          achievements: Json | null
+          social_links: Json | null
+          emergency_contact_name: string | null
+          emergency_contact_number: string | null
+          date_of_birth: string | null
+          address: string | null
+          preferred_language: string | null
+          timezone: string | null
+          profile_visibility: "public" | "team" | "private" | null
+          auto_sync_tryout_data: boolean | null
+          last_profile_update: string | null
         }
         Insert: {
           id: string
           email: string
           name?: string | null
-          role?: "admin" | "manager" | "coach" | "player" | "analyst" | "pending_player" | "awaiting_approval"
+          role?: "admin" | "manager" | "coach" | "player" | "analyst" | "pending_player" | "tryout"
           role_level?: number | null
           team_id?: string | null
           avatar_url?: string | null
@@ -121,10 +140,29 @@ export type Database = {
           onboarding_completed?: boolean | null
           last_login?: string | null
           updated_at?: string | null
+          // New BGMI-specific fields
+          bgmi_id?: string | null
+          bgmi_tier?: "Bronze" | "Silver" | "Gold" | "Platinum" | "Diamond" | "Crown" | "Ace" | "Conqueror" | null
+          bgmi_points?: number | null
+          sensitivity_settings?: Json | null
+          control_layout?: "2-finger" | "3-finger" | "4-finger" | "5-finger" | "6-finger" | null
+          hud_layout_code?: string | null
+          game_stats?: Json | null
+          achievements?: Json | null
+          social_links?: Json | null
+          emergency_contact_name?: string | null
+          emergency_contact_number?: string | null
+          date_of_birth?: string | null
+          address?: string | null
+          preferred_language?: string | null
+          timezone?: string | null
+          profile_visibility?: "public" | "team" | "private" | null
+          auto_sync_tryout_data?: boolean | null
+          last_profile_update?: string | null
         }
         Update: {
           name?: string | null
-          role?: "admin" | "manager" | "coach" | "player" | "analyst" | "pending_player" | "awaiting_approval"
+          role?: "admin" | "manager" | "coach" | "player" | "analyst" | "pending_player" | "tryout"
           role_level?: number | null
           team_id?: string | null
           avatar_url?: string | null
@@ -148,6 +186,25 @@ export type Database = {
           experience?: string | null
           preferred_role?: string | null
           favorite_games?: string | null
+          // New BGMI-specific fields
+          bgmi_id?: string | null
+          bgmi_tier?: "Bronze" | "Silver" | "Gold" | "Platinum" | "Diamond" | "Crown" | "Ace" | "Conqueror" | null
+          bgmi_points?: number | null
+          sensitivity_settings?: Json | null
+          control_layout?: "2-finger" | "3-finger" | "4-finger" | "5-finger" | "6-finger" | null
+          hud_layout_code?: string | null
+          game_stats?: Json | null
+          achievements?: Json | null
+          social_links?: Json | null
+          emergency_contact_name?: string | null
+          emergency_contact_number?: string | null
+          date_of_birth?: string | null
+          address?: string | null
+          preferred_language?: string | null
+          timezone?: string | null
+          profile_visibility?: "public" | "team" | "private" | null
+          auto_sync_tryout_data?: boolean | null
+          last_profile_update?: string | null
           onboarding_completed?: boolean | null
           last_login?: string | null
           updated_at?: string | null
@@ -349,29 +406,80 @@ export type Database = {
           player_id: string
           team_id: string
           date: string
-          session_time: "Morning" | "Evening" | "Night" | "Match"
-          status: "Present" | "Absent" | "Auto (Match)"
+          session_time: string
+          status: "present" | "late" | "absent" | "auto"
           marked_by: string | null
           slot_id: string | null
+          session_id: string | null
+          source: "manual" | "auto" | "system"
           created_at: string
         }
         Insert: {
           player_id: string
           team_id: string
           date: string
-          session_time: "Morning" | "Evening" | "Night" | "Match"
-          status: "Present" | "Absent" | "Auto (Match)"
+          session_time: string
+          status: "present" | "late" | "absent" | "auto"
           marked_by?: string | null
           slot_id?: string | null
+          session_id?: string | null
+          source?: "manual" | "auto" | "system"
         }
         Update: {
           player_id?: string
           team_id?: string
           date?: string
-          session_time?: "Morning" | "Evening" | "Night" | "Match"
-          status?: "Present" | "Absent" | "Auto (Match)"
+          session_time?: string
+          status?: "present" | "late" | "absent" | "auto"
           marked_by?: string | null
           slot_id?: string | null
+          session_id?: string | null
+          source?: "manual" | "auto" | "system"
+        }
+      }
+      sessions: {
+        Row: {
+          id: string
+          team_id: string
+          session_type: "practice" | "tournament" | "meeting"
+          session_subtype: string | null
+          date: string
+          start_time: string | null
+          end_time: string | null
+          cutoff_time: string | null
+          title: string | null
+          description: string | null
+          is_mandatory: boolean
+          created_by: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          team_id: string
+          session_type: "practice" | "tournament" | "meeting"
+          session_subtype?: string | null
+          date: string
+          start_time?: string | null
+          end_time?: string | null
+          cutoff_time?: string | null
+          title?: string | null
+          description?: string | null
+          is_mandatory?: boolean
+          created_by: string
+        }
+        Update: {
+          team_id?: string
+          session_type?: "practice" | "tournament" | "meeting"
+          session_subtype?: string | null
+          date?: string
+          start_time?: string | null
+          end_time?: string | null
+          cutoff_time?: string | null
+          title?: string | null
+          description?: string | null
+          is_mandatory?: boolean
+          created_by?: string
+          updated_at?: string
         }
       }
       admin_config: {
