@@ -3,6 +3,9 @@ import { getUser } from '@/lib/auth-utils'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_AGREEMENT_VERSIONS, getRequiredAgreementVersion } from '@/lib/agreement-versions'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // GET /api/agreements - Get user's agreement status
 export async function GET(request: NextRequest) {
   try {

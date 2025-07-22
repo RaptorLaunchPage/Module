@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
+import { forceLogout } from "@/lib/force-logout"
 import { 
   FileText, 
   CheckCircle, 
@@ -83,10 +84,11 @@ export default function AgreementReviewPage() {
       const element = contentRef.current
       if (!element) return
 
-      const threshold = 50 // pixels from bottom
+      const threshold = 100 // increased threshold for better detection
       const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + threshold
       
       if (isAtBottom && !hasScrolledToBottom) {
+        console.log('User scrolled to bottom, enabling accept button')
         setHasScrolledToBottom(true)
       }
     }
@@ -94,12 +96,18 @@ export default function AgreementReviewPage() {
     const element = contentRef.current
     if (element) {
       element.addEventListener('scroll', handleScroll)
-      // Check initial state
-      handleScroll()
+      // Check initial state - if content is short enough, auto-enable
+      const isShortContent = element.scrollHeight <= element.clientHeight + 50
+      if (isShortContent) {
+        console.log('Content is short, auto-enabling accept button')
+        setHasScrolledToBottom(true)
+      } else {
+        handleScroll()
+      }
       
       return () => element.removeEventListener('scroll', handleScroll)
     }
-  }, [hasScrolledToBottom])
+  }, [hasScrolledToBottom, agreementContent])
 
   const handleAccept = async () => {
     setSubmitting(true)
@@ -129,28 +137,26 @@ export default function AgreementReviewPage() {
 
   const handleDecline = async () => {
     setSubmitting(true)
+    
+    toast({
+      title: "Agreement Declined",
+      description: "Clearing session and logging out...",
+      variant: "destructive"
+    })
+    
     try {
-      const success = await acceptAgreement('declined')
-      if (success) {
-        toast({
-          title: "Agreement Declined",
-          description: "You have declined the agreement. Logging out...",
-          variant: "destructive"
-        })
-        // Log out the user after declining
-        setTimeout(() => {
-          window.location.href = '/auth/login'
-        }, 2000)
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to process your response. Please try again.",
-        variant: "destructive"
-      })
-    } finally {
-      setSubmitting(false)
+      // Try to record the decline (but don't wait for it)
+      acceptAgreement('declined').catch(e => console.log('Decline recording failed:', e))
+    } catch (e) {
+      console.log('Decline API call failed:', e)
     }
+    
+    // Force logout immediately regardless of API success/failure
+    setTimeout(() => {
+      forceLogout()
+    }, 1500)
+    
+    setSubmitting(false)
   }
 
   // Emergency bypass for admins
@@ -267,11 +273,24 @@ export default function AgreementReviewPage() {
             
             {!hasScrolledToBottom && (
               <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="flex items-center gap-2 text-yellow-800">
-                  <ScrollText className="h-4 w-4" />
-                  <span className="text-sm font-medium">
-                    Please scroll to the bottom to read the complete agreement.
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-yellow-800">
+                    <ScrollText className="h-4 w-4" />
+                    <span className="text-sm font-medium">
+                      Please scroll to the bottom to read the complete agreement.
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      console.log('Manual override: enabling accept button')
+                      setHasScrolledToBottom(true)
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-700"
+                  >
+                    I've read it
+                  </Button>
                 </div>
               </div>
             )}
@@ -294,7 +313,10 @@ export default function AgreementReviewPage() {
               </Button>
               
               <Button
-                onClick={handleAccept}
+                onClick={() => {
+                  console.log('Accept button clicked', { hasScrolledToBottom, submitting })
+                  handleAccept()
+                }}
                 size="lg"
                 disabled={!hasScrolledToBottom || submitting}
                 className="min-w-[150px]"
@@ -308,6 +330,7 @@ export default function AgreementReviewPage() {
                   <>
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Accept Agreement
+                    {!hasScrolledToBottom && <span className="ml-1 text-xs">(Scroll Down)</span>}
                   </>
                 )}
               </Button>

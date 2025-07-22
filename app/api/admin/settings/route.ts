@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth-utils'
 import { supabase } from '@/lib/supabase'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // GET /api/admin/settings - Get system settings
 export async function GET(request: NextRequest) {
   try {

@@ -3,6 +3,9 @@ import { getUser } from '@/lib/auth-utils'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_AGREEMENT_VERSIONS } from '@/lib/agreement-versions'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // GET /api/admin/agreements - Get all agreement content for editing
 export async function GET(request: NextRequest) {
   try {

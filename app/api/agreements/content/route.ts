@@ -3,6 +3,9 @@ import { getUser } from '@/lib/auth-utils'
 import { supabase } from '@/lib/supabase'
 import { CURRENT_AGREEMENT_VERSIONS } from '@/lib/agreement-versions'
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
 // Default fallback content
 const DEFAULT_AGREEMENT_CONTENT = {
   player: {
