@@ -227,18 +227,22 @@ export default function AgreementManagementPage() {
                 <Button
                   key={role}
                   variant={selectedRole === role ? "default" : "outline"}
-                  className="w-full justify-between"
+                  className={`w-full justify-between ${
+                    selectedRole === role 
+                      ? 'bg-primary/80 hover:bg-primary/90 text-white border-primary/40' 
+                      : 'bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40'
+                  }`}
                   onClick={() => handleRoleChange(role)}
                 >
                   <span className="capitalize">{role}</span>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
                       v{agreements[role]?.current_version || CURRENT_AGREEMENT_VERSIONS[role as keyof typeof CURRENT_AGREEMENT_VERSIONS]}
                     </Badge>
                     {agreements[role] ? (
-                      <CheckCircle className="h-3 w-3 text-green-500" />
+                      <CheckCircle className="h-3 w-3 text-green-400" />
                     ) : (
-                      <AlertTriangle className="h-3 w-3 text-orange-500" />
+                      <AlertTriangle className="h-3 w-3 text-orange-400" />
                     )}
                   </div>
                 </Button>
@@ -266,6 +270,7 @@ export default function AgreementManagementPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setPreviewMode(!previewMode)}
+                      className="bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40"
                     >
                       {previewMode ? <Edit className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
                       {previewMode ? 'Edit' : 'Preview'}
@@ -274,6 +279,7 @@ export default function AgreementManagementPage() {
                       onClick={saveAgreement}
                       disabled={saving === selectedRole}
                       size="sm"
+                      className="bg-primary/80 hover:bg-primary/90 text-white border-primary/40"
                     >
                       {saving === selectedRole ? (
                         <>
@@ -318,15 +324,15 @@ export default function AgreementManagementPage() {
 
                     {/* Content Editor */}
                     <div className="space-y-2">
-                      <Label htmlFor="content">Agreement Content (Markdown)</Label>
+                      <Label htmlFor="content" className="text-white">Agreement Content (Markdown)</Label>
                       <Textarea
                         id="content"
                         value={editingContent.content}
                         onChange={(e) => updateEditingContent('content', e.target.value)}
                         placeholder="Enter agreement content in Markdown format..."
-                        className="min-h-[400px] font-mono text-sm"
+                        className="min-h-[400px] font-mono text-sm bg-black/60 backdrop-blur-md border-white/30 text-white placeholder:text-white/50 focus:bg-black/70 focus:border-white/50"
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-white/70">
                         You can use Markdown formatting. The content will be displayed to users when they need to accept the agreement.
                       </p>
                     </div>
@@ -341,16 +347,26 @@ export default function AgreementManagementPage() {
                       </AlertDescription>
                     </Alert>
                     
-                    <div className="border rounded-lg p-6 bg-gray-50">
+                    <div className="border border-white/30 rounded-lg p-6 bg-white/5 backdrop-blur-sm">
                       <div className="mb-4">
-                        <h2 className="text-xl font-semibold">{editingContent.title}</h2>
-                        <p className="text-sm text-muted-foreground">
+                        <h2 className="text-xl font-semibold text-white">{editingContent.title}</h2>
+                        <p className="text-sm text-white/70">
                           Version {editingContent.current_version}
                         </p>
                       </div>
                       
-                      <div className="prose prose-sm max-w-none">
-                        <ReactMarkdown>
+                      <div className="prose prose-sm max-w-none text-white">
+                        <ReactMarkdown 
+                          components={{
+                            h1: ({ children }) => <h1 className="text-white text-xl font-bold mb-4">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-white text-lg font-semibold mb-3">{children}</h2>,
+                            h3: ({ children }) => <h3 className="text-white text-md font-medium mb-2">{children}</h3>,
+                            p: ({ children }) => <p className="text-white/90 mb-3">{children}</p>,
+                            ul: ({ children }) => <ul className="text-white/90 mb-3 list-disc list-inside">{children}</ul>,
+                            ol: ({ children }) => <ol className="text-white/90 mb-3 list-decimal list-inside">{children}</ol>,
+                            li: ({ children }) => <li className="text-white/90 mb-1">{children}</li>,
+                          }}
+                        >
                           {editingContent.content}
                         </ReactMarkdown>
                       </div>

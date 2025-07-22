@@ -18,6 +18,8 @@ import {
   Shield
 } from "lucide-react"
 import ReactMarkdown from 'react-markdown'
+import { VideoBackground } from "@/components/video-background"
+import { FullPageLoader } from "@/components/ui/full-page-loader"
 
 interface AgreementContent {
   role: string
@@ -178,18 +180,7 @@ export default function AgreementReviewPage() {
   }, [authLoading, agreementStatus, router])
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex items-center justify-center p-8">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading agreement...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
+    return <FullPageLoader state="checking-agreement" customDescription="Loading agreement data" />
   }
 
   if (!user || !profile) {
@@ -199,35 +190,44 @@ export default function AgreementReviewPage() {
 
   if (!agreementContent) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex items-center justify-center p-8">
-            <div className="text-center">
-              <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Agreement Not Found</h3>
-              <p className="text-muted-foreground">
-                Could not load the agreement for your role. Please contact support.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <VideoBackground>
+        <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+        <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+        
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Card className="w-full max-w-md bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
+            <CardContent className="flex items-center justify-center p-8">
+              <div className="text-center">
+                <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2 text-white">Agreement Not Found</h3>
+                <p className="text-white/80">
+                  Could not load the agreement for your role. Please contact support.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </VideoBackground>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
+    <VideoBackground>
+      <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+      <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+      
+      <div className="min-h-screen py-8">
+        <div className="container mx-auto px-4 max-w-4xl">
         {/* Header */}
-        <Card className="mb-6">
+        <Card className="mb-6 bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
           <CardHeader>
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Shield className="h-6 w-6 text-blue-600" />
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-lg">
+                <Shield className="h-6 w-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-2xl">Agreement Review Required</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-2xl text-white">Agreement Review Required</CardTitle>
+                <CardDescription className="text-white/80">
                   Please review and accept the {agreementContent.title} to continue.
                 </CardDescription>
               </div>
@@ -237,7 +237,7 @@ export default function AgreementReviewPage() {
 
         {/* Agreement Status Alert */}
         {agreementStatus && (
-          <Alert className="mb-6">
+          <Alert className="mb-6 bg-amber-500/20 border-amber-500/30 text-amber-100">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               {agreementStatus.status === 'missing' && 'You need to accept the agreement to access the system.'}
@@ -249,32 +249,42 @@ export default function AgreementReviewPage() {
         )}
 
         {/* Agreement Content */}
-        <Card className="mb-6">
+        <Card className="mb-6 bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-white">
               <FileText className="h-5 w-5" />
               {agreementContent.title}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-white/80">
               {agreementContent.last_updated} • Version {agreementContent.current_version}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div 
               ref={contentRef}
-              className="max-h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50"
+              className="max-h-96 overflow-y-auto border border-white/30 rounded-lg p-4 bg-white/5 backdrop-blur-sm"
             >
-              <div className="prose prose-sm max-w-none">
-                <ReactMarkdown>
+              <div className="prose prose-sm max-w-none text-white">
+                <ReactMarkdown 
+                  components={{
+                    h1: ({ children }) => <h1 className="text-white text-xl font-bold mb-4">{children}</h1>,
+                    h2: ({ children }) => <h2 className="text-white text-lg font-semibold mb-3">{children}</h2>,
+                    h3: ({ children }) => <h3 className="text-white text-md font-medium mb-2">{children}</h3>,
+                    p: ({ children }) => <p className="text-white/90 mb-3">{children}</p>,
+                    ul: ({ children }) => <ul className="text-white/90 mb-3 list-disc list-inside">{children}</ul>,
+                    ol: ({ children }) => <ol className="text-white/90 mb-3 list-decimal list-inside">{children}</ol>,
+                    li: ({ children }) => <li className="text-white/90 mb-1">{children}</li>,
+                  }}
+                >
                   {agreementContent.content}
                 </ReactMarkdown>
               </div>
             </div>
             
             {!hasScrolledToBottom && (
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="mt-4 p-3 bg-amber-500/20 border border-amber-500/30 rounded-lg backdrop-blur-sm">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-yellow-800">
+                  <div className="flex items-center gap-2 text-amber-100">
                     <ScrollText className="h-4 w-4" />
                     <span className="text-sm font-medium">
                       Please scroll to the bottom to read the complete agreement.
@@ -287,7 +297,7 @@ export default function AgreementReviewPage() {
                       console.log('Manual override: enabling accept button')
                       setHasScrolledToBottom(true)
                     }}
-                    className="text-xs text-blue-600 hover:text-blue-700"
+                    className="text-xs text-white hover:bg-white/10"
                   >
                     I've read it
                   </Button>
@@ -298,7 +308,7 @@ export default function AgreementReviewPage() {
         </Card>
 
         {/* Action Buttons */}
-        <Card>
+        <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
@@ -306,7 +316,7 @@ export default function AgreementReviewPage() {
                 variant="outline"
                 size="lg"
                 disabled={submitting}
-                className="min-w-[150px]"
+                className="min-w-[150px] bg-red-500/20 border-red-500/40 text-red-100 hover:bg-red-500/30 hover:border-red-500/60"
               >
                 <XCircle className="h-4 w-4 mr-2" />
                 Decline
@@ -319,7 +329,7 @@ export default function AgreementReviewPage() {
                 }}
                 size="lg"
                 disabled={!hasScrolledToBottom || submitting}
-                className="min-w-[150px]"
+                className="min-w-[150px] bg-green-500/80 hover:bg-green-500/90 text-white border-green-500/40"
               >
                 {submitting ? (
                   <>
@@ -337,23 +347,23 @@ export default function AgreementReviewPage() {
             </div>
             
             {!hasScrolledToBottom && (
-              <p className="text-center text-sm text-muted-foreground mt-4">
+              <p className="text-center text-sm text-white/70 mt-4">
                 You must read the complete agreement before accepting.
               </p>
             )}
 
             {/* Emergency Admin Bypass */}
             {profile?.role === 'admin' && (
-              <div className="mt-6 pt-4 border-t">
+              <div className="mt-6 pt-4 border-t border-white/20">
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">
+                  <p className="text-sm text-white/70 mb-2">
                     Admin Emergency Access
                   </p>
                   <Button
                     onClick={handleEmergencyBypass}
                     variant="ghost"
                     size="sm"
-                    className="text-orange-600 hover:text-orange-700"
+                    className="text-orange-300 hover:text-orange-100 hover:bg-orange-500/20"
                   >
                     <AlertTriangle className="h-4 w-4 mr-2" />
                     Emergency Bypass
@@ -363,7 +373,8 @@ export default function AgreementReviewPage() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
-    </div>
+    </VideoBackground>
   )
 }
