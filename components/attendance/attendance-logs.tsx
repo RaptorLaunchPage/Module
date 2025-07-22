@@ -119,7 +119,11 @@ export function AttendanceLogs({ attendances, onRefresh, userRole }: AttendanceL
             <p className="text-gray-600 mb-4">
               No attendance records found for the selected filters.
             </p>
-            <Button onClick={onRefresh} variant="outline">
+            <Button 
+              onClick={onRefresh} 
+              variant="outline"
+              className="bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40"
+            >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
@@ -139,7 +143,12 @@ export function AttendanceLogs({ attendances, onRefresh, userRole }: AttendanceL
             {attendances.length} attendance record(s) found
           </p>
         </div>
-        <Button onClick={onRefresh} variant="outline" size="sm">
+        <Button 
+          onClick={onRefresh} 
+          variant="outline" 
+          size="sm"
+          className="bg-white/8 backdrop-blur-md border-white/25 text-white hover:bg-white/12 hover:border-white/40"
+        >
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>
