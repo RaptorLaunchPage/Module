@@ -166,8 +166,9 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
                                                     <Badge 
                             variant="secondary" 
                             className="bg-white/20 text-white border-white/30 text-xs"
+                            style={{ color: 'white !important' }}
                           >
-                            {roleInfo.label}
+                            <span className="text-white font-medium">{roleInfo.label}</span>
                           </Badge>
                       </div>
                     </div>
@@ -242,8 +243,9 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
                 <Badge 
                   variant="secondary" 
                   className="bg-white/20 text-white border-white/30 w-full justify-center py-2"
+                  style={{ color: 'white !important' }}
                 >
-                  {roleInfo.label}
+                  <span className="text-white font-medium">{roleInfo.label}</span>
                 </Badge>
               </div>
 

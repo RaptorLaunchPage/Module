@@ -252,10 +252,42 @@ h1, h2, h3, h4, h5, h6, .esports-heading {
 
 /* Badge styling */
 .dashboard-content .bg-badge,
-.dashboard-content [class*="badge"] {
+.dashboard-content [class*="badge"],
+.dashboard-content [data-ui="badge"] {
   background-color: rgba(255, 255, 255, 0.12) !important;
   color: white !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Force white text on all badges in glassmorphic areas */
+[class*="bg-white/"] [data-slot="badge"],
+[class*="bg-white/"] .badge,
+[class*="backdrop-blur"] [data-slot="badge"],
+[class*="backdrop-blur"] .badge,
+[class*="bg-white/"] span[class*="bg-"],
+[class*="backdrop-blur"] span[class*="bg-"] {
+  color: white !important;
+}
+
+/* Specific Badge component overrides */
+.bg-white\/10 .bg-white\/20,
+.bg-white\/10 [class*="text-"],
+.backdrop-blur-md .bg-white\/20,
+.backdrop-blur-md [class*="text-"] {
+  color: white !important;
+}
+
+/* Dashboard sidebar badge overrides */
+.lg\:flex .bg-white\/10 .bg-white\/20 *,
+.lg\:flex .backdrop-blur-md .bg-white\/20 *,
+.lg\:pl-64 .bg-white\/10 *,
+.lg\:pl-64 .backdrop-blur-md * {
+  color: white !important;
+}
+
+/* Force all text in glassmorphic containers to be white */
+[class*="bg-white/"][class*="backdrop-blur"] *:not(svg):not(img):not([class*="text-green"]):not([class*="text-red"]):not([class*="text-blue"]):not([class*="text-yellow"]) {
+  color: white !important;
 }
 
 /* Table styling */
