@@ -100,3 +100,83 @@ h1, h2, h3, h4, h5, h6, .esports-heading {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+/* Dashboard glassmorphic styles */
+.dashboard-content h1,
+.dashboard-content h2,
+.dashboard-content h3,
+.dashboard-content h4,
+.dashboard-content h5,
+.dashboard-content h6 {
+  color: white !important;
+}
+
+.dashboard-content p {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.dashboard-content .text-gray-600,
+.dashboard-content .text-gray-700,
+.dashboard-content .text-gray-800,
+.dashboard-content .text-gray-900 {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.dashboard-content .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.dashboard-content .bg-white {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.dashboard-content .border-gray-200,
+.dashboard-content .border-gray-300 {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.dashboard-content .shadow-sm,
+.dashboard-content .shadow,
+.dashboard-content .shadow-md,
+.dashboard-content .shadow-lg {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Card overrides */
+.dashboard-content [class*="bg-card"] {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+}
+
+/* Input overrides */
+.dashboard-content input,
+.dashboard-content textarea,
+.dashboard-content select {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+}
+
+.dashboard-content input::placeholder,
+.dashboard-content textarea::placeholder {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Button overrides for secondary/outline variants */
+.dashboard-content .bg-secondary {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+}
+
+.dashboard-content button[data-variant="outline"] {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: white !important;
+}
+
+.dashboard-content button[data-variant="outline"]:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
