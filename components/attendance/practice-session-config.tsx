@@ -43,7 +43,7 @@ interface PracticeSessionConfig {
 interface Team {
   id: string
   name: string
-  status: string
+  status: string | null
 }
 
 interface PracticeSessionConfigProps {
