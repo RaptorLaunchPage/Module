@@ -474,13 +474,13 @@ export function SendToDiscordButton({
           </Card>
 
           {/* Action Buttons */}
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div className="text-sm text-muted-foreground">
               {availableWebhooks.length > 0 && !selectedWebhookId && (
                 "Please select a Discord channel to continue"
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <Button variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>

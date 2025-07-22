@@ -249,9 +249,35 @@ export default function CommunicationPage() {
             </Select>
           </div>
         </div>
-        
-        {/* Custom Date Range */}
-        {selectedTimePeriod === "custom" && (
+      </div>
+
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-4 md:grid-cols-2 sm:grid-cols-2">
+          <TabsTrigger value="overview" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <Activity className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Overview</span>
+            <span className="sm:hidden">Home</span>
+          </TabsTrigger>
+          <TabsTrigger value="webhooks" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <Webhook className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Webhooks</span>
+            <span className="sm:hidden">Hooks</span>
+          </TabsTrigger>
+          <TabsTrigger value="logs" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm md:col-start-1 lg:col-start-auto">
+            <MessageSquare className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Message Logs</span>
+            <span className="sm:hidden">Logs</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <Settings className="h-3 w-3 md:h-4 md:w-4" />
+            <span className="hidden sm:inline">Settings</span>
+            <span className="sm:hidden">Config</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* Custom Date Range */}
+          {selectedTimePeriod === "custom" && (
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
             <div className="space-y-2">
               <label className="text-sm font-medium">Start Date</label>
@@ -462,6 +488,87 @@ export default function CommunicationPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="webhooks" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Webhook className="h-5 w-5" />
+                Webhook Configuration
+              </CardTitle>
+              <CardDescription>
+                Manage Discord webhooks for different channels and teams
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <Button 
+                  onClick={() => window.open('/dashboard/discord-portal/webhooks', '_self')}
+                  className="mb-4"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Manage Webhooks
+                </Button>
+                <p className="text-muted-foreground">
+                  Configure Discord webhooks to enable message sending
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="logs" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Message Logs
+              </CardTitle>
+              <CardDescription>
+                View detailed logs of all Discord messages sent
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <Button 
+                  onClick={() => window.open('/dashboard/discord-portal/logs', '_self')}
+                  className="mb-4"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  View Message Logs
+                </Button>
+                <p className="text-muted-foreground">
+                  Access detailed message history and delivery status
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Portal Settings
+              </CardTitle>
+              <CardDescription>
+                Configure automation, digest schedules, and notification preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="text-center py-8 text-muted-foreground">
+                  <Settings className="h-8 w-8 mx-auto mb-2" />
+                  <p>Settings panel coming soon</p>
+                  <p className="text-sm">Configure automation and digest settings</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

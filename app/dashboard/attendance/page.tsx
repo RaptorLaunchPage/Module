@@ -26,6 +26,8 @@ import {
 } from "lucide-react"
 import type { Database } from "@/lib/supabase"
 import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
+import { DailyPracticeAttendance } from "@/components/attendance/daily-practice-attendance"
+import { PracticeSessionConfig } from "@/components/attendance/practice-session-config"
 
 type Attendance = Database["public"]["Tables"]["attendances"]["Row"] & {
   users?: {
@@ -288,25 +290,49 @@ export default function AttendancePage() {
         </Card>
 
         {/* Main Content */}
-        <Tabs defaultValue="sessions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="sessions" className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Sessions
+        <Tabs defaultValue="daily" className="space-y-6">
+          <TabsList className={`grid w-full ${['admin', 'manager'].includes(userRole) ? 'grid-cols-6 lg:grid-cols-6 md:grid-cols-3 sm:grid-cols-2' : 'grid-cols-5 lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-2'}`}>
+            <TabsTrigger value="daily" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <CalendarCheck className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Daily Practice</span>
+              <span className="sm:hidden">Daily</span>
             </TabsTrigger>
-            <TabsTrigger value="mark" className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Enhanced Mark
+            <TabsTrigger value="sessions" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <Clock className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">All Sessions</span>
+              <span className="sm:hidden">Sessions</span>
             </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Attendance Logs
+            <TabsTrigger value="mark" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm md:col-start-1 lg:col-start-auto">
+              <Plus className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Enhanced Mark</span>
+              <span className="sm:hidden">Mark</span>
             </TabsTrigger>
-            <TabsTrigger value="stats" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Statistics
+            <TabsTrigger value="logs" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <Calendar className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden md:inline">Attendance Logs</span>
+              <span className="md:hidden">Logs</span>
             </TabsTrigger>
+            <TabsTrigger value="stats" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <Users className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden md:inline">Statistics</span>
+              <span className="md:hidden">Stats</span>
+            </TabsTrigger>
+            {['admin', 'manager'].includes(userRole) && (
+              <TabsTrigger value="config" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm md:col-start-1 lg:col-start-auto">
+                <Filter className="h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden md:inline">Session Config</span>
+                <span className="md:hidden">Config</span>
+              </TabsTrigger>
+            )}
           </TabsList>
+
+          <TabsContent value="daily">
+            <DailyPracticeAttendance 
+              userProfile={profile}
+              teams={teams}
+              users={users}
+            />
+          </TabsContent>
 
           <TabsContent value="sessions">
             <SessionAttendance 
@@ -402,6 +428,15 @@ export default function AttendancePage() {
               )}
             </div>
           </TabsContent>
+
+          {['admin', 'manager'].includes(userRole) && (
+            <TabsContent value="config">
+              <PracticeSessionConfig 
+                userProfile={profile}
+                teams={teams}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
