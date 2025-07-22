@@ -139,23 +139,23 @@ export function FullPageLoader({
   const sizes = sizeClasses[size]
 
   const content = (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className={`${sizes.card} bg-white/10 backdrop-blur-md border-white/20 shadow-xl`}>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <Card className={`${sizes.card} bg-white/90 backdrop-blur-md border-gray-200 shadow-2xl`}>
         <CardContent className="flex items-center justify-center p-8">
           <div className="text-center">
             {/* Icon and Spinner */}
             <div className="relative mb-6">
-              <Icon className={`${sizes.icon} ${config.color} mx-auto mb-4 opacity-80`} />
-              <Loader2 className={`${sizes.spinner} text-white animate-spin absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2`} />
+              <Icon className={`${sizes.icon} ${config.color} mx-auto mb-4 opacity-90`} />
+              <Loader2 className={`${sizes.spinner} text-gray-600 animate-spin absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2`} />
             </div>
 
             {/* Title */}
-            <h3 className={`${sizes.title} font-semibold text-white mb-2`}>
+            <h3 className={`${sizes.title} font-semibold text-gray-900 mb-2`}>
               {customTitle || config.title}
             </h3>
 
             {/* Description */}
-            <p className="text-white/80 mb-4">
+            <p className="text-gray-700 mb-4">
               {message || customDescription || config.description}
               <span className="inline-block w-6 text-left">{dots}</span>
             </p>
@@ -163,15 +163,15 @@ export function FullPageLoader({
             {/* Animated dots */}
             <div className="mt-6">
               <div className="flex justify-center space-x-1">
-                <div className={`${sizes.dots} bg-white/60 rounded-full animate-bounce`}></div>
-                <div className={`${sizes.dots} bg-white/60 rounded-full animate-bounce`} style={{ animationDelay: '0.1s' }}></div>
-                <div className={`${sizes.dots} bg-white/60 rounded-full animate-bounce`} style={{ animationDelay: '0.2s' }}></div>
+                <div className={`${sizes.dots} bg-gray-400 rounded-full animate-bounce`}></div>
+                <div className={`${sizes.dots} bg-gray-400 rounded-full animate-bounce`} style={{ animationDelay: '0.1s' }}></div>
+                <div className={`${sizes.dots} bg-gray-400 rounded-full animate-bounce`} style={{ animationDelay: '0.2s' }}></div>
               </div>
             </div>
 
             {/* Progress bar effect */}
-            <div className="mt-6 w-full bg-white/20 rounded-full h-1">
-              <div className="bg-gradient-to-r from-blue-400 to-purple-400 h-1 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+            <div className="mt-6 w-full bg-gray-200 rounded-full h-2">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full animate-pulse transition-all duration-1000" style={{ width: '60%' }}></div>
             </div>
           </div>
         </CardContent>
@@ -186,7 +186,45 @@ export function FullPageLoader({
         <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
         <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
         <div className="pointer-events-none fixed left-1/3 bottom-1/3 z-10 h-4 w-4 rounded-full bg-blue-400 opacity-30 blur-lg animate-pulse" style={{ animationDelay: '1s' }} />
-        {content}
+        
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Card className={`${sizes.card} bg-white/90 backdrop-blur-md border-gray-200 shadow-2xl`}>
+            <CardContent className="flex items-center justify-center p-8">
+              <div className="text-center">
+                {/* Icon and Spinner */}
+                <div className="relative mb-6">
+                  <Icon className={`${sizes.icon} ${config.color} mx-auto mb-4 opacity-90`} />
+                  <Loader2 className={`${sizes.spinner} text-gray-600 animate-spin absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2`} />
+                </div>
+
+                {/* Title */}
+                <h3 className={`${sizes.title} font-semibold text-gray-900 mb-2`}>
+                  {customTitle || config.title}
+                </h3>
+
+                {/* Description */}
+                <p className="text-gray-700 mb-4">
+                  {message || customDescription || config.description}
+                  <span className="inline-block w-6 text-left">{dots}</span>
+                </p>
+                
+                {/* Animated dots */}
+                <div className="mt-6">
+                  <div className="flex justify-center space-x-1">
+                    <div className={`${sizes.dots} bg-gray-400 rounded-full animate-bounce`}></div>
+                    <div className={`${sizes.dots} bg-gray-400 rounded-full animate-bounce`} style={{ animationDelay: '0.1s' }}></div>
+                    <div className={`${sizes.dots} bg-gray-400 rounded-full animate-bounce`} style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+
+                {/* Progress bar effect */}
+                <div className="mt-6 w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full animate-pulse transition-all duration-1000" style={{ width: '60%' }}></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </VideoBackground>
     )
   }
@@ -231,9 +269,9 @@ export function InlineLoading({
     <div className={`flex items-center gap-3 ${className}`}>
       <div className="relative">
         <Icon className={`h-5 w-5 ${config.color} opacity-80`} />
-        <Loader2 className="h-3 w-3 text-white animate-spin absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+        <Loader2 className="h-3 w-3 text-gray-600 animate-spin absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
       </div>
-      <span className="text-white/80">{config.description}</span>
+      <span className="text-gray-700">{config.description}</span>
     </div>
   )
 }
