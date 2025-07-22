@@ -20,7 +20,8 @@ import {
   Settings, 
   LogOut,
   ChevronDown,
-  CalendarCheck
+  CalendarCheck,
+  UserPlus
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -34,7 +35,8 @@ const iconMap = {
   DollarSign,
   UserCheck,
   User,
-  CalendarCheck
+  CalendarCheck,
+  UserPlus
 }
 
 interface NewDashboardLayoutProps {
