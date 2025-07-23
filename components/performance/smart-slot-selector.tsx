@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/hooks/use-auth'
+import { useAuth } from '@/hooks/use-auth-provider'
 import { supabase } from '@/lib/supabase'
 import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions'
 import { Button } from '@/components/ui/button'

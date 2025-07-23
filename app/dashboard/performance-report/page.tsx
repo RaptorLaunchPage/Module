@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth-provider"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -65,19 +65,19 @@ export default function PerformanceReportPage() {
   const [maps, setMaps] = useState<string[]>([])
   const [slots, setSlots] = useState<any[]>([])
   const [filters, setFilters] = useState<FilterState>({
-    teamId: '',
-    playerId: '',
-    map: '',
-    slotId: '',
+    teamId: 'all',
+    playerId: 'all',
+    map: 'all',
+    slotId: 'all',
     matchNumber: '',
     dateFrom: '',
     dateTo: ''
   })
   const [appliedFilters, setAppliedFilters] = useState<FilterState>({
-    teamId: '',
-    playerId: '',
-    map: '',
-    slotId: '',
+    teamId: 'all',
+    playerId: 'all',
+    map: 'all',
+    slotId: 'all',
     matchNumber: '',
     dateFrom: '',
     dateTo: ''
@@ -204,16 +204,16 @@ export default function PerformanceReportPage() {
       // Admin, manager, and analyst see all data without filtering
 
       // Apply filters
-      if (appliedFilters.teamId) {
+      if (appliedFilters.teamId && appliedFilters.teamId !== 'all') {
         query = query.eq('team_id', appliedFilters.teamId)
       }
-      if (appliedFilters.playerId) {
+      if (appliedFilters.playerId && appliedFilters.playerId !== 'all') {
         query = query.eq('player_id', appliedFilters.playerId)
       }
-      if (appliedFilters.map) {
+      if (appliedFilters.map && appliedFilters.map !== 'all') {
         query = query.eq('map', appliedFilters.map)
       }
-      if (appliedFilters.slotId) {
+      if (appliedFilters.slotId && appliedFilters.slotId !== 'all') {
         query = query.eq('slot', appliedFilters.slotId)
       }
       if (appliedFilters.matchNumber) {
@@ -314,10 +314,10 @@ export default function PerformanceReportPage() {
 
   const clearFilters = () => {
     const emptyFilters = {
-      teamId: '',
-      playerId: '',
-      map: '',
-      slotId: '',
+      teamId: 'all',
+      playerId: 'all',
+      map: 'all',
+      slotId: 'all',
       matchNumber: '',
       dateFrom: '',
       dateTo: ''
@@ -379,7 +379,7 @@ export default function PerformanceReportPage() {
                       <SelectValue placeholder="Select team" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Teams</SelectItem>
+                      <SelectItem value="all">All Teams</SelectItem>
                       {teams.map(team => (
                         <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
                       ))}
@@ -396,7 +396,7 @@ export default function PerformanceReportPage() {
                     <SelectValue placeholder="Select player" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Players</SelectItem>
+                    <SelectItem value="all">All Players</SelectItem>
                     {players.map(player => (
                       <SelectItem key={player.id} value={player.id}>{player.name}</SelectItem>
                     ))}
@@ -412,7 +412,7 @@ export default function PerformanceReportPage() {
                     <SelectValue placeholder="Select map" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Maps</SelectItem>
+                    <SelectItem value="all">All Maps</SelectItem>
                     {maps.map(map => (
                       <SelectItem key={map} value={map}>{map}</SelectItem>
                     ))}
@@ -428,7 +428,7 @@ export default function PerformanceReportPage() {
                     <SelectValue placeholder="Select slot" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Slots</SelectItem>
+                    <SelectItem value="all">All Slots</SelectItem>
                     {slots.map(slot => (
                       <SelectItem key={slot.id} value={slot.id}>
                         {slot.organizer} - {format(new Date(slot.date), 'MMM dd, yyyy')}

@@ -52,8 +52,8 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
   const { toast } = useToast()
   const authToken = useAuthToken()
   const [searchQuery, setSearchQuery] = useState('')
-  const [roleFilter, setRoleFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [total, setTotal] = useState(0)
@@ -78,8 +78,8 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
       })
       
       if (searchQuery.trim()) params.append('q', searchQuery.trim())
-      if (roleFilter) params.append('role', roleFilter)
-      if (statusFilter) params.append('status', statusFilter)
+      if (roleFilter && roleFilter !== 'all') params.append('role', roleFilter)
+      if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter)
       
       const response = await fetch(`/api/profile/search?${params}`, {
         headers: {
@@ -190,7 +190,7 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
                 <SelectValue placeholder="All Roles" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Roles</SelectItem>
+                <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="manager">Manager</SelectItem>
                 <SelectItem value="coach">Coach</SelectItem>
@@ -206,7 +206,7 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="Active">Active</SelectItem>
                 <SelectItem value="Benched">Benched</SelectItem>
                 <SelectItem value="On Leave">On Leave</SelectItem>

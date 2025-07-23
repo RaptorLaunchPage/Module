@@ -1,28 +1,41 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect, createContext, useContext, useCallback } from "react"
-import { supabase } from "@/lib/supabase"
-import { SecureProfileCreation } from "@/lib/secure-profile-creation"
-import type { Session, User } from "@supabase/supabase-js"
-import { useRouter } from "next/navigation"
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { SecureProfileCreation } from '@/lib/secure-profile-creation'
+import { useSession } from '@/hooks/use-session'
+import SessionStorage, { SessionData, TokenInfo } from '@/lib/session-storage'
+import { IdleTimer } from '@/components/session/idle-timer'
+import { TokenRefresher } from '@/components/session/token-refresher'
+import { useToast } from '@/hooks/use-toast'
+import type { Session, User } from '@supabase/supabase-js'
 
-type AuthContextType = {
-  session: Session | null
-  user: User | null
+interface AuthContextType {
+  // Session state (from useSession)
+  user: SessionData['user'] | null
   profile: any
+  isAuthenticated: boolean
+  isExpired: boolean
   loading: boolean
   error: string | null
+  
+  // Auth actions
   signIn: (email: string, password: string) => Promise<{ error: any | null }>
   signUp: (email: string, password: string, name: string) => Promise<{ error: any | null }>
   signOut: () => Promise<void>
-  retryProfileCreation: () => void
-  refreshProfile: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: any | null }>
   signInWithDiscord: () => Promise<void>
+  
+  // Profile actions
+  refreshProfile: () => Promise<void>
+  retryProfileCreation: () => void
   clearError: () => void
-  isInitialized: boolean
+  
+  // Session info
+  lastActive: number
   getToken: () => Promise<string | null>
+  isInitialized: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -34,26 +47,14 @@ const getSiteUrl = () => {
   return url.endsWith('/') ? url.slice(0, -1) : url
 }
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [session, setSession] = useState<Session | null>(null)
-  const [user, setUser] = useState<User | null>(null)
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const session = useSession()
+  const { toast } = useToast()
+  const router = useRouter()
+  
   const [profile, setProfile] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
-  const [isAuthenticating, setIsAuthenticating] = useState(false)
-  const router = useRouter()
-
-  // Clear all auth state
-  const clearAuthState = useCallback(() => {
-    console.log('🧹 Clearing auth state')
-    setSession(null)
-    setUser(null)
-    setProfile(null)
-    setError(null)
-    setLoading(false)
-    setIsAuthenticating(false)
-  }, [])
 
   // Load user profile
   const loadUserProfile = useCallback(async (userData: User) => {
@@ -103,114 +104,93 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [])
 
-  // Handle auth state changes
-  const handleAuthChange = useCallback(async (event: string, newSession: Session | null) => {
-    console.log(`🔄 AUTH EVENT: ${event}`)
-    
+  // Initialize session from Supabase
+  const initializeSession = useCallback(async (supabaseSession: Session) => {
     try {
-      if (event === 'SIGNED_OUT') {
-        console.log('🚪 User signed out')
-        clearAuthState()
-        return
+      const user = supabaseSession.user
+      const profileData = await loadUserProfile(user)
+      
+      // Create session data
+      const tokenInfo: TokenInfo = {
+        accessToken: supabaseSession.access_token,
+        refreshToken: supabaseSession.refresh_token,
+        expiresAt: Date.now() + (supabaseSession.expires_in * 1000),
+        issuedAt: Date.now(),
+        userId: user.id
       }
 
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && newSession?.user) {
-        console.log(`✅ Processing ${event} event`)
-        
-        setSession(newSession)
-        setUser(newSession.user)
-        setError(null)
-        
-        try {
-          const profileData = await loadUserProfile(newSession.user)
-          setLoading(false)
-          
-          // Only redirect if we're not already authenticating and not already on the right page
-          if (!isAuthenticating && typeof window !== 'undefined') {
-            const currentPath = window.location.pathname
-            let targetPath = '/dashboard'
-            
-            if (profileData?.role === 'pending_player') {
-              targetPath = '/onboarding'
-            }
-            
-            // Only redirect if we're not already on the target path
-            if (currentPath !== targetPath && !currentPath.startsWith(targetPath)) {
-              console.log(`📍 Redirecting to ${targetPath}`)
-              router.push(targetPath)
-            }
-          }
-        } catch (profileError: any) {
-          console.error('❌ Profile loading failed:', profileError)
-          setError(profileError.message || 'Failed to load user profile')
-          setLoading(false)
-        }
+      const sessionData: SessionData = {
+        user: {
+          id: user.id,
+          email: user.email || '',
+          name: profileData.name || profileData.display_name,
+          role: profileData.role
+        },
+        tokenInfo,
+        lastActive: Date.now(),
+        agreementAccepted: true // Will be updated by agreement context
       }
+
+      // Initialize session
+      session.initializeSession(sessionData)
+      setError(null)
+      
+      console.log('✅ Session initialized successfully')
+      
+      // Don't redirect here - let the route guard handle it to prevent conflicts
+      
     } catch (error: any) {
-      console.error('❌ Auth change error:', error)
-      setError('Authentication error occurred')
-      setLoading(false)
+      console.error('❌ Session initialization failed:', error)
+      setError(error.message || 'Failed to initialize session')
+      session.clearSession()
     }
-  }, [router, loadUserProfile, clearAuthState, isAuthenticating])
+  }, [session, loadUserProfile])
 
-  // Initialize auth system
+  // Handle Supabase auth state changes
   useEffect(() => {
-    console.log('🚀 Initializing auth system...')
+    console.log('�� Setting up auth state listener...')
     
-    let mounted = true
-    
-    const initAuth = async () => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, supabaseSession) => {
+      console.log(`🔄 AUTH EVENT: ${event}`)
+      
       try {
-        // Set up auth state listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-          if (mounted) {
-            handleAuthChange(event, session)
-          }
-        })
-
-        // Get initial session
-        const { data: { session: initialSession } } = await supabase.auth.getSession()
-        
-        if (mounted) {
-          if (initialSession?.user) {
-            console.log('🔄 Initial session found')
-            await handleAuthChange('INITIAL_SESSION', initialSession)
-          } else {
-            console.log('🔄 No initial session')
-            setLoading(false)
-          }
-          
-          setIsInitialized(true)
+        if (event === 'SIGNED_OUT') {
+          console.log('🚪 User signed out')
+          session.clearSession()
+          setProfile(null)
+          setError(null)
+          return
         }
 
-        return () => {
-          mounted = false
-          subscription.unsubscribe()
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && supabaseSession?.user) {
+          console.log(`✅ Processing ${event} event`)
+          await initializeSession(supabaseSession)
         }
-      } catch (error) {
-        console.error('❌ Auth initialization error:', error)
-        if (mounted) {
-          setError('Failed to initialize authentication')
-          setLoading(false)
-          setIsInitialized(true)
-        }
+      } catch (error: any) {
+        console.error('❌ Auth change error:', error)
+        setError('Authentication error occurred')
       }
-    }
+    })
 
-    const cleanup = initAuth()
-    
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (initialSession?.user) {
+        console.log('🔄 Initial session found')
+        initializeSession(initialSession)
+      }
+      setIsInitialized(true)
+    })
+
     return () => {
-      mounted = false
-      cleanup.then(fn => fn && fn())
+      subscription.unsubscribe()
     }
-  }, [handleAuthChange])
+  }, [initializeSession])
 
   // Sign in function
   const signIn = async (email: string, password: string): Promise<{ error: any | null }> => {
     try {
       console.log('🔐 Sign in attempt:', email)
       setError(null)
-      setIsAuthenticating(true)
       
       const { data, error: signInError } = await supabase.auth.signInWithPassword({ 
         email, 
@@ -219,17 +199,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (signInError) {
         console.error('❌ Sign in failed:', signInError.message)
-        setIsAuthenticating(false)
         return { error: signInError }
       }
       
       console.log('✅ Sign in successful')
-      // Don't set isAuthenticating to false here - let the auth state change handle it
       return { error: null }
       
     } catch (err: any) {
       console.error('❌ Sign in exception:', err)
-      setIsAuthenticating(false)
       return { error: err }
     }
   }
@@ -268,8 +245,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('🚪 Signing out...')
       
-      // Clear state immediately for better UX
-      clearAuthState()
+      // Clear session immediately for better UX
+      session.clearSession()
+      setProfile(null)
+      setError(null)
       
       // Sign out from Supabase
       await supabase.auth.signOut()
@@ -280,7 +259,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error('❌ Sign out error:', error)
       // Still clear state and redirect even if sign out fails
-      clearAuthState()
+      session.clearSession()
+      setProfile(null)
       router.push('/')
     }
   }
@@ -304,7 +284,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithDiscord = async () => {
     try {
       setError(null)
-      setIsAuthenticating(true)
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
@@ -314,32 +293,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       })
       
       if (error) {
-        setIsAuthenticating(false)
         throw error
       }
     } catch (error: any) {
       console.error('Discord sign in error:', error)
-      setIsAuthenticating(false)
       throw error
     }
   }
 
   // Retry profile creation
   const retryProfileCreation = async () => {
-    if (!user) {
+    if (!session.user) {
       setError("No user logged in")
       return
     }
     
     console.log('🔄 Retrying profile creation')
     setError(null)
-    setLoading(true)
-    await loadUserProfile(user)
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await loadUserProfile(user)
+      }
+    } catch (error: any) {
+      setError(error.message)
+    }
   }
 
   // Refresh profile
   const refreshProfile = async () => {
-    if (!user) {
+    if (!session.user) {
       console.log('❌ No user to refresh profile for')
       return
     }
@@ -347,7 +331,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('🔄 Refreshing profile')
     setError(null)
     setProfile(null)
-    await loadUserProfile(user)
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await loadUserProfile(user)
+      }
+    } catch (error: any) {
+      setError(error.message)
+    }
   }
 
   // Clear error
@@ -357,39 +349,60 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Get current access token
   const getToken = async (): Promise<string | null> => {
-    const { data: { session } } = await supabase.auth.getSession()
-    return session?.access_token || null
+    const token = SessionStorage.getAccessToken()
+    if (token) return token
+    
+    // Try to get from Supabase if not in session storage
+    const { data: { session: currentSession } } = await supabase.auth.getSession()
+    return currentSession?.access_token || null
+  }
+
+  // Handle logout from idle timer or token expiry
+  const handleLogout = useCallback(() => {
+    signOut()
+  }, [])
+
+  const contextValue: AuthContextType = {
+    // Session state
+    user: session.user,
+    profile,
+    isAuthenticated: session.isAuthenticated,
+    isExpired: session.isExpired,
+    loading: session.loading,
+    error,
+    
+    // Auth actions
+    signIn,
+    signUp,
+    signOut,
+    resetPassword,
+    signInWithDiscord,
+    
+    // Profile actions
+    refreshProfile,
+    retryProfileCreation,
+    clearError,
+    
+    // Session info
+    lastActive: session.lastActive,
+    getToken,
+    isInitialized
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user,
-        profile,
-        loading,
-        error,
-        signIn,
-        signUp,
-        signOut,
-        retryProfileCreation,
-        refreshProfile,
-        resetPassword,
-        signInWithDiscord,
-        clearError,
-        isInitialized,
-        getToken
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
+      {/* Session management components */}
+      <IdleTimer onLogout={handleLogout} />
+      <TokenRefresher onTokenExpired={handleLogout} />
     </AuthContext.Provider>
   )
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
+    throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
 }
