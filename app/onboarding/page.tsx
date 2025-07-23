@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, CheckCircle, User, Mail, GamepadIcon, ArrowRight, ArrowLeft } from "lucide-react"
-import { ImprovedLoader } from "@/components/ui/improved-loader"
+import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { VideoBackground } from "@/components/video-background"
 
 interface OnboardingForm {
@@ -54,7 +54,7 @@ export default function OnboardingPage() {
 
   // Show loading while checking auth
   if (authLoading || !profile) {
-    return <ImprovedLoader type="profile" message="Preparing your onboarding..." />
+    return <FullPageLoader message="Loading your profile..." />
   }
 
   const handleInputChange = (field: keyof OnboardingForm, value: string) => {

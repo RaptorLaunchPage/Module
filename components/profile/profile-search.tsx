@@ -52,8 +52,8 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
   const { toast } = useToast()
   const authToken = useAuthToken()
   const [searchQuery, setSearchQuery] = useState('')
-  const [roleFilter, setRoleFilter] = useState('all')
-  const [statusFilter, setStatusFilter] = useState('all')
+  const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
   const [total, setTotal] = useState(0)
@@ -67,6 +67,12 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
         description: "You don't have permission to search profiles",
         variant: "destructive"
       })
+      return
+    }
+
+    // Don't search if auth token is still loading
+    if (authToken === null) {
+      console.log('Auth token not ready, skipping search')
       return
     }
     
@@ -109,10 +115,10 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
   }
   
   useEffect(() => {
-    if (canSearchAll) {
+    if (canSearchAll && authToken !== null) {
       searchProfiles()
     }
-  }, [roleFilter, statusFilter])
+  }, [roleFilter, statusFilter, authToken])
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -155,6 +161,18 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
           <p className="text-gray-600">
             Only administrators and managers can search and view all user profiles.
           </p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Show loading while auth token is being retrieved
+  if (authToken === null) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-300 mx-auto mb-4"></div>
+          <p className="text-gray-600">Preparing search...</p>
         </CardContent>
       </Card>
     )

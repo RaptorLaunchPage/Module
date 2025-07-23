@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
-import { ImprovedLoader } from "@/components/ui/improved-loader"
+import { FullPageLoader } from "@/components/ui/full-page-loader"
 
 export default function HomePage() {
   const { user, loading, profile, signOut, isInitialized } = useAuth()
@@ -15,7 +15,7 @@ export default function HomePage() {
 
   // Show loading while auth is initializing
   if (!isInitialized || loading) {
-    return <ImprovedLoader type="auth" message="Initializing Raptor Esports Hub..." />
+    return <FullPageLoader message="Loading..." />
   }
 
   // Show homepage for all users - let them choose their next action
