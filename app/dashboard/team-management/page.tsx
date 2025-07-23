@@ -2,23 +2,22 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { throttledNavigate } from "@/lib/navigation-throttle"
+import { COMPONENT_STYLES } from "@/lib/global-theme"
 
 export default function TeamManagementHomePage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Use setTimeout to prevent rapid navigation calls
-    const timeout = setTimeout(() => {
-      throttledNavigate(router, "/dashboard/team-management/teams", "replace")
-    }, 100)
-
-    return () => clearTimeout(timeout)
+    // Simple redirect to teams section
+    router.replace("/dashboard/team-management/teams")
   }, [router])
 
   return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+    <div className={COMPONENT_STYLES.loadingContainer}>
+      <div className={COMPONENT_STYLES.loadingCard}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        <p className="text-white font-medium">Loading team management...</p>
+      </div>
     </div>
   )
 }

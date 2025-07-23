@@ -36,14 +36,14 @@ const isPublicRoute = (pathname: string): boolean => {
 }
 
 export function RouteGuard({ children }: RouteGuardProps) {
-  const { isAuthenticated, isInitialized, isLoading, agreementStatus, user, profile } = useAuth()
+  const { isAuthenticated, isLoading, agreementStatus, user, profile } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [shouldRender, setShouldRender] = useState(false)
 
   useEffect(() => {
-    // Don't render anything until auth is initialized
-    if (!isInitialized) {
+    // Don't render anything while auth is loading
+    if (isLoading) {
       setShouldRender(false)
       return
     }
@@ -91,10 +91,10 @@ export function RouteGuard({ children }: RouteGuardProps) {
     // All checks passed
     setShouldRender(true)
 
-  }, [isInitialized, isAuthenticated, user, profile, agreementStatus, pathname, router])
+  }, [isAuthenticated, user, profile, agreementStatus, pathname, router, isLoading])
 
-  // Show loading while auth is initializing
-  if (!isInitialized || isLoading) {
+  // Show loading while auth is loading
+  if (isLoading) {
     return (
       <div className={COMPONENT_STYLES.loadingContainer}>
         <div className={COMPONENT_STYLES.loadingCard}>

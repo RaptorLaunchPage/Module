@@ -22,14 +22,8 @@ export default function SignUpPage() {
   const [success, setSuccess] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [discordLoading, setDiscordLoading] = useState(false)
-  const { signUp, signInWithDiscord, clearError: clearAuthError } = useAuth()
+  const { signUp, signInWithDiscord } = useAuth()
   const router = useRouter()
-
-  // Clear local error when auth error changes
-  useEffect(() => {
-    clearAuthError()
-    setError("")
-  }, [clearAuthError])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,7 +40,6 @@ export default function SignUpPage() {
 
     setLoading(true)
     setError("")
-    clearAuthError()
     
     try {
       const { error: signUpError } = await signUp(email, password, name)
@@ -68,7 +61,6 @@ export default function SignUpPage() {
   const handleDiscordSignup = async () => {
     setDiscordLoading(true)
     setError("")
-    clearAuthError()
     
     try {
       await signInWithDiscord()
@@ -82,7 +74,6 @@ export default function SignUpPage() {
 
   const clearErrors = () => {
     setError("")
-    clearAuthError()
   }
 
   if (success) {

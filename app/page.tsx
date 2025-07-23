@@ -10,11 +10,11 @@ import { VideoBackground } from "@/components/video-background"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
 
 export default function HomePage() {
-  const { user, isLoading, profile, signOut, isInitialized } = useAuth()
+  const { user, isLoading, profile, signOut } = useAuth()
   const router = useRouter()
 
-  // Show loading while auth is initializing
-  if (!isInitialized || isLoading) {
+  // Show loading while auth is loading
+  if (isLoading) {
     return <FullPageLoader message="Loading..." />
   }
 
