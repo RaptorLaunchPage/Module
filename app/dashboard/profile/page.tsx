@@ -350,6 +350,7 @@ export default function ProfileSettingsPage() {
         viewerProfile={currentProfile}
         onEdit={() => setIsEditing(!isEditing)}
         isEditing={isEditing}
+        showAvatarUpload={true}
       />
 
       {/* Main Content */}
