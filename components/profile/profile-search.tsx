@@ -22,7 +22,7 @@ import {
   Target
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { useAuthToken } from '@/hooks/use-auth-token'
+import { useAuth } from '@/hooks/use-auth'
 
 interface ProfileSearchProps {
   onSelectProfile: (profile: UserProfile) => void
@@ -50,7 +50,7 @@ interface SearchResult {
 
 export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearchProps) {
   const { toast } = useToast()
-  const authToken = useAuthToken()
+  const { getToken } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -72,6 +72,17 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
     
     setLoading(true)
     try {
+      const token = await getToken()
+      if (!token) {
+        toast({
+          title: "Authentication Error",
+          description: "Please refresh the page and try again",
+          variant: "destructive"
+        })
+        setLoading(false)
+        return
+      }
+      
       const params = new URLSearchParams({
         limit: '20',
         offset: '0'
@@ -83,7 +94,7 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
       
       const response = await fetch(`/api/profile/search?${params}`, {
         headers: {
-          'Authorization': authToken ? `Bearer ${authToken}` : '',
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       })

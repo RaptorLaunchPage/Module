@@ -196,7 +196,7 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
                       className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10"
                     >
                       <Settings className="h-5 w-5" />
-                      <span>Settings</span>
+                      <span>Profile Settings</span>
                     </Link>
                     <button
                       onClick={handleSignOut}
@@ -270,7 +270,7 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
                   className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10"
                 >
                   <Settings className="h-5 w-5" />
-                  <span>Settings</span>
+                  <span>Profile Settings</span>
                 </Link>
               
                               <DropdownMenu>
