@@ -1,9 +1,10 @@
 "use client"
 
 import type React from "react"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { Users, UserCheck, Calendar } from "lucide-react"
 
 export default function TeamManagementLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -22,20 +23,45 @@ export default function TeamManagementLayout({ children }: { children: React.Rea
         <p className="text-muted-foreground">Manage your teams, rosters, and slot bookings</p>
       </div>
 
-      <Tabs value={getActiveTab()} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="teams" asChild>
-            <Link href="/dashboard/team-management/teams">Teams</Link>
-          </TabsTrigger>
-          <TabsTrigger value="roster" asChild>
-            <Link href="/dashboard/team-management/roster">Roster</Link>
-          </TabsTrigger>
-          <TabsTrigger value="slots" asChild>
-            <Link href="/dashboard/team-management/slots">Slot Booking</Link>
-          </TabsTrigger>
-        </TabsList>
+      {/* Navigation Tabs */}
+      <div className="border-b border-white/20">
+        <nav className="flex space-x-1 overflow-x-auto scrollbar-hide">
+          <Link href="/dashboard/team-management/teams">
+            <Button
+              variant={getActiveTab() === "teams" ? "default" : "ghost"}
+              size="sm"
+              className="flex items-center gap-2 whitespace-nowrap"
+            >
+              <Users className="h-4 w-4" />
+              Teams
+            </Button>
+          </Link>
+          <Link href="/dashboard/team-management/roster">
+            <Button
+              variant={getActiveTab() === "roster" ? "default" : "ghost"}
+              size="sm"
+              className="flex items-center gap-2 whitespace-nowrap"
+            >
+              <UserCheck className="h-4 w-4" />
+              Roster
+            </Button>
+          </Link>
+          <Link href="/dashboard/team-management/slots">
+            <Button
+              variant={getActiveTab() === "slots" ? "default" : "ghost"}
+              size="sm"
+              className="flex items-center gap-2 whitespace-nowrap"
+            >
+              <Calendar className="h-4 w-4" />
+              Slot Booking
+            </Button>
+          </Link>
+        </nav>
+      </div>
+      
+      <div className="mt-6">
         {children}
-      </Tabs>
+      </div>
     </div>
   )
 }

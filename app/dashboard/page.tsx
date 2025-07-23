@@ -8,7 +8,7 @@ import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ResponsiveTabs, TabsContent, type TabItem } from '@/components/ui/enhanced-tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   Users, 
@@ -810,13 +810,37 @@ export default function OptimizedDashboardPage() {
       </Card>
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          {canAccessAnalytics && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
-          {(canAccessFinance || canAccessUsers) && <TabsTrigger value="management">Management</TabsTrigger>}
-        </TabsList>
+      <ResponsiveTabs 
+        tabs={[
+          {
+            value: "overview",
+            label: "Overview",
+            icon: BarChart3
+          },
+          {
+            value: "performance",
+            label: "Performance",
+            icon: Target
+          },
+          {
+            value: "analytics",
+            label: "Analytics",
+            icon: TrendingUp,
+            hidden: !canAccessAnalytics
+          },
+          {
+            value: "management",
+            label: "Management",
+            icon: Users,
+            hidden: !(canAccessFinance || canAccessUsers)
+          }
+        ]}
+        defaultValue="overview"
+        variant="default"
+        size="md"
+        responsiveMode="auto"
+        className="space-y-4"
+      >
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1028,7 +1052,7 @@ export default function OptimizedDashboardPage() {
             </div>
           </TabsContent>
         )}
-      </Tabs>
+      </ResponsiveTabs>
 
       {/* Cache Performance Stats (only in development) */}
       {process.env.NODE_ENV === 'development' && cacheStats && (

@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ResponsiveTabs, TabsContent, type TabItem } from '@/components/ui/enhanced-tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   BarChart3, 
@@ -470,25 +470,35 @@ export default function AnalyticsPage() {
       </Card>
 
       {/* Analytics Content */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Overview</span>
-          </TabsTrigger>
-          <TabsTrigger value="performance" className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            <span className="hidden sm:inline">Performance</span>
-          </TabsTrigger>
-          <TabsTrigger value="teams" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Teams</span>
-          </TabsTrigger>
-          <TabsTrigger value="trends" className="flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            <span className="hidden sm:inline">Trends</span>
-          </TabsTrigger>
-        </TabsList>
+      <ResponsiveTabs 
+        tabs={[
+          {
+            value: "overview",
+            label: "Overview",
+            icon: BarChart3
+          },
+          {
+            value: "performance",
+            label: "Performance",
+            icon: Target
+          },
+          {
+            value: "teams",
+            label: "Teams",
+            icon: Users
+          },
+          {
+            value: "trends",
+            label: "Trends",
+            icon: TrendingUp
+          }
+        ]}
+        defaultValue="overview"
+        variant="default"
+        size="md"
+        responsiveMode="auto"
+        className="space-y-4"
+      >
 
         <TabsContent value="overview" className="space-y-6">
           {(!dataFetched || (stats && stats.totalMatches === 0)) ? (
@@ -734,7 +744,7 @@ export default function AnalyticsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+      </ResponsiveTabs>
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ResponsiveTabs, TabsContent, type TabItem } from "@/components/ui/enhanced-tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
@@ -740,25 +740,37 @@ export default function FinancePage() {
         </CardContent>
       </Card>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <PieChart className="h-4 w-4" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="expenses" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            Expenses
-          </TabsTrigger>
-          <TabsTrigger value="winnings" className="flex items-center gap-2">
-            <Trophy className="h-4 w-4" />
-            Winnings
-          </TabsTrigger>
-          <TabsTrigger value="reports" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Reports
-          </TabsTrigger>
-        </TabsList>
+      <ResponsiveTabs 
+        tabs={[
+          {
+            value: "overview",
+            label: "Overview",
+            icon: PieChart
+          },
+          {
+            value: "expenses",
+            label: "Expenses",
+            icon: CreditCard
+          },
+          {
+            value: "winnings",
+            label: "Winnings",
+            icon: Trophy
+          },
+          {
+            value: "reports",
+            label: "Reports",
+            icon: BarChart3
+          }
+        ]}
+        value={activeTab}
+        onValueChange={setActiveTab}
+        defaultValue="overview"
+        variant="default"
+        size="md"
+        responsiveMode="auto"
+        className="space-y-6"
+      >
 
         <TabsContent value="overview" className="space-y-6">
           {/* Financial Summary Cards */}
@@ -1277,7 +1289,7 @@ export default function FinancePage() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+      </ResponsiveTabs>
     </div>
   )
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { supabase } from "@/lib/supabase"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ResponsiveTabs, TabsContent, type TabItem } from "@/components/ui/enhanced-tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -60,6 +60,7 @@ export default function AttendancePage() {
   const [selectedTeam, setSelectedTeam] = useState<string>("all")
   const [selectedSession, setSelectedSession] = useState<string>("all")
   const [selectedDate, setSelectedDate] = useState<string>("")
+  const [activeTab, setActiveTab] = useState<string>("daily")
 
   useEffect(() => {
     if (profile) {
@@ -290,41 +291,48 @@ export default function AttendancePage() {
         </Card>
 
         {/* Main Content */}
-        <Tabs defaultValue="daily" className="space-y-6">
-          <TabsList className={`grid w-full ${['admin', 'manager'].includes(userRole) ? 'grid-cols-6 lg:grid-cols-6 md:grid-cols-3 sm:grid-cols-2' : 'grid-cols-5 lg:grid-cols-5 md:grid-cols-3 sm:grid-cols-2'}`}>
-            <TabsTrigger value="daily" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
-              <CalendarCheck className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">Daily Practice</span>
-              <span className="sm:hidden">Daily</span>
-            </TabsTrigger>
-            <TabsTrigger value="sessions" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
-              <Clock className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">All Sessions</span>
-              <span className="sm:hidden">Sessions</span>
-            </TabsTrigger>
-            <TabsTrigger value="mark" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm md:col-start-1 lg:col-start-auto">
-              <Plus className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden sm:inline">Enhanced Mark</span>
-              <span className="sm:hidden">Mark</span>
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
-              <Calendar className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden md:inline">Attendance Logs</span>
-              <span className="md:hidden">Logs</span>
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
-              <Users className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden md:inline">Statistics</span>
-              <span className="md:hidden">Stats</span>
-            </TabsTrigger>
-            {['admin', 'manager'].includes(userRole) && (
-              <TabsTrigger value="config" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm md:col-start-1 lg:col-start-auto">
-                <Filter className="h-3 w-3 md:h-4 md:w-4" />
-                <span className="hidden md:inline">Session Config</span>
-                <span className="md:hidden">Config</span>
-              </TabsTrigger>
-            )}
-          </TabsList>
+        <ResponsiveTabs 
+          tabs={[
+            {
+              value: "daily",
+              label: "Daily Practice",
+              icon: CalendarCheck
+            },
+            {
+              value: "sessions",
+              label: "All Sessions",
+              icon: Clock
+            },
+            {
+              value: "mark",
+              label: "Enhanced Mark",
+              icon: Plus,
+              hidden: !canMarkAttendance
+            },
+            {
+              value: "logs",
+              label: "Attendance Logs",
+              icon: Calendar
+            },
+            {
+              value: "stats",
+              label: "Statistics",
+              icon: Users
+            },
+            ...((['admin', 'manager'].includes(userRole)) ? [{
+              value: "config",
+              label: "Session Config",
+              icon: Filter
+            }] : [])
+          ]}
+          value={activeTab}
+          onValueChange={setActiveTab}
+          defaultValue="daily"
+          variant="default"
+          size="md"
+          responsiveMode="auto"
+          className="space-y-6"
+        >
 
           <TabsContent value="daily">
             <DailyPracticeAttendance 
@@ -437,7 +445,7 @@ export default function AttendancePage() {
               />
             </TabsContent>
           )}
-        </Tabs>
+        </ResponsiveTabs>
       </div>
     </div>
   )
