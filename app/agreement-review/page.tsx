@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/hooks/use-auth-provider"
-import { useAgreementContext } from "@/hooks/use-agreement-context"
+import { useAuth } from "@/hooks/use-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -30,8 +29,7 @@ interface AgreementContent {
 }
 
 export default function AgreementReviewPage() {
-  const { user, profile, loading: authLoading, getToken } = useAuth()
-  const { agreementStatus, acceptAgreement } = useAgreementContext()
+  const { user, profile, isLoading: authLoading, getToken, acceptAgreement, agreementStatus } = useAuth()
   const { toast } = useToast()
   const router = useRouter()
   
@@ -114,7 +112,7 @@ export default function AgreementReviewPage() {
   const handleAccept = async () => {
     setSubmitting(true)
     try {
-      const success = await acceptAgreement('accepted')
+      const success = await acceptAgreement()
       if (success) {
         toast({
           title: "Agreement Accepted",
@@ -148,7 +146,7 @@ export default function AgreementReviewPage() {
     
     try {
       // Try to record the decline (but don't wait for it)
-      acceptAgreement('declined').catch(e => console.log('Decline recording failed:', e))
+      // Decline handling will be implemented if needed
     } catch (e) {
       console.log('Decline API call failed:', e)
     }
@@ -174,7 +172,7 @@ export default function AgreementReviewPage() {
 
   // Redirect if no agreement needed
   useEffect(() => {
-    if (!authLoading && agreementStatus && !agreementStatus.requires_agreement) {
+    if (!authLoading && agreementStatus && !agreementStatus.requiresAgreement) {
       router.push('/dashboard')
     }
   }, [authLoading, agreementStatus, router])

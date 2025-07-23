@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/hooks/use-auth-provider'
+import { useAuth } from '@/hooks/use-auth'
 import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -49,7 +49,7 @@ interface NewDashboardLayoutProps {
 }
 
 export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
-  const { profile, loading, signOut } = useAuth()
+  const { profile, isLoading, signOut } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -57,13 +57,13 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
 
   // Add smooth transition when component mounts
   useEffect(() => {
-    if (!loading && profile) {
+    if (!isLoading && profile) {
       const timer = setTimeout(() => setIsVisible(true), 100)
       return () => clearTimeout(timer)
     }
-  }, [loading, profile])
+      }, [isLoading, profile])
 
-  if (loading) {
+  if (isLoading) {
     return (
       <VideoBackground>
         <div className="min-h-screen flex items-center justify-center">

@@ -2,12 +2,10 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { AuthProvider } from "@/hooks/use-auth-provider"
-import { AgreementProvider } from "@/hooks/use-agreement-context"
+import { AuthProvider } from "@/hooks/use-auth"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
-import { AgreementRouteGuard } from "@/components/agreement-route-guard"
-import { AgreementModal } from "@/components/agreement-modal"
+import { RouteGuard } from "@/components/route-guard"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -27,12 +25,9 @@ export default function RootLayout({
       <body className={`${inter.className} bg-transparent`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider>
-            <AgreementProvider>
-              <AgreementRouteGuard>
-                {children}
-              </AgreementRouteGuard>
-              <AgreementModal />
-            </AgreementProvider>
+            <RouteGuard>
+              {children}
+            </RouteGuard>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>

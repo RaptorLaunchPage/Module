@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { useAuth } from "@/hooks/use-auth-provider"
+import { useAuth } from "@/hooks/use-auth"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,14 +16,14 @@ import { VideoBackground } from "@/components/video-background"
 function AuthConfirmContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, profile, loading } = useAuth()
+  const { user, profile, isLoading } = useAuth()
   const { toast } = useToast()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
     // If user is already authenticated (OAuth or email), redirect via route guard
-    if (user && profile && !loading) {
+    if (user && profile && !isLoading) {
       // Let the route guard handle redirect to prevent conflicts
       return
     }
@@ -76,9 +76,9 @@ function AuthConfirmContent() {
     if (!user || !profile) {
       handleAuthConfirmation()
     }
-  }, [searchParams, router, toast, user, profile, loading])
+  }, [searchParams, router, toast, user, profile, isLoading])
 
-  if (loading || (user && !profile)) {
+  if (isLoading || (user && !profile)) {
     return <FullPageLoader message="Loading your account..." />
   }
 

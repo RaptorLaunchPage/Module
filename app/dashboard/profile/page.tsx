@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useAuth } from "@/hooks/use-auth-provider"
+import { useAuth } from "@/hooks/use-auth"
 import { useSearchParams } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -30,7 +30,7 @@ import {
 } from "lucide-react"
 
 export default function ProfilePage() {
-  const { profile: currentProfile, loading: authLoading } = useAuth()
+  const { profile: currentProfile, isLoading: authLoading } = useAuth()
   const { toast } = useToast()
   const authToken = useAuthToken()
   const searchParams = useSearchParams()
