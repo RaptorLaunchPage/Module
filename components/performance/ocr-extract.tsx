@@ -409,7 +409,7 @@ export function OCRExtract({ users, onPerformanceAdded }: OCRExtractProps) {
                 {parsedRows.map((row) => (
                   <TableRow
                     key={row.id}
-                    className={row.kills || row.assists || row.damage || row.survival_time ? "bg-green-50" : ""}
+                    className={row.kills || row.assists || row.damage || row.survival_time ? "bg-green-900/20 backdrop-blur-sm" : ""}
                   >
                     <TableCell className="font-medium">{row.id}</TableCell>
                     <TableCell>
@@ -417,7 +417,7 @@ export function OCRExtract({ users, onPerformanceAdded }: OCRExtractProps) {
                         value={row.player_name}
                         onChange={(e) => updateParsedRow(row.id, "player_name", e.target.value)}
                         placeholder="Detected player name"
-                        className={row.player_name ? "bg-blue-50" : ""}
+                        className={row.player_name ? "bg-blue-900/20 backdrop-blur-sm border-blue-400/30" : ""}
                       />
                     </TableCell>
                     <TableCell>

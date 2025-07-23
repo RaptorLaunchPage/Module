@@ -197,10 +197,10 @@ export function PracticeSessionConfig({ userProfile, teams }: PracticeSessionCon
 
   const getSessionColor = (subtype: string) => {
     switch (subtype) {
-      case 'Morning': return 'border-yellow-200 bg-yellow-50'
-      case 'Evening': return 'border-orange-200 bg-orange-50'
-      case 'Night': return 'border-purple-200 bg-purple-50'
-      default: return 'border-gray-200 bg-gray-50'
+      case 'Morning': return 'bg-yellow-900/40 backdrop-blur-lg border border-yellow-400/60 text-white shadow-xl'
+      case 'Evening': return 'bg-orange-900/40 backdrop-blur-lg border border-orange-400/60 text-white shadow-xl'
+      case 'Night': return 'bg-purple-900/40 backdrop-blur-lg border border-purple-400/60 text-white shadow-xl'
+      default: return 'bg-black/85 backdrop-blur-lg border border-white/40 text-white shadow-xl'
     }
   }
 
@@ -268,13 +268,13 @@ export function PracticeSessionConfig({ userProfile, teams }: PracticeSessionCon
 
       {/* AI Optimizer Panel */}
       {showAIOptimizer && (
-        <Card className="border-blue-200 bg-blue-50">
+        <Card className="bg-black/85 backdrop-blur-lg border border-blue-400/60 shadow-2xl text-white rounded-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-900">
+            <CardTitle className="flex items-center gap-2 text-blue-200 drop-shadow-md">
               <Bot className="h-5 w-5" />
               AI-Based Session Optimizer
             </CardTitle>
-            <CardDescription className="text-blue-700">
+            <CardDescription className="text-white/90 drop-shadow-sm">
               Analyze attendance patterns and suggest optimal session timings
             </CardDescription>
           </CardHeader>

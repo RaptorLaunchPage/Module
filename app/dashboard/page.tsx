@@ -889,11 +889,11 @@ export default function OptimizedDashboardPage() {
               <CardContent>
                 <div className="space-y-4">
                   {topPerformers.topPlayer && (
-                    <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-                      <Star className="h-5 w-5 text-yellow-500" />
+                    <div className="flex items-center gap-3 p-3 bg-yellow-900/40 backdrop-blur-lg border border-yellow-400/60 rounded-lg shadow-xl">
+                      <Star className="h-5 w-5 text-yellow-400" />
                       <div>
-                        <p className="font-semibold text-sm">{topPerformers.topPlayer.name}</p>
-                        <p className="text-xs text-muted-foreground">{topPerformers.topPlayer.metric}: {topPerformers.topPlayer.value.toFixed(1)}</p>
+                        <p className="font-semibold text-sm text-white drop-shadow-md">{topPerformers.topPlayer.name}</p>
+                        <p className="text-xs text-white/80 drop-shadow-sm">{topPerformers.topPlayer.metric}: {topPerformers.topPlayer.value.toFixed(1)}</p>
                       </div>
                     </div>
                   )}

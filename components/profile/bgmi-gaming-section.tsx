@@ -280,7 +280,7 @@ export function BGMIGamingSection({ profile, isEditing, canEdit, onUpdate }: BGM
                       )}
                     </Button>
                   </div>
-                  <div className="bg-gray-50 p-2 rounded text-xs font-mono break-all">
+                  <div className="bg-black/60 backdrop-blur-sm border border-white/20 p-2 rounded text-xs font-mono break-all text-white/90">
                     {profile.hud_layout_code}
                   </div>
                 </div>
@@ -358,12 +358,12 @@ export function BGMIGamingSection({ profile, isEditing, canEdit, onUpdate }: BGM
           {achievements.length > 0 ? (
             <div className="space-y-2">
               {achievements.map((achievement: any, index: number) => (
-                <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                  <Award className="h-4 w-4 text-yellow-500" />
+                <div key={index} className="flex items-center gap-2 p-2 bg-black/60 backdrop-blur-sm border border-white/20 rounded shadow-lg">
+                  <Award className="h-4 w-4 text-yellow-400" />
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{achievement.title}</p>
+                    <p className="font-medium text-sm text-white drop-shadow-md">{achievement.title}</p>
                     {achievement.date && (
-                      <p className="text-xs text-gray-600">{new Date(achievement.date).toLocaleDateString()}</p>
+                                              <p className="text-xs text-white/70 drop-shadow-sm">{new Date(achievement.date).toLocaleDateString()}</p>
                     )}
                   </div>
                 </div>

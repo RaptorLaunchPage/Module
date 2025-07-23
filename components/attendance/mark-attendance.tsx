@@ -174,13 +174,13 @@ export function MarkAttendance({ onAttendanceMarked, userProfile, teams, users }
     <div className="space-y-6">
       {/* Player Self-Mark Card */}
       {isPlayer && (
-        <Card className="border-blue-200 bg-blue-50/50">
+        <Card className="bg-black/85 backdrop-blur-lg border border-blue-400/60 shadow-2xl text-white rounded-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-blue-600" />
+            <CardTitle className="flex items-center gap-2 text-blue-200 drop-shadow-md">
+              <User className="h-5 w-5 text-blue-400" />
               Mark Your Attendance
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-white/90 drop-shadow-sm">
               Mark your attendance for practice sessions
             </CardDescription>
           </CardHeader>

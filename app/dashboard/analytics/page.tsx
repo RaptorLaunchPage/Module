@@ -396,9 +396,9 @@ export default function AnalyticsPage() {
 
       {/* Error Display */}
       {error && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="bg-red-900/40 backdrop-blur-lg border border-red-400/60 shadow-xl text-white rounded-lg">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-red-600">
+            <div className="flex items-center gap-2 text-red-200 drop-shadow-md">
               <Activity className="h-4 w-4" />
               <span>{error}</span>
             </div>
