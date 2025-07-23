@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { useSearchParams } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ResponsiveTabs, TabsContent } from "@/components/ui/enhanced-tabs"
 import { ProfileHeader } from "@/components/profile/profile-header"
 import { BGMIGamingSection } from "@/components/profile/bgmi-gaming-section"
 import { ProfileSearch } from "@/components/profile/profile-search"
@@ -350,34 +350,47 @@ export default function ProfileSettingsPage() {
         viewerProfile={currentProfile}
         onEdit={() => setIsEditing(!isEditing)}
         isEditing={isEditing}
+        showAvatarUpload={true}
       />
 
       {/* Main Content */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
-          <TabsTrigger value="profile" className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            <span className="hidden sm:inline">Personal</span>
-          </TabsTrigger>
-          <TabsTrigger value="gaming" className="flex items-center gap-2">
-            <Gamepad2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Gaming</span>
-          </TabsTrigger>
-          <TabsTrigger value="device" className="flex items-center gap-2">
-            <Smartphone className="h-4 w-4" />
-            <span className="hidden sm:inline">Device</span>
-          </TabsTrigger>
-          {canSearchAll && (
-            <TabsTrigger value="search" className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">Search</span>
-            </TabsTrigger>
-          )}
-          <TabsTrigger value="settings" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Privacy</span>
-          </TabsTrigger>
-        </TabsList>
+      <ResponsiveTabs 
+        tabs={[
+          {
+            value: "profile",
+            label: "Personal",
+            icon: User
+          },
+          {
+            value: "gaming",
+            label: "Gaming",
+            icon: Gamepad2
+          },
+          {
+            value: "device",
+            label: "Device",
+            icon: Smartphone
+          },
+          {
+            value: "search",
+            label: "Search",
+            icon: Search,
+            hidden: !canSearchAll
+          },
+          {
+            value: "settings",
+            label: "Privacy",
+            icon: Settings
+          }
+        ]}
+        value={activeTab}
+        onValueChange={setActiveTab}
+        defaultValue="profile"
+        variant="default"
+        size="md"
+        responsiveMode="auto"
+        className="w-full"
+      >
 
         {/* Personal Information Tab */}
         <TabsContent value="profile" className="space-y-6">
@@ -838,7 +851,7 @@ export default function ProfileSettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+      </ResponsiveTabs>
     </div>
   )
 }

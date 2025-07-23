@@ -202,7 +202,7 @@ export async function GET(request: NextRequest) {
       preview: {
         embeds: [embed],
         username: 'Raptor Esports CRM',
-        avatar_url: 'https://cdn.discordapp.com/embed/avatars/0.png'
+        avatar_url: process.env.NEXT_PUBLIC_RAPTOR_LOGO_URL || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=64&h=64&fit=crop&crop=center'
       }
     })
 

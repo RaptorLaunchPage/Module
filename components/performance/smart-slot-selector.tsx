@@ -376,8 +376,8 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
               <Card 
                 key={slot.id} 
                 className={cn(
-                  "cursor-pointer transition-colors p-2 hover:bg-gray-50",
-                  value === slot.id && "ring-2 ring-blue-500 bg-blue-50"
+                  "cursor-pointer transition-colors p-2 hover:bg-black/40 hover:backdrop-blur-lg",
+                  value === slot.id && "ring-2 ring-blue-400/60 bg-blue-900/40 backdrop-blur-lg border-blue-400/40"
                 )}
                 onClick={() => onValueChange(slot.id)}
               >

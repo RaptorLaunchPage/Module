@@ -183,7 +183,7 @@ export function AttendanceLogs({ attendances, onRefresh, userRole }: AttendanceL
                   </thead>
                   <tbody>
                     {groupedAttendances[date].map((attendance) => (
-                      <tr key={attendance.id} className="border-b last:border-b-0 hover:bg-gray-50">
+                      <tr key={attendance.id} className="border-b last:border-b-0 hover:bg-black/20 hover:backdrop-blur-sm">
                         <td className="py-3">
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4 text-gray-400" />
