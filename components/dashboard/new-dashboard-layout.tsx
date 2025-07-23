@@ -21,7 +21,10 @@ import {
   LogOut,
   ChevronDown,
   CalendarCheck,
-  UserPlus
+  UserPlus,
+  Shield,
+  Palette,
+  FileText
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -241,7 +244,23 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
                 className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100"
               >
                 <Settings className="h-5 w-5" />
-                <span>Settings</span>
+                <span>Profile Settings</span>
+              </Link>
+
+              <Link
+                href="/dashboard/agreements"
+                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              >
+                <FileText className="h-5 w-5" />
+                <span>Agreements</span>
+              </Link>
+
+              <Link
+                href="/dashboard/theme-settings"
+                className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              >
+                <Palette className="h-5 w-5" />
+                <span>Theme & Display</span>
               </Link>
               
               <DropdownMenu>
@@ -262,7 +281,15 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
                     <User className="mr-2 h-4 w-4" />
-                    Profile Settings
+                    Edit Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/dashboard/agreements')}>
+                    <Shield className="mr-2 h-4 w-4" />
+                    View Agreements
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/dashboard/theme-settings')}>
+                    <Palette className="mr-2 h-4 w-4" />
+                    Theme Settings
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
