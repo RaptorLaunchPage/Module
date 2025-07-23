@@ -2,10 +2,11 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { AuthProvider } from "@/hooks/use-auth"
+import { AuthProvider } from "@/hooks/use-auth-provider"
 import { AgreementProvider } from "@/hooks/use-agreement-context"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
+import { RequireAuth } from "@/components/session/require-auth"
 import { AgreementRouteGuard } from "@/components/agreement-route-guard"
 import { AgreementModal } from "@/components/agreement-modal"
 
@@ -27,13 +28,15 @@ export default function RootLayout({
       <body className={`${inter.className} bg-transparent`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider>
-            <AgreementProvider>
-              <AgreementRouteGuard>
-                {children}
-              </AgreementRouteGuard>
-              <AgreementModal />
-              <Toaster />
-            </AgreementProvider>
+            <RequireAuth>
+              <AgreementProvider>
+                <AgreementRouteGuard>
+                  {children}
+                </AgreementRouteGuard>
+                <AgreementModal />
+              </AgreementProvider>
+            </RequireAuth>
+            <Toaster />
           </AuthProvider>
         </ThemeProvider>
       </body>

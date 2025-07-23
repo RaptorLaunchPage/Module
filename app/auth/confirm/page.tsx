@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth-provider"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth-provider"
 import { supabase } from "@/lib/supabase"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"

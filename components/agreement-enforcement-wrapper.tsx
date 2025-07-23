@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { useAuth } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth-provider"
 import { useAgreementEnforcement, useAgreementDevOverride } from "@/hooks/use-agreement-enforcement"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { AlertTriangle } from "lucide-react"

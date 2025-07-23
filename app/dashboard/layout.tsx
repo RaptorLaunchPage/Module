@@ -1,6 +1,6 @@
 'use client'
 
-import { useAuth } from '@/hooks/use-auth'
+import { useAuth } from '@/hooks/use-auth-provider'
 import { NewDashboardLayout } from '@/components/dashboard/new-dashboard-layout'
 import { FullPageLoader } from '@/components/ui/full-page-loader'
 import { useEffect } from 'react'
