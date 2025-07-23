@@ -1,9 +1,8 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/hooks/use-auth-provider"
+import { useState } from "react"
+import { useAuth } from "@/hooks/use-auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,27 +10,17 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
-import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { Eye, EyeOff, LogIn, RefreshCw, Home, Shield } from "lucide-react"
-import { throttledNavigate } from "@/lib/navigation-throttle"
+import { COMPONENT_STYLES } from "@/lib/global-theme"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { signIn, signInWithDiscord, clearError: clearAuthError, loading: authLoading, user, profile, isInitialized } = useAuth()
-  const router = useRouter()
+  const { signIn, signInWithDiscord, isAuthenticated, error } = useAuth()
 
-  // Redirect if already logged in and profile is loaded
-  useEffect(() => {
-    if (isInitialized && user && profile) {
-      console.log("✅ User already authenticated, redirecting")
-      const targetPath = profile.role === "pending_player" ? "/onboarding" : "/dashboard"
-      throttledNavigate(router, targetPath, "replace")
-    }
-  }, [user, profile, isInitialized, router])
+  // If already authenticated, the route guard will handle redirect
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,7 +28,6 @@ export default function LoginPage() {
     console.log("🔐 Login form submission started")
     
     if (!email.trim() || !password.trim()) {
-      setError("Please enter both email and password")
       return
     }
 
@@ -49,58 +37,31 @@ export default function LoginPage() {
     }
 
     setIsSubmitting(true)
-    setError("")
-    clearAuthError()
     
     try {
-      const result = await signIn(email, password)
-      
-      if (result?.error) {
-        console.error("❌ Login failed:", result.error)
-        const errorMessage = result.error.message || "Invalid email or password"
-        setError(errorMessage)
-      } else {
-        console.log("✅ Login successful")
-        // Don't redirect here - let the auth hook handle it
-      }
+      await signIn(email, password)
+      // Navigation and error handling done by auth flow
     } catch (err: any) {
       console.error("❌ Login form exception:", err)
-      setError("An unexpected error occurred. Please try again.")
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const handleDiscordLogin = async () => {
-    if (isSubmitting || authLoading) return
+    if (isSubmitting) return
     
-    setError("")
-    clearAuthError()
     setIsSubmitting(true)
     
     try {
       await signInWithDiscord()
     } catch (err: any) {
       console.error("Discord login error:", err)
-      setError(err.message || "Could not sign in with Discord")
       setIsSubmitting(false)
     }
   }
 
-  const clearErrors = () => {
-    setError("")
-    clearAuthError()
-  }
-
-  // Show loading screen while auth is initializing
-  if (!isInitialized) {
-    return <FullPageLoader state="connecting" customDescription="Initializing authentication" />
-  }
-
-  // Don't show login form if user is already authenticated
-  if (user && profile) {
-    return <FullPageLoader state="redirecting" customDescription="Redirecting to dashboard" />
-  }
+  // If already authenticated, route guard will handle redirect
 
   return (
     <VideoBackground>
@@ -109,7 +70,7 @@ export default function LoginPage() {
       <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
       
       <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-black/60 backdrop-blur-md border border-white/20 shadow-xl">
+        <Card className={`w-full max-w-md ${COMPONENT_STYLES.authCard}`}>
           <CardHeader className="text-center relative">
             <Link href="/" className="absolute left-4 top-4">
               <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
@@ -130,7 +91,7 @@ export default function LoginPage() {
           <CardContent className="space-y-4">
             {error && (
               <Alert variant="destructive" className="bg-red-900/50 border-red-700/50 backdrop-blur-sm">
-                <AlertDescription className="text-sm text-red-100 flex items-center justify-between">
+                <AlertDescription className="text-sm text-red-100">
                   {error}
                   {error.includes("invalid") && (
                     <div className="mt-2 text-xs">
@@ -139,15 +100,6 @@ export default function LoginPage() {
                       <p>• Try resetting your password if needed</p>
                     </div>
                   )}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearErrors}
-                    className="ml-2 text-red-100 hover:text-white hover:bg-red-800/50"
-                  >
-                    ✕
-                  </Button>
                 </AlertDescription>
               </Alert>
             )}

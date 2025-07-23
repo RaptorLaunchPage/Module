@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { useAuth } from "@/hooks/use-auth-provider"
+import { useAuth } from "@/hooks/use-auth"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,14 +16,14 @@ import { VideoBackground } from "@/components/video-background"
 function AuthConfirmContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, profile, loading } = useAuth()
+  const { user, profile, isLoading } = useAuth()
   const { toast } = useToast()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
 
   useEffect(() => {
     // If user is already authenticated (OAuth or email), redirect via route guard
-    if (user && profile && !loading) {
+    if (user && profile && !isLoading) {
       // Let the route guard handle redirect to prevent conflicts
       return
     }
@@ -76,9 +76,9 @@ function AuthConfirmContent() {
     if (!user || !profile) {
       handleAuthConfirmation()
     }
-  }, [searchParams, router, toast, user, profile, loading])
+  }, [searchParams, router, toast, user, profile, isLoading])
 
-  if (loading || (user && !profile)) {
+  if (isLoading || (user && !profile)) {
     return <FullPageLoader message="Loading your account..." />
   }
 
@@ -89,7 +89,7 @@ function AuthConfirmContent() {
       <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
       
       <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
+        <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center gap-2 esports-heading text-2xl text-white font-semibold">
               {status === 'loading' && <Loader2 className="h-5 w-5 animate-spin" />}
@@ -155,7 +155,7 @@ export default function AuthConfirmPage() {
     <Suspense fallback={
       <VideoBackground>
         <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
+          <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
             <CardHeader className="text-center">
               <CardTitle className="flex items-center justify-center gap-2 text-white">
                 <Loader2 className="h-5 w-5 animate-spin" />

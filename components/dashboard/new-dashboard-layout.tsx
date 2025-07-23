@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/hooks/use-auth-provider'
+import { useAuth } from '@/hooks/use-auth'
 import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -49,16 +49,25 @@ interface NewDashboardLayoutProps {
 }
 
 export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
-  const { profile, loading, signOut } = useAuth()
+  const { profile, isLoading, signOut } = useAuth()
   const pathname = usePathname()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isVisible, setIsVisible] = useState(false)
 
-  if (loading) {
+  // Add smooth transition when component mounts
+  useEffect(() => {
+    if (!isLoading && profile) {
+      const timer = setTimeout(() => setIsVisible(true), 100)
+      return () => clearTimeout(timer)
+    }
+      }, [isLoading, profile])
+
+  if (isLoading) {
     return (
       <VideoBackground>
         <div className="min-h-screen flex items-center justify-center">
-          <div className="flex flex-col items-center space-y-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-8">
+          <div className="flex flex-col items-center space-y-4 bg-black/70 backdrop-blur-lg border border-white/30 rounded-xl p-8 relative z-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
             <p className="text-white font-medium">Loading dashboard...</p>
           </div>
@@ -71,7 +80,7 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
     return (
       <VideoBackground>
         <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center space-y-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-8 max-w-md">
+          <div className="text-center space-y-4 bg-black/70 backdrop-blur-lg border border-white/30 rounded-xl p-8 max-w-md relative z-20">
             <h2 className="text-2xl font-bold text-white">Profile Required</h2>
             <p className="text-white/80">Please complete your profile setup to access the dashboard.</p>
             <Button 
@@ -137,9 +146,9 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
       <div className="pointer-events-none fixed right-1/5 bottom-1/3 z-10 h-4 w-4 rounded-full bg-white opacity-30 blur-md animate-pulse" />
       <div className="pointer-events-none fixed left-3/4 top-1/2 z-10 h-3 w-3 rounded-full bg-white opacity-20 blur-lg animate-pulse" />
       
-      <div className="min-h-screen">
+      <div className={`min-h-screen transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
         {/* Mobile Header */}
-        <div className="lg:hidden bg-white/10 backdrop-blur-md border-b border-white/20">
+        <div className="lg:hidden bg-black/70 backdrop-blur-lg border-b border-white/30">
           <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center space-x-3">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -187,7 +196,7 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
                       className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10"
                     >
                       <Settings className="h-5 w-5" />
-                      <span>Settings</span>
+                      <span>Profile Settings</span>
                     </Link>
                     <button
                       onClick={handleSignOut}
@@ -261,7 +270,7 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
                   className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10"
                 >
                   <Settings className="h-5 w-5" />
-                  <span>Settings</span>
+                  <span>Profile Settings</span>
                 </Link>
               
                               <DropdownMenu>

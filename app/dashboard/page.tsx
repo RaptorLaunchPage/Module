@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from 'react'
-import { useAuth } from '@/hooks/use-auth-provider'
+import { useAuth } from '@/hooks/use-auth'
 import { dataService } from '@/lib/optimized-data-service'
 import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions'
 
