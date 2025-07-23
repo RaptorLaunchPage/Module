@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/hooks/use-auth"
-import { useAgreementEnforcement } from "@/hooks/use-agreement-enforcement"
+import { useAuth } from "@/hooks/use-auth-provider"
+import { useAgreementContext } from "@/hooks/use-agreement-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -31,7 +31,7 @@ interface AgreementContent {
 
 export default function AgreementReviewPage() {
   const { user, profile, loading: authLoading, getToken } = useAuth()
-  const { agreementStatus, acceptAgreement } = useAgreementEnforcement()
+  const { agreementStatus, acceptAgreement } = useAgreementContext()
   const { toast } = useToast()
   const router = useRouter()
   
