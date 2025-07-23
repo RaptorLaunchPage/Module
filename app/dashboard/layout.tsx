@@ -8,7 +8,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   // Remove duplicate loading logic - let NewDashboardLayout handle it
-  // Auth and route checking is handled by AgreementRouteGuard
+  // Auth and route checking is handled by RouteGuard
   return (
     <NewDashboardLayout>
       {children}
