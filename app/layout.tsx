@@ -6,7 +6,6 @@ import { AuthProvider } from "@/hooks/use-auth-provider"
 import { AgreementProvider } from "@/hooks/use-agreement-context"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
-import { RequireAuth } from "@/components/session/require-auth"
 import { AgreementRouteGuard } from "@/components/agreement-route-guard"
 import { AgreementModal } from "@/components/agreement-modal"
 
@@ -29,11 +28,9 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider>
             <AgreementProvider>
-              <RequireAuth>
-                <AgreementRouteGuard>
-                  {children}
-                </AgreementRouteGuard>
-              </RequireAuth>
+              <AgreementRouteGuard>
+                {children}
+              </AgreementRouteGuard>
               <AgreementModal />
             </AgreementProvider>
             <Toaster />

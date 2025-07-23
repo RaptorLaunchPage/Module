@@ -137,25 +137,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       console.log('✅ Session initialized successfully')
       
-      // Redirect to appropriate route
-      const intendedRoute = typeof window !== 'undefined' ? localStorage.getItem('raptor-intended-route') : null
-      let targetPath = '/dashboard'
-      
-      if (profileData?.role === 'pending_player') {
-        targetPath = '/onboarding'
-      } else if (intendedRoute && intendedRoute !== '/auth/login') {
-        targetPath = intendedRoute
-        localStorage.removeItem('raptor-intended-route')
-      }
-      
-      router.push(targetPath)
+      // Don't redirect here - let the route guard handle it to prevent conflicts
       
     } catch (error: any) {
       console.error('❌ Session initialization failed:', error)
       setError(error.message || 'Failed to initialize session')
       session.clearSession()
     }
-  }, [session, loadUserProfile, router])
+  }, [session, loadUserProfile])
 
   // Handle Supabase auth state changes
   useEffect(() => {

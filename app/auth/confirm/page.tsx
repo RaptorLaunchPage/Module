@@ -22,13 +22,9 @@ function AuthConfirmContent() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    // If user is already authenticated (OAuth or email), redirect to onboarding or dashboard
+    // If user is already authenticated (OAuth or email), redirect via route guard
     if (user && profile && !loading) {
-      if (profile.role === "pending_player") {
-        router.replace("/onboarding")
-      } else {
-        router.replace("/dashboard")
-      }
+      // Let the route guard handle redirect to prevent conflicts
       return
     }
 
@@ -76,7 +72,10 @@ function AuthConfirmContent() {
       }
     }
 
-    handleAuthConfirmation()
+    // Only handle confirmation if not already authenticated
+    if (!user || !profile) {
+      handleAuthConfirmation()
+    }
   }, [searchParams, router, toast, user, profile, loading])
 
   if (loading || (user && !profile)) {
