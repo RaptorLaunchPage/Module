@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
-import { useAuth } from './use-auth'
+import { useAuth } from './use-auth-provider'
 import { AgreementStatus, getRequiredAgreementVersion } from '@/lib/agreement-versions'
 
 interface AgreementContextType {

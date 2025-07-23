@@ -2,8 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useSession } from '@/hooks/use-session'
-import SessionStorage from '@/lib/session-storage'
+import { useAuth } from '@/hooks/use-auth-provider'
 import { FullPageLoader } from '@/components/ui/full-page-loader'
 
 interface RequireAuthProps {
@@ -43,7 +42,7 @@ export function RequireAuth({
   fallback,
   redirectTo = '/auth/login'
 }: RequireAuthProps) {
-  const { isAuthenticated, loading, isExpired } = useSession()
+  const { isAuthenticated, loading, isExpired } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -59,8 +58,8 @@ export function RequireAuth({
       console.log(`🔒 Redirecting to ${redirectTo} - auth: ${isAuthenticated}, expired: ${isExpired}`)
       
       // Store the intended route for redirect after login
-      if (pathname !== redirectTo) {
-        SessionStorage.updateSession({ lastRoute: pathname })
+      if (pathname !== redirectTo && typeof window !== 'undefined') {
+        localStorage.setItem('raptor-intended-route', pathname)
       }
       
       router.push(redirectTo)

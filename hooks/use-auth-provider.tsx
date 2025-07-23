@@ -138,13 +138,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('✅ Session initialized successfully')
       
       // Redirect to appropriate route
-      const lastRoute = SessionStorage.getSession()?.lastRoute
+      const intendedRoute = typeof window !== 'undefined' ? localStorage.getItem('raptor-intended-route') : null
       let targetPath = '/dashboard'
       
       if (profileData?.role === 'pending_player') {
         targetPath = '/onboarding'
-      } else if (lastRoute && lastRoute !== '/auth/login') {
-        targetPath = lastRoute
+      } else if (intendedRoute && intendedRoute !== '/auth/login') {
+        targetPath = intendedRoute
+        localStorage.removeItem('raptor-intended-route')
       }
       
       router.push(targetPath)

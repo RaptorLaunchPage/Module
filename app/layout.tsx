@@ -28,14 +28,14 @@ export default function RootLayout({
       <body className={`${inter.className} bg-transparent`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider>
-            <RequireAuth>
-              <AgreementProvider>
+            <AgreementProvider>
+              <RequireAuth>
                 <AgreementRouteGuard>
                   {children}
                 </AgreementRouteGuard>
-                <AgreementModal />
-              </AgreementProvider>
-            </RequireAuth>
+              </RequireAuth>
+              <AgreementModal />
+            </AgreementProvider>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>
