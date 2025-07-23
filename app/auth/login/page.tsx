@@ -13,6 +13,7 @@ import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { Eye, EyeOff, LogIn, RefreshCw, Home, Shield } from "lucide-react"
+import { throttledNavigate } from "@/lib/navigation-throttle"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -28,7 +29,7 @@ export default function LoginPage() {
     if (isInitialized && user && profile) {
       console.log("✅ User already authenticated, redirecting")
       const targetPath = profile.role === "pending_player" ? "/onboarding" : "/dashboard"
-      router.replace(targetPath)
+      throttledNavigate(router, targetPath, "replace")
     }
   }, [user, profile, isInitialized, router])
 

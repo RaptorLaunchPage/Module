@@ -1,15 +1,25 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth-provider"
 import { useAgreementContext } from "@/hooks/use-agreement-context"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
-import { AlertTriangle } from "lucide-react"
+import { throttledNavigate } from "@/lib/navigation-throttle"
 
 interface AgreementRouteGuardProps {
   children: React.ReactNode
 }
+
+// Routes that don't require authentication
+const PUBLIC_ROUTES = [
+  '/',
+  '/auth/login',
+  '/auth/signup',
+  '/auth/confirm',
+  '/auth/forgot',
+  '/auth/reset-password'
+]
 
 // Routes that are allowed even if agreement is required
 const ALLOWED_ROUTES = [
@@ -22,64 +32,147 @@ const ALLOWED_ROUTES = [
   '/api'  // All API routes
 ]
 
+function isPublicRoute(pathname: string): boolean {
+  // API routes are public (they handle their own auth)
+  if (pathname.startsWith('/api/')) return true
+  
+  // Static assets
+  if (pathname.startsWith('/_next/')) return true
+  if (pathname.includes('.')) return true // Files with extensions
+  
+  // Explicit public routes
+  return PUBLIC_ROUTES.some(route => {
+    if (route === '/') return pathname === '/'
+    return pathname.startsWith(route)
+  })
+}
+
 function isRouteAllowed(pathname: string): boolean {
   return ALLOWED_ROUTES.some(route => pathname.startsWith(route))
 }
 
 export function AgreementRouteGuard({ children }: AgreementRouteGuardProps) {
-  const { user, profile, loading: authLoading } = useAuth()
-  const { loading, requiresAgreement, hasChecked } = useAgreementContext()
+  const { user, profile, loading: authLoading, isAuthenticated, isExpired, isInitialized } = useAuth()
+  const { loading: agreementLoading, requiresAgreement, hasChecked } = useAgreementContext()
   const router = useRouter()
   const pathname = usePathname()
+  const [hasRedirected, setHasRedirected] = useState(false)
+  const redirectTimeoutRef = useRef<NodeJS.Timeout>()
 
-  // Redirect to agreement review if needed (only for specific routes)
+  // Clear any pending redirects on unmount
   useEffect(() => {
-    // Skip if still loading or checking
-    if (authLoading || loading || !hasChecked) return
-    
-    // Skip if no user (will be handled by auth)
-    if (!user || !profile) return
-    
-    // Skip if current route is allowed
-    if (isRouteAllowed(pathname)) return
-    
-    // Redirect if agreement is required and we're on a protected route
-    if (requiresAgreement && pathname !== '/agreement-review') {
-      console.log('Agreement required, redirecting to review page')
-      router.push('/agreement-review')
+    return () => {
+      if (redirectTimeoutRef.current) {
+        clearTimeout(redirectTimeoutRef.current)
+      }
     }
+  }, [])
+
+  // Handle authentication and agreement redirects
+  useEffect(() => {
+    // Skip if already redirected this session or route is public
+    if (hasRedirected || isPublicRoute(pathname)) return
+
+    // Wait for auth to initialize
+    if (!isInitialized || authLoading) return
+
+    // Handle authentication
+    if (!isAuthenticated || isExpired) {
+      // Store the intended route for redirect after login
+      if (pathname !== '/auth/login' && typeof window !== 'undefined') {
+        localStorage.setItem('raptor-intended-route', pathname)
+      }
+      
+      setHasRedirected(true)
+      redirectTimeoutRef.current = setTimeout(() => {
+        throttledNavigate(router, '/auth/login', 'push')
+      }, 100) // Small delay to prevent rapid calls
+      return
+    }
+
+    // Wait for user and profile
+    if (!user || !profile) return
+
+    // Wait for agreement check to complete
+    if (agreementLoading || !hasChecked) return
+
+    // Handle agreement requirement
+    if (requiresAgreement && !isRouteAllowed(pathname) && pathname !== '/agreement-review') {
+      console.log('Agreement required, redirecting to review page')
+      setHasRedirected(true)
+      redirectTimeoutRef.current = setTimeout(() => {
+        throttledNavigate(router, '/agreement-review', 'push')
+      }, 100)
+      return
+    }
+
   }, [
+    isInitialized,
     authLoading,
-    loading,
-    hasChecked,
+    isAuthenticated,
+    isExpired,
     user,
     profile,
+    agreementLoading,
+    hasChecked,
     requiresAgreement,
     pathname,
-    router
+    router,
+    hasRedirected
   ])
 
-  // Show loading screen while checking agreement status
-  if ((authLoading || loading || !hasChecked) && user && profile) {
+  // Reset redirect flag when pathname changes
+  useEffect(() => {
+    setHasRedirected(false)
+    if (redirectTimeoutRef.current) {
+      clearTimeout(redirectTimeoutRef.current)
+    }
+  }, [pathname])
+
+  // Show loading while initializing
+  if (!isInitialized || authLoading) {
     return (
       <FullPageLoader 
-        state="checking-agreement"
+        state="initializing"
+        customDescription="Loading application..."
         showBackground={false}
         size="md"
       />
     )
   }
 
-  // Show blocked screen if agreement is required but we're not on allowed route
-  if (
-    user && 
-    profile && 
-    requiresAgreement && 
-    hasChecked &&
-    !loading && 
-    !isRouteAllowed(pathname) &&
-    pathname !== '/agreement-review'
-  ) {
+  // Allow access to public routes
+  if (isPublicRoute(pathname)) {
+    return <>{children}</>
+  }
+
+  // Show auth loading/redirect
+  if (!isAuthenticated || isExpired || !user || !profile) {
+    return (
+      <FullPageLoader 
+        state="redirecting"
+        customTitle="Authentication Required"
+        customDescription="Redirecting to login..."
+        showBackground={false}
+        size="md"
+      />
+    )
+  }
+
+  // Show agreement loading
+  if (agreementLoading || !hasChecked) {
+    return (
+      <FullPageLoader 
+        state="checking-agreement"
+        customDescription="Checking agreement status..."
+        showBackground={false}
+        size="md"
+      />
+    )
+  }
+
+  // Show agreement redirect
+  if (requiresAgreement && !isRouteAllowed(pathname) && pathname !== '/agreement-review') {
     return (
       <FullPageLoader 
         state="redirecting"

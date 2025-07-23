@@ -38,7 +38,7 @@ export function AgreementProvider({ children }: AgreementProviderProps) {
   }, [])
 
   const checkAgreementStatus = useCallback(async () => {
-    if (!user || !profile?.role || authLoading || hasChecked) return
+    if (!user || !profile?.role || authLoading || hasChecked || loading) return
 
     // Skip if development override is enabled
     if (isDevelopmentOverride) {
@@ -79,7 +79,7 @@ export function AgreementProvider({ children }: AgreementProviderProps) {
     } finally {
       setLoading(false)
     }
-  }, [user?.id, profile?.role, authLoading, hasChecked, getToken, isDevelopmentOverride])
+  }, [user?.id, profile?.role, authLoading, hasChecked, loading, getToken, isDevelopmentOverride])
 
   const acceptAgreement = useCallback(async (status: 'accepted' | 'declined' = 'accepted'): Promise<boolean> => {
     if (!user || !profile?.role) return false

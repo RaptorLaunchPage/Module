@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from './use-auth'
+import { useAuth } from './use-auth-provider'
 import { AgreementStatus, CURRENT_AGREEMENT_VERSIONS, getRequiredAgreementVersion } from '@/lib/agreement-versions'
 
 interface AgreementEnforcementResult {

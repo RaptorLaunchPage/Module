@@ -2,13 +2,18 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { throttledNavigate } from "@/lib/navigation-throttle"
 
 export default function TeamManagementHomePage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Redirect to the default submodule: Teams
-    router.replace("/dashboard/team-management/teams")
+    // Use setTimeout to prevent rapid navigation calls
+    const timeout = setTimeout(() => {
+      throttledNavigate(router, "/dashboard/team-management/teams", "replace")
+    }, 100)
+
+    return () => clearTimeout(timeout)
   }, [router])
 
   return (
