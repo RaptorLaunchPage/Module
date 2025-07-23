@@ -4,7 +4,7 @@ import * as React from "react"
 import * as TabsPrimitive from "@radix-ui/react-tabs"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GLOBAL_THEME } from "@/lib/global-theme"
 
@@ -72,7 +72,7 @@ export function ResponsiveTabs({
   const [activeTab, setActiveTab] = React.useState(defaultValue || tabs[0]?.value || '')
   const [canScrollLeft, setCanScrollLeft] = React.useState(false)
   const [canScrollRight, setCanScrollRight] = React.useState(false)
-  const [showDropdown, setShowDropdown] = React.useState(false)
+
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   const tabsListRef = React.useRef<HTMLDivElement>(null)
 

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { ResponsiveTabs, TabsContent, type TabItem } from "@/components/ui/enhanced-tabs"
+import { ResponsiveTabs, TabsContent } from "@/components/ui/enhanced-tabs"
 import { Trash2, Edit, RefreshCw, Users, Mail, Bot, CheckCircle, XCircle, AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Database } from "@/lib/supabase"

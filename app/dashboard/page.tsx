@@ -8,7 +8,7 @@ import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ResponsiveTabs, TabsContent, type TabItem } from '@/components/ui/enhanced-tabs'
+import { ResponsiveTabs, TabsContent } from '@/components/ui/enhanced-tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   Users, 

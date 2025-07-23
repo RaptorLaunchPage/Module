@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
-import { ResponsiveTabs, TabsContent, type TabItem } from "@/components/ui/enhanced-tabs"
+import { ResponsiveTabs, TabsContent } from "@/components/ui/enhanced-tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
