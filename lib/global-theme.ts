@@ -137,6 +137,9 @@ export const COMPONENT_STYLES = {
   // Form containers with better visibility
   formContainer: `${GLOBAL_THEME.glassmorphic.primary} p-6 space-y-6`,
   
+  // Auth cards for login/register pages
+  authCard: `${GLOBAL_THEME.glassmorphic.primary} border-2 border-white/30`,
+  
   // Input fields with enhanced contrast
   input: GLOBAL_THEME.glassmorphic.input,
   

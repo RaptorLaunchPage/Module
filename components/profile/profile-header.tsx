@@ -102,7 +102,7 @@ export function ProfileHeader({ profile, viewerProfile, onEdit, isEditing, showA
                 <AvatarUpload
                   currentAvatarUrl={profile.avatar_url}
                   userId={profile.id}
-                  userName={profile.display_name || profile.full_name || profile.name}
+                  userName={profile.display_name || profile.full_name || profile.name || 'User'}
                   canEdit={canEdit}
                   size="lg"
                 />
