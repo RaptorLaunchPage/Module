@@ -89,7 +89,7 @@ function AuthConfirmContent() {
       <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
       
       <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
+        <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center gap-2 esports-heading text-2xl text-white font-semibold">
               {status === 'loading' && <Loader2 className="h-5 w-5 animate-spin" />}
@@ -155,7 +155,7 @@ export default function AuthConfirmPage() {
     <Suspense fallback={
       <VideoBackground>
         <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
+          <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
             <CardHeader className="text-center">
               <CardTitle className="flex items-center justify-center gap-2 text-white">
                 <Loader2 className="h-5 w-5 animate-spin" />

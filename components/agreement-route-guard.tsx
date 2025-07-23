@@ -132,12 +132,12 @@ export function AgreementRouteGuard({ children }: AgreementRouteGuardProps) {
   // Show loading while initializing
   if (!isInitialized || authLoading) {
     return (
-      <FullPageLoader 
-        state="initializing"
-        customDescription="Loading application..."
-        showBackground={false}
-        size="md"
-      />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="flex flex-col items-center space-y-4 bg-black/70 backdrop-blur-lg border border-white/30 rounded-xl p-8 relative z-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+          <p className="text-white font-medium">Loading application...</p>
+        </div>
+      </div>
     )
   }
 
@@ -149,38 +149,37 @@ export function AgreementRouteGuard({ children }: AgreementRouteGuardProps) {
   // Show auth loading/redirect
   if (!isAuthenticated || isExpired || !user || !profile) {
     return (
-      <FullPageLoader 
-        state="redirecting"
-        customTitle="Authentication Required"
-        customDescription="Redirecting to login..."
-        showBackground={false}
-        size="md"
-      />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="flex flex-col items-center space-y-4 bg-black/70 backdrop-blur-lg border border-white/30 rounded-xl p-8 relative z-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+          <p className="text-white font-medium">Redirecting to login...</p>
+        </div>
+      </div>
     )
   }
 
   // Show agreement loading
   if (agreementLoading || !hasChecked) {
     return (
-      <FullPageLoader 
-        state="checking-agreement"
-        customDescription="Checking agreement status..."
-        showBackground={false}
-        size="md"
-      />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="flex flex-col items-center space-y-4 bg-black/70 backdrop-blur-lg border border-white/30 rounded-xl p-8 relative z-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+          <p className="text-white font-medium">Checking agreement status...</p>
+        </div>
+      </div>
     )
   }
 
   // Show agreement redirect
   if (requiresAgreement && !isRouteAllowed(pathname) && pathname !== '/agreement-review') {
     return (
-      <FullPageLoader 
-        state="redirecting"
-        customTitle="Agreement Required"
-        customDescription="You need to review and accept the user agreement to continue. Redirecting..."
-        showBackground={false}
-        size="md"
-      />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="flex flex-col items-center space-y-4 bg-black/70 backdrop-blur-lg border border-white/30 rounded-xl p-8 relative z-20">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+          <p className="text-white font-medium">Agreement Required</p>
+          <p className="text-white/80 text-sm text-center">You need to review and accept the user agreement to continue. Redirecting...</p>
+        </div>
+      </div>
     )
   }
 
