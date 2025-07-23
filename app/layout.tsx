@@ -3,9 +3,11 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/hooks/use-auth"
+import { AgreementProvider } from "@/hooks/use-agreement-context"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
-import { AgreementEnforcementWrapper } from "@/components/agreement-enforcement-wrapper"
+import { AgreementRouteGuard } from "@/components/agreement-route-guard"
+import { AgreementModal } from "@/components/agreement-modal"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -25,10 +27,13 @@ export default function RootLayout({
       <body className={`${inter.className} bg-transparent`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <AuthProvider>
-            <AgreementEnforcementWrapper>
-              {children}
-            </AgreementEnforcementWrapper>
-            <Toaster />
+            <AgreementProvider>
+              <AgreementRouteGuard>
+                {children}
+              </AgreementRouteGuard>
+              <AgreementModal />
+              <Toaster />
+            </AgreementProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
