@@ -255,7 +255,7 @@ export default function DebugPage() {
             <CardTitle>Detailed Results</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="text-xs bg-gray-50 p-4 rounded overflow-auto">
+            <pre className="text-xs bg-white/10 backdrop-blur-md border-white/20 p-4 rounded overflow-auto text-white/90">
               {JSON.stringify(
                 tests.filter(test => test.details).reduce((acc, test) => {
                   acc[test.name] = test.details
