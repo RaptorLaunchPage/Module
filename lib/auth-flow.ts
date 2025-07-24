@@ -265,6 +265,13 @@ class AuthFlowManager {
         hasProfile: !!profile,
         agreementStatus
       })
+      
+      // Add a small delay to ensure state propagation
+      setTimeout(() => {
+        console.log('🎯 Profile loading complete - auth flow ready for dashboard')
+        // Trigger a minor state update to ensure route guard picks up the change
+        this.setState({ isInitialized: true })
+      }, 100)
 
       // Determine redirect path
       if (agreementStatus.requiresAgreement) {
