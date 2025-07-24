@@ -43,21 +43,13 @@ export function RouteGuard({ children }: RouteGuardProps) {
   const [loadingStep, setLoadingStep] = useState<LoadingStep>('connecting')
   const [hasTimedOut, setHasTimedOut] = useState(false)
 
-  // Handle timeout scenarios
+  // Handle timeout scenarios - only for display, no aggressive actions
   const handleTimeout = () => {
-    console.warn('🕐 Route guard timeout - forcing refresh')
+    console.warn('🕐 Route guard timeout - showing timeout message')
     setHasTimedOut(true)
     
-    // Try to recover by clearing storage and redirecting
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('raptor-session')
-      localStorage.removeItem('raptor-access-token')
-      
-      // Force reload after a short delay
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
-    }
+    // Don't clear storage or force reload - just show timeout message
+    // Let the user decide what to do
   }
 
   useEffect(() => {
@@ -138,10 +130,10 @@ export function RouteGuard({ children }: RouteGuardProps) {
       <AdvancedLoading
         currentStep={hasTimedOut ? 'error' : loadingStep}
         steps={steps}
-        customTitle={hasTimedOut ? "Connection Timeout" : undefined}
-        customDescription={hasTimedOut ? "Refreshing the application..." : undefined}
+        customTitle={hasTimedOut ? "Taking Longer Than Expected" : undefined}
+        customDescription={hasTimedOut ? "Please try refreshing the page if this continues..." : undefined}
         onTimeout={handleTimeout}
-        timeoutMs={15000}
+        timeoutMs={30000} // Increased to 30 seconds for navigation
         showProgress={!hasTimedOut}
       />
     )
@@ -171,7 +163,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
         steps={steps}
         customDescription={description}
         onTimeout={handleTimeout}
-        timeoutMs={12000}
+        timeoutMs={25000} // Increased to 25 seconds for navigation
         showProgress={true}
       />
     )

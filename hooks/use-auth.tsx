@@ -105,7 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const initializeAuth = async () => {
       try {
         console.log('🚀 Initializing authentication...')
-        const result = await authFlow.initialize()
+        // Pass true for initial load to enable timeout
+        const result = await authFlow.initialize(true)
         
         if (!mounted) return
         
@@ -326,8 +327,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Refresh profile
   const refreshProfile = useCallback(async () => {
     try {
-      // Re-initialize the auth flow to refresh profile
-      await authFlow.initialize()
+      // Re-initialize the auth flow to refresh profile (navigation mode - no timeout)
+      await authFlow.initialize(false)
     } catch (error: any) {
       console.error('❌ Profile refresh error:', error)
       toast({
