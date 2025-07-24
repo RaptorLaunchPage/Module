@@ -66,11 +66,15 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           console.log(`✅ Processing Supabase ${event}`)
           const result = await authFlowV2.handleSupabaseSession(supabaseSession)
           
-          if (result.success && result.shouldRedirect && result.redirectPath) {
+          // Only redirect on actual sign in, not token refresh
+          if (event === 'SIGNED_IN' && result.success && result.shouldRedirect && result.redirectPath) {
+            console.log('🔄 Redirecting after sign in to:', result.redirectPath)
             // Use setTimeout to prevent navigation conflicts
             setTimeout(() => {
               router.push(result.redirectPath!)
             }, 100)
+          } else if (event === 'TOKEN_REFRESHED') {
+            console.log('🔄 Token refreshed - not redirecting')
           }
         }
       } catch (error: any) {
@@ -105,11 +109,13 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
     const initializeAuth = async () => {
       try {
         console.log('🚀 Initializing authentication v2...')
-        const result = await authFlowV2.initialize(true)
+        const result = await authFlowV2.initialize(false) // Don't redirect on app initialization
         
         if (!mounted) return
         
+        // Only redirect if explicitly needed (like agreement required)
         if (result.success && result.shouldRedirect && result.redirectPath) {
+          console.log('🔄 Auth requires redirect to:', result.redirectPath)
           // Small delay to prevent conflicts with route guards
           setTimeout(() => {
             router.push(result.redirectPath!)

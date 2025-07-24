@@ -81,18 +81,15 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
           }
         })
 
-        // Initialize auth flow
-        const result = await authFlowV2.initialize(true)
+        // Initialize auth flow (don't redirect from route guard)
+        const result = await authFlowV2.initialize(false)
         
         if (!mounted) return
 
+        // Route guard should not redirect - let auth hook handle redirects
+        // Only log if there would have been a redirect
         if (result.success && result.shouldRedirect && result.redirectPath) {
-          // Use setTimeout to prevent navigation conflicts
-          setTimeout(() => {
-            if (mounted) {
-              router.push(result.redirectPath!)
-            }
-          }, 100)
+          console.log('🔄 Route guard: Auth flow wants to redirect to', result.redirectPath, '- ignoring in route guard')
         }
 
         return unsubscribe
