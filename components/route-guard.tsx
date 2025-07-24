@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/use-auth'
-import { COMPONENT_STYLES } from '@/lib/global-theme'
+import { AdvancedLoading, LoadingStep } from '@/components/ui/advanced-loading'
 
 interface RouteGuardProps {
   children: React.ReactNode
@@ -40,11 +40,44 @@ export function RouteGuard({ children }: RouteGuardProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [shouldRender, setShouldRender] = useState(false)
+  const [loadingStep, setLoadingStep] = useState<LoadingStep>('connecting')
+  const [hasTimedOut, setHasTimedOut] = useState(false)
+
+  // Handle timeout scenarios
+  const handleTimeout = () => {
+    console.warn('🕐 Route guard timeout - forcing refresh')
+    setHasTimedOut(true)
+    
+    // Try to recover by clearing storage and redirecting
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('raptor-session')
+      localStorage.removeItem('raptor-access-token')
+      
+      // Force reload after a short delay
+      setTimeout(() => {
+        window.location.reload()
+      }, 2000)
+    }
+  }
 
   useEffect(() => {
     // Don't render anything while auth is loading
     if (isLoading) {
       setShouldRender(false)
+      
+      // Determine loading step based on auth state
+      if (!isAuthenticated) {
+        setLoadingStep('connecting')
+      } else if (!user) {
+        setLoadingStep('authenticating')
+      } else if (agreementStatus.requiresAgreement && !agreementStatus.isChecked) {
+        setLoadingStep('checking-agreement')
+      } else if (!profile) {
+        setLoadingStep('loading-profile')
+      } else {
+        setLoadingStep('initializing')
+      }
+      
       return
     }
 
@@ -63,6 +96,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
         localStorage.setItem('raptor-intended-route', pathname)
       }
       
+      setLoadingStep('redirecting')
       router.push('/auth/login')
       setShouldRender(false)
       return
@@ -70,6 +104,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
 
     // If authenticated but no profile, show loading
     if (!profile) {
+      setLoadingStep('loading-profile')
       setShouldRender(false)
       return
     }
@@ -77,12 +112,14 @@ export function RouteGuard({ children }: RouteGuardProps) {
     // Check agreement requirements
     if (agreementStatus.requiresAgreement && !agreementStatus.isChecked) {
       // Still checking agreement
+      setLoadingStep('checking-agreement')
       setShouldRender(false)
       return
     }
 
     if (agreementStatus.requiresAgreement && pathname !== '/agreement-review') {
       console.log('📋 Route guard: Agreement required, redirecting to review')
+      setLoadingStep('redirecting')
       router.push('/agreement-review')
       setShouldRender(false)
       return
@@ -93,31 +130,50 @@ export function RouteGuard({ children }: RouteGuardProps) {
 
   }, [isAuthenticated, user, profile, agreementStatus, pathname, router, isLoading])
 
-  // Show loading while auth is loading
-  if (isLoading) {
+  // Show advanced loading while auth is loading
+  if (isLoading || hasTimedOut) {
+    const steps: LoadingStep[] = ['connecting', 'authenticating', 'checking-agreement', 'loading-profile', 'initializing']
+    
     return (
-      <div className={COMPONENT_STYLES.loadingContainer}>
-        <div className={COMPONENT_STYLES.loadingCard}>
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-          <p className="text-white font-medium">Initializing application...</p>
-        </div>
-      </div>
+      <AdvancedLoading
+        currentStep={hasTimedOut ? 'error' : loadingStep}
+        steps={steps}
+        customTitle={hasTimedOut ? "Connection Timeout" : undefined}
+        customDescription={hasTimedOut ? "Refreshing the application..." : undefined}
+        onTimeout={handleTimeout}
+        timeoutMs={15000}
+        showProgress={!hasTimedOut}
+      />
     )
   }
 
   // Show loading while checking auth/profile for protected routes
   if (!isPublicRoute(pathname) && (!shouldRender || !profile)) {
+    const steps: LoadingStep[] = ['authenticating', 'loading-profile', 'initializing']
+    
+    let currentStep: LoadingStep = 'authenticating'
+    let description = 'Redirecting to login...'
+    
+    if (!isAuthenticated) {
+      currentStep = 'authenticating'
+      description = 'Redirecting to login...'
+    } else if (!profile) {
+      currentStep = 'loading-profile'
+      description = 'Loading your profile...'
+    } else {
+      currentStep = 'initializing'
+      description = 'Setting up your dashboard...'
+    }
+
     return (
-      <div className={COMPONENT_STYLES.loadingContainer}>
-        <div className={COMPONENT_STYLES.loadingCard}>
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
-          <p className="text-white font-medium">
-            {!isAuthenticated ? 'Redirecting to login...' : 
-             !profile ? 'Loading profile...' :
-             'Checking access...'}
-          </p>
-        </div>
-      </div>
+      <AdvancedLoading
+        currentStep={currentStep}
+        steps={steps}
+        customDescription={description}
+        onTimeout={handleTimeout}
+        timeoutMs={12000}
+        showProgress={true}
+      />
     )
   }
 
