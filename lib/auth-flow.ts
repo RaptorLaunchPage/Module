@@ -385,6 +385,14 @@ class AuthFlowManager {
   private async loadUserProfile(user: User): Promise<any> {
     console.log(`👤 Loading user profile, isInitialLogin: ${this.isInitialLogin}`)
     
+    // Check if profile was already loaded once in this session
+    const existingSession = SessionStorage.getSession()
+    if (existingSession?.profileLoadedOnce && !this.isInitialLogin) {
+      console.log('✅ Profile already loaded once in this session, using cached data')
+      // Still load profile but without timeout constraints
+      return await this.performLoadUserProfile(user)
+    }
+    
     // Add timeout only for initial login, not for navigation
     if (this.isInitialLogin) {
       console.log('⏰ Using timeout for profile loading (initial login)')
@@ -396,7 +404,10 @@ class AuthFlowManager {
       })
 
       try {
-        return await Promise.race([profilePromise, timeoutPromise])
+        const profile = await Promise.race([profilePromise, timeoutPromise])
+        // Mark profile as loaded once after successful initial load
+        this.markProfileAsLoaded()
+        return profile
       } catch (error: any) {
         console.error('❌ Profile loading failed or timed out:', error)
         throw error
@@ -405,6 +416,19 @@ class AuthFlowManager {
       // For navigation, no timeout - just load the profile
       console.log('🚀 No timeout for profile loading (navigation)')
       return await this.performLoadUserProfile(user)
+    }
+  }
+
+  // Mark profile as loaded once in session
+  private markProfileAsLoaded() {
+    const currentSession = SessionStorage.getSession()
+    if (currentSession) {
+      const updatedSession = {
+        ...currentSession,
+        profileLoadedOnce: true
+      }
+      SessionStorage.setSession(updatedSession)
+      console.log('✅ Profile marked as loaded once in session')
     }
   }
 
