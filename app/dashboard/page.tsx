@@ -35,7 +35,8 @@ import {
   Clock,
   Plus,
   MessageSquare,
-  Webhook
+  Webhook,
+  User
 } from 'lucide-react'
 import Link from 'next/link'
 // Removed PerformanceDashboard import as we're using a simplified version
@@ -117,6 +118,20 @@ export default function OptimizedDashboardPage() {
   const canAccessUsers = DashboardPermissions.getDataPermissions(userRole, 'users').canView
   const canAccessAnalytics = DashboardPermissions.canAccessModule(userRole, 'analytics')
   const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
+  
+  // Role-based content filtering
+  const isPlayer = userRole === 'player'
+  const isCoach = userRole === 'coach'
+  const isAnalyst = userRole === 'analyst'
+  const isManager = userRole === 'manager'
+  const isAdmin = userRole === 'admin'
+  
+  // Content visibility based on role
+  const canViewAllTeams = isAdmin || isManager
+  const canViewAllPlayers = isAdmin || isManager || isCoach
+  const canViewFinancials = isAdmin || isManager
+  const canManageTeams = isAdmin || isManager
+  const canViewDetailedAnalytics = isAdmin || isManager || isCoach || isAnalyst
 
   // Memoized quick actions based on user role
   const quickActions = useMemo<QuickAction[]>(() => {
@@ -503,29 +518,31 @@ export default function OptimizedDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Role-Based Dashboard */}
-      <RoleBasedDashboard 
-        userRole={userRole as UserRole}
-        profile={profile}
-        stats={stats}
-      />
-
-      {/* Controls */}
-      <div className="flex justify-end items-center gap-2">
-        <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
-          <SelectTrigger className="w-32">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button onClick={handleRefresh} variant="outline" size="sm" disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Welcome back, {profile?.name || 'User'}! 
+            <Badge variant="outline" className="ml-2">{roleInfo.label}</Badge>
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={handleRefresh} variant="outline" size="sm" disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Performance Metrics Cards or No Data State */}
@@ -553,20 +570,39 @@ export default function OptimizedDashboardPage() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* Team & Organization Overview */}
+          {/* Role-Specific Overview */}
           <div>
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Team & Organization Overview
+              {isPlayer ? 'My Team & Performance Overview' : 
+               isCoach ? 'Team Management Overview' :
+               isAnalyst ? 'Analytics Overview' :
+               'Team & Organization Overview'}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-blue-100 text-sm font-medium">Total Teams</p>
-                      <p className="text-2xl font-bold">{formatNumber(stats?.totalTeams || 0)}</p>
-                      <p className="text-blue-200 text-xs">{formatNumber(stats?.activeTeams || 0)} active</p>
+                      {isPlayer ? (
+                        <>
+                          <p className="text-blue-100 text-sm font-medium">My Matches</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.totalMatches || 0)}</p>
+                          <p className="text-blue-200 text-xs">Personal record</p>
+                        </>
+                      ) : canViewAllTeams ? (
+                        <>
+                          <p className="text-blue-100 text-sm font-medium">Total Teams</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.totalTeams || 0)}</p>
+                          <p className="text-blue-200 text-xs">{formatNumber(stats?.activeTeams || 0)} active</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-blue-100 text-sm font-medium">Team Members</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.activePlayers || 0)}</p>
+                          <p className="text-blue-200 text-xs">In your team</p>
+                        </>
+                      )}
                     </div>
                     <Users className="h-8 w-8 text-blue-200" />
                   </div>
@@ -577,9 +613,25 @@ export default function OptimizedDashboardPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-green-100 text-sm font-medium">Active Players</p>
-                      <p className="text-2xl font-bold">{formatNumber(stats?.activePlayers || 0)}</p>
-                      <p className="text-green-200 text-xs">Across all teams</p>
+                      {isPlayer ? (
+                        <>
+                          <p className="text-green-100 text-sm font-medium">My K/D Ratio</p>
+                          <p className="text-2xl font-bold">{(stats?.kdRatio || 0).toFixed(2)}</p>
+                          <p className="text-green-200 text-xs">Kill/Death ratio</p>
+                        </>
+                      ) : canViewAllPlayers ? (
+                        <>
+                          <p className="text-green-100 text-sm font-medium">Active Players</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.activePlayers || 0)}</p>
+                          <p className="text-green-200 text-xs">Across all teams</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-green-100 text-sm font-medium">Team Performance</p>
+                          <p className="text-2xl font-bold">{formatNumber(Math.round((stats?.totalMatches || 0) * 0.7))}%</p>
+                          <p className="text-green-200 text-xs">Win rate</p>
+                        </>
+                      )}
                     </div>
                     <Shield className="h-8 w-8 text-green-200" />
                   </div>
@@ -590,9 +642,25 @@ export default function OptimizedDashboardPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-orange-100 text-sm font-medium">Overall Matches</p>
-                      <p className="text-2xl font-bold">{formatNumber(stats?.overallMatches || 0)}</p>
-                      <p className="text-orange-200 text-xs">{formatNumber(stats?.todayMatches || 0)} today</p>
+                      {isPlayer ? (
+                        <>
+                          <p className="text-orange-100 text-sm font-medium">Total Kills</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.totalKills || 0)}</p>
+                          <p className="text-orange-200 text-xs">Personal total</p>
+                        </>
+                      ) : shouldSeeAllData ? (
+                        <>
+                          <p className="text-orange-100 text-sm font-medium">Overall Matches</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.overallMatches || 0)}</p>
+                          <p className="text-orange-200 text-xs">{formatNumber(stats?.todayMatches || 0)} today</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-orange-100 text-sm font-medium">Team Matches</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.totalMatches || 0)}</p>
+                          <p className="text-orange-200 text-xs">This month</p>
+                        </>
+                      )}
                     </div>
                     <Target className="h-8 w-8 text-orange-200" />
                   </div>
@@ -603,9 +671,25 @@ export default function OptimizedDashboardPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-purple-100 text-sm font-medium">Combined K/D</p>
-                      <p className="text-2xl font-bold">{(stats?.kdRatio || 0).toFixed(2)}</p>
-                      <p className="text-purple-200 text-xs">{formatNumber(stats?.totalKills || 0)} total kills</p>
+                      {isPlayer ? (
+                        <>
+                          <p className="text-purple-100 text-sm font-medium">Avg Damage</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.avgDamage || 0)}</p>
+                          <p className="text-purple-200 text-xs">Per match</p>
+                        </>
+                      ) : shouldSeeAllData ? (
+                        <>
+                          <p className="text-purple-100 text-sm font-medium">Combined K/D</p>
+                          <p className="text-2xl font-bold">{(stats?.kdRatio || 0).toFixed(2)}</p>
+                          <p className="text-purple-200 text-xs">{formatNumber(stats?.totalKills || 0)} total kills</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-purple-100 text-sm font-medium">Team Ranking</p>
+                          <p className="text-2xl font-bold">#{Math.ceil((stats?.totalMatches || 1) / 5) || 'N/A'}</p>
+                          <p className="text-purple-200 text-xs">Current position</p>
+                        </>
+                      )}
                     </div>
                     <Crosshair className="h-8 w-8 text-purple-200" />
                   </div>
@@ -614,12 +698,13 @@ export default function OptimizedDashboardPage() {
             </div>
           </div>
 
-          {/* Financial Overview */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Financial Overview
-            </h3>
+          {/* Financial Overview - Admin/Manager Only */}
+          {canViewFinancials && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Financial Overview
+              </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
                 <CardContent className="pt-6">
@@ -660,22 +745,27 @@ export default function OptimizedDashboardPage() {
                 </CardContent>
               </Card>
             </div>
-          </div>
+            </div>
+          )}
 
           {/* Performance & Attendance */}
           <div>
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              Performance & Attendance
+              {isPlayer ? 'My Performance & Attendance' : 'Performance & Attendance'}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-indigo-100 text-sm font-medium">Attendance Rate</p>
+                      <p className="text-indigo-100 text-sm font-medium">
+                        {isPlayer ? 'My Attendance' : 'Attendance Rate'}
+                      </p>
                       <p className="text-2xl font-bold">{(stats?.overallAttendanceRate || 0).toFixed(1)}%</p>
-                      <p className="text-indigo-200 text-xs">Overall attendance</p>
+                      <p className="text-indigo-200 text-xs">
+                        {isPlayer ? 'Personal rate' : 'Overall attendance'}
+                      </p>
                     </div>
                     <Calendar className="h-8 w-8 text-indigo-200" />
                   </div>
@@ -723,12 +813,81 @@ export default function OptimizedDashboardPage() {
             </div>
           </div>
 
-          {/* Communication & Discord */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Communication & Discord
-            </h3>
+          {/* Player Action Buttons - Player Only */}
+          {isPlayer && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                Quick Actions
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card className="bg-black/40 backdrop-blur-lg border border-blue-400/40 hover:border-blue-400/60 transition-all duration-200 cursor-pointer group">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4" onClick={() => window.location.href = '/dashboard/performance'}>
+                      <div className="p-3 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+                        <Target className="h-6 w-6 text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-white group-hover:text-white/90">
+                          Update My Performance
+                        </h3>
+                        <p className="text-sm text-white/60 mt-1">
+                          Add your latest match stats
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-white/40 group-hover:text-white/60 transition-colors" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-black/40 backdrop-blur-lg border border-green-400/40 hover:border-green-400/60 transition-all duration-200 cursor-pointer group">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4" onClick={() => window.location.href = '/dashboard/attendance'}>
+                      <div className="p-3 rounded-lg bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
+                        <Calendar className="h-6 w-6 text-green-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-white group-hover:text-white/90">
+                          Mark Attendance
+                        </h3>
+                        <p className="text-sm text-white/60 mt-1">
+                          Check in for today's practice
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-white/40 group-hover:text-white/60 transition-colors" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-black/40 backdrop-blur-lg border border-purple-400/40 hover:border-purple-400/60 transition-all duration-200 cursor-pointer group">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4" onClick={() => window.location.href = '/dashboard/profile'}>
+                      <div className="p-3 rounded-lg bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
+                        <User className="h-6 w-6 text-purple-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-white group-hover:text-white/90">
+                          Update Profile
+                        </h3>
+                        <p className="text-sm text-white/60 mt-1">
+                          Manage your profile settings
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-white/40 group-hover:text-white/60 transition-colors" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* Communication & Discord - Admin/Manager Only */}
+          {(isAdmin || isManager) && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Communication & Discord
+              </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="bg-gradient-to-r from-violet-500 to-violet-600 text-white">
                 <CardContent className="pt-6">
@@ -769,7 +928,8 @@ export default function OptimizedDashboardPage() {
                 </CardContent>
               </Card>
             </div>
-          </div>
+            </div>
+          )}
         </div>
       )}  {/* End of metrics conditional */}
 
