@@ -267,7 +267,7 @@ class AuthFlowManager {
     const timeoutPromise = new Promise<any>((_, reject) => {
       setTimeout(() => {
         reject(new Error('Profile loading timeout'))
-      }, 8000) // 8 second timeout
+      }, 15000) // 15 second timeout
     })
 
     try {
