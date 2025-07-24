@@ -40,19 +40,12 @@ export function PerformanceDashboard({
   showFilters = true,
   compact = false
 }: PerformanceDashboardProps) {
-  if (!performances || performances.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        No performance data found for the selected filters.
-      </div>
-    );
-  }
-
+  // Move all hooks before conditional return
   const [selectedPlayer, setSelectedPlayer] = useState<string>("all")
   const [selectedMap, setSelectedMap] = useState<string>("all")
 
   const filteredPerformances = useMemo(() => {
-    if (!showFilters) return performances
+    if (!showFilters || !performances) return performances || []
     
     return performances.filter((perf) => {
       if (selectedPlayer !== "all" && perf.player_id !== selectedPlayer) return false
@@ -124,6 +117,15 @@ export function PerformanceDashboard({
     const maps = new Set(filteredPerformances.map(perf => perf.map).filter(Boolean))
     return Array.from(maps)
   }, [filteredPerformances])
+
+  // Conditional return after all hooks
+  if (!performances || performances.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        No performance data found for the selected filters.
+      </div>
+    );
+  }
 
   if (compact) {
     return (

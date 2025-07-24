@@ -61,23 +61,22 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [playersAttendance, setPlayersAttendance] = useState<PlayerAttendanceState[]>([])
 
-  if (!userProfile) return null
-
-  const isPlayer = userProfile.role === 'player'
-  const isCoach = userProfile.role === 'coach'
-  const isAdminOrManager = ['admin', 'manager'].includes(userProfile.role || '')
+  // Early return should be after all hooks
+  const isPlayer = userProfile?.role === 'player'
+  const isCoach = userProfile?.role === 'coach'
+  const isAdminOrManager = ['admin', 'manager'].includes(userProfile?.role || '')
 
   // Get available teams based on role
-  const availableTeams = isPlayer || isCoach 
+  const availableTeams = userProfile && (isPlayer || isCoach) 
     ? teams.filter(team => team.id === userProfile.team_id)
     : teams
 
   // Auto-select user's team if they're a player or coach
   useEffect(() => {
-    if ((isPlayer || isCoach) && userProfile.team_id && !selectedTeam) {
+    if (userProfile && (isPlayer || isCoach) && userProfile.team_id && !selectedTeam) {
       setSelectedTeam(userProfile.team_id)
     }
-  }, [isPlayer, isCoach, userProfile.team_id, selectedTeam])
+  }, [isPlayer, isCoach, userProfile?.team_id, selectedTeam, userProfile])
 
   // Get players for selected team
   const teamPlayers = selectedTeam 
@@ -100,7 +99,9 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
       }))
       setPlayersAttendance(initialStates)
     }
-  }, [selectedTeam])
+  }, [selectedTeam, teamPlayers])
+
+  if (!userProfile) return null
 
   const updatePlayerStatus = (playerId: string, status: 'present' | 'absent' | 'late') => {
     setPlayersAttendance(prev => 
