@@ -36,11 +36,13 @@ const isPublicRoute = (pathname: string): boolean => {
 }
 
 export function RouteGuard({ children }: RouteGuardProps) {
-  const { isAuthenticated, isLoading, agreementStatus, user, profile } = useAuth()
+  const { isAuthenticated, isLoading, agreementStatus, user, profile, isInitialized } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
   const [shouldRender, setShouldRender] = useState(false)
   const [loadingStep, setLoadingStep] = useState<LoadingStep>('connecting')
+  const [redirectDelay, setRedirectDelay] = useState(false)
+  const [initStartTime, setInitStartTime] = useState<number>(Date.now())
 
   useEffect(() => {
     // Don't render anything while auth is loading
@@ -61,6 +63,45 @@ export function RouteGuard({ children }: RouteGuardProps) {
       }
       
       return
+    }
+
+    // Special handling for profile completion - add delay to ensure everything is ready
+    if (isAuthenticated && user && profile && isInitialized && !isPublicRoute(pathname)) {
+      const timeElapsed = Date.now() - initStartTime
+      
+      console.log('🎯 RouteGuard: All conditions met for dashboard access:', {
+        isAuthenticated,
+        hasUser: !!user,
+        hasProfile: !!profile,
+        isInitialized,
+        pathname,
+        timeElapsed: `${timeElapsed}ms`
+      })
+      
+      setLoadingStep('initializing')
+      setRedirectDelay(true)
+      
+      // Safety fallback - if we've been loading for too long, force render
+      if (timeElapsed > 10000) { // 10 seconds
+        console.warn('⚠️ RouteGuard: Forcing render after 10 seconds')
+        setShouldRender(true)
+        setRedirectDelay(false)
+        return
+      }
+      
+      // Add a small delay to ensure profile is fully processed
+      const timer = setTimeout(() => {
+        console.log('✅ RouteGuard: Profile loaded completely, ready to render dashboard')
+        setLoadingStep('redirecting')
+        
+        // Small additional delay to show the completion
+        setTimeout(() => {
+          setShouldRender(true)
+          setRedirectDelay(false)
+        }, 300)
+      }, 600) // 600ms initial delay
+      
+      return () => clearTimeout(timer)
     }
 
     // Allow public routes immediately
@@ -110,7 +151,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
     // All checks passed
     setShouldRender(true)
 
-  }, [isAuthenticated, user, profile, agreementStatus, pathname, router, isLoading])
+  }, [isAuthenticated, user, profile, agreementStatus, pathname, router, isLoading, isInitialized, initStartTime])
 
   // Show advanced loading while auth is loading
   if (isLoading) {
@@ -126,9 +167,9 @@ export function RouteGuard({ children }: RouteGuardProps) {
     )
   }
 
-  // Show loading while checking auth/profile for protected routes  
-  if (!isPublicRoute(pathname) && (!shouldRender || !profile)) {
-    const steps: LoadingStep[] = ['authenticating', 'loading-profile', 'initializing']
+  // Show loading while checking auth/profile for protected routes or during redirect delay
+  if (!isPublicRoute(pathname) && (!shouldRender || !profile || redirectDelay)) {
+    const steps: LoadingStep[] = ['connecting', 'authenticating', 'loading-profile', 'initializing', 'redirecting']
     
     let currentStep: LoadingStep = 'authenticating'
     let description = 'Redirecting to login...'
@@ -139,9 +180,12 @@ export function RouteGuard({ children }: RouteGuardProps) {
     } else if (!profile) {
       currentStep = 'loading-profile'
       description = 'Loading your profile...'
+    } else if (redirectDelay) {
+      currentStep = loadingStep // Use the current step from state
+      description = loadingStep === 'redirecting' ? 'Dashboard ready! Redirecting...' : 'Setting up your dashboard...'
     } else {
       currentStep = 'initializing'
-      description = 'Setting up your dashboard...'
+      description = 'Finalizing setup...'
     }
 
     return (
