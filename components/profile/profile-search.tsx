@@ -48,9 +48,9 @@ interface SearchResult {
   onboarding_completed: boolean | null
 }
 
-export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearchProps) {
+export function ProfileSearch() {
   const { toast } = useToast()
-  const { getToken } = useAuth()
+  const { getToken, profile: currentProfile } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -58,7 +58,7 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
   const [loading, setLoading] = useState(false)
   const [total, setTotal] = useState(0)
   
-  const canSearchAll = ['admin', 'manager'].includes(currentUserRole)
+  const canSearchAll = currentProfile && ['admin', 'manager'].includes(currentProfile.role || '')
   
   const searchProfiles = async () => {
     if (!canSearchAll) {
@@ -74,9 +74,10 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
     try {
       const token = await getToken()
       if (!token) {
+        // Handle token refresh gracefully without redirecting
         toast({
-          title: "Authentication Error",
-          description: "Please refresh the page and try again",
+          title: "Session Expired",
+          description: "Please refresh the page to continue",
           variant: "destructive"
         })
         setLoading(false)
@@ -100,7 +101,13 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
       })
       
       if (!response.ok) {
-        throw new Error('Search failed')
+        if (response.status === 401) {
+          throw new Error('Session expired. Please refresh the page.')
+        } else if (response.status === 403) {
+          throw new Error('You don\'t have permission to search profiles.')
+        }
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Search failed (${response.status})`)
       }
       
       const data = await response.json()
@@ -133,6 +140,10 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
   const getInitials = (name: string | null) => {
     if (!name) return '??'
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  }
+
+  const getDisplayName = (profile: SearchResult) => {
+    return profile.display_name || profile.full_name || 'User'
   }
   
   const getRoleIcon = (role: string) => {
@@ -242,14 +253,14 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
                     <Avatar className="h-12 w-12">
                       <AvatarImage src={profile.avatar_url || undefined} />
                       <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white">
-                        {getInitials(profile.display_name || profile.full_name)}
+                        {getInitials(getDisplayName(profile))}
                       </AvatarFallback>
                     </Avatar>
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-semibold truncate">
-                          {profile.display_name || profile.full_name || 'Unknown User'}
+                          {getDisplayName(profile)}
                         </h4>
                         {profile.bgmi_tier && (
                           <Badge variant="outline" className="text-xs">
@@ -295,7 +306,10 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => onSelectProfile(profile as UserProfile)}
+                        onClick={() => {
+                          // Navigate to profile view without causing auth redirects
+                          window.location.href = `/dashboard/profile?user=${profile.id}`
+                        }}
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         View
@@ -304,7 +318,10 @@ export function ProfileSearch({ onSelectProfile, currentUserRole }: ProfileSearc
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => onSelectProfile(profile as UserProfile)}
+                        onClick={() => {
+                          // Navigate to profile edit without causing auth redirects
+                          window.location.href = `/dashboard/profile?user=${profile.id}&tab=personal`
+                        }}
                       >
                         <Edit className="h-4 w-4 mr-1" />
                         Edit

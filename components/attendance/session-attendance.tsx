@@ -86,15 +86,18 @@ export function SessionAttendance({ userProfile, teams, users }: SessionAttendan
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [markingAttendance, setMarkingAttendance] = useState<{ [sessionId: string]: boolean }>({})
 
-  if (!userProfile) return null
-
-  const isPlayer = userProfile.role === 'player'
-  const isCoach = userProfile.role === 'coach'
-  const isAdminOrManager = ['admin', 'manager'].includes(userProfile.role || '')
+  // Move all derived state and hooks before conditional return
+  const isPlayer = userProfile?.role === 'player'
+  const isCoach = userProfile?.role === 'coach'
+  const isAdminOrManager = ['admin', 'manager'].includes(userProfile?.role || '')
 
   useEffect(() => {
-    loadSessions()
+    if (userProfile) {
+      loadSessions()
+    }
   }, [selectedDate, userProfile])
+
+  if (!userProfile) return null
 
   const loadSessions = async () => {
     setLoading(true)

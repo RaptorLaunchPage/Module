@@ -3,17 +3,22 @@ import { getUserWithProfile } from '@/lib/auth-utils'
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
 
-// Create admin client for storage operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, 
-  {
+// Create admin client for storage operations - with environment check
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Missing Supabase environment variables')
+  }
+  
+  return createClient(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     }
-  }
-)
+  })
+}
 
 // POST /api/profile/avatar - Upload avatar image
 export async function POST(request: NextRequest) {
@@ -22,6 +27,15 @@ export async function POST(request: NextRequest) {
     
     if (!user || !profile) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    let supabaseAdmin
+    try {
+      supabaseAdmin = getSupabaseAdmin()
+    } catch (error) {
+      return NextResponse.json({ 
+        error: 'Service temporarily unavailable' 
+      }, { status: 503 })
     }
 
     const formData = await request.formData()
@@ -136,6 +150,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    let supabaseAdmin
+    try {
+      supabaseAdmin = getSupabaseAdmin()
+    } catch (error) {
+      return NextResponse.json({ 
+        error: 'Service temporarily unavailable' 
+      }, { status: 503 })
+    }
+    
     const { searchParams } = new URL(request.url)
     const targetUserId = searchParams.get('userId') || profile.id
     

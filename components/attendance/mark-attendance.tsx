@@ -39,14 +39,13 @@ export function MarkAttendance({ onAttendanceMarked, userProfile, teams, users }
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([])
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
 
-  if (!userProfile) return null
-
-  const isPlayer = userProfile.role === 'player'
-  const isCoach = userProfile.role === 'coach'
-  const isAdminOrManager = ['admin', 'manager'].includes(userProfile.role || '')
+  // Move all derived state and hooks before conditional return
+  const isPlayer = userProfile?.role === 'player'
+  const isCoach = userProfile?.role === 'coach'
+  const isAdminOrManager = ['admin', 'manager'].includes(userProfile?.role || '')
 
   // Get available teams based on role
-  const availableTeams = isPlayer || isCoach 
+  const availableTeams = userProfile && (isPlayer || isCoach) 
     ? teams.filter(team => team.id === userProfile.team_id)
     : teams
 
@@ -61,17 +60,19 @@ export function MarkAttendance({ onAttendanceMarked, userProfile, teams, users }
 
   // Auto-select team for players and coaches
   useEffect(() => {
-    if ((isPlayer || isCoach) && userProfile.team_id && !selectedTeam) {
+    if (userProfile && (isPlayer || isCoach) && userProfile.team_id && !selectedTeam) {
       setSelectedTeam(userProfile.team_id)
     }
-  }, [userProfile.team_id, isPlayer, isCoach, selectedTeam])
+  }, [userProfile?.team_id, isPlayer, isCoach, selectedTeam, userProfile])
 
   // Auto-select player for player role
   useEffect(() => {
-    if (isPlayer && !selectedPlayers.includes(userProfile.id)) {
+    if (userProfile && isPlayer && !selectedPlayers.includes(userProfile.id)) {
       setSelectedPlayers([userProfile.id])
     }
-  }, [userProfile.id, isPlayer, selectedPlayers])
+  }, [userProfile?.id, isPlayer, selectedPlayers, userProfile])
+
+  if (!userProfile) return null
 
   const handlePlayerSelection = (playerId: string, checked: boolean) => {
     if (isPlayer) return // Players can only mark their own attendance
