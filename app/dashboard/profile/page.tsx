@@ -76,7 +76,7 @@ const AnalyticsBadge = () => (
 )
 
 export default function ProfileSettingsPage() {
-  const { profile: currentProfile, isLoading: authLoading, getToken } = useAuth()
+  const { profile: currentProfile, isLoading: authLoading, getToken, updateProfile } = useAuth()
   const { toast } = useToast()
   const searchParams = useSearchParams()
   const targetUserId = searchParams.get('userId')
@@ -192,6 +192,8 @@ export default function ProfileSettingsPage() {
       return
     }
     
+    setLoading(true)
+    
     try {
       const token = await getToken()
       if (!token) {
@@ -230,15 +232,19 @@ export default function ProfileSettingsPage() {
       }
       
       if (isOwnProfile) {
-        // Update current profile in auth context
-        window.location.reload()
+        // Update current profile in auth context and local state
+        await updateProfile(data.profile)
+        // For own profile, we need to trigger a re-render by updating targetProfile if it exists
+        if (targetProfile) {
+          setTargetProfile(data.profile)
+        }
       } else {
         setTargetProfile(data.profile)
       }
       
       toast({
         title: "Profile Updated",
-        description: "Changes have been saved successfully"
+        description: "Changes have been saved successfully. No page reload needed!"
       })
       
       setIsEditing(false)
@@ -250,6 +256,8 @@ export default function ProfileSettingsPage() {
         description: error.message || "Failed to save changes",
         variant: "destructive"
       })
+    } finally {
+      setLoading(false)
     }
   }
 

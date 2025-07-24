@@ -462,6 +462,36 @@ class AuthFlowManager {
     }
   }
 
+  // Update profile data without full re-initialization
+  async updateProfile(updatedProfile: any): Promise<void> {
+    try {
+      console.log('🔄 Updating profile data in auth state...')
+      
+      this.setState({
+        profile: updatedProfile
+      })
+
+      // Update session storage with new profile data
+      const currentSession = SessionStorage.getSession()
+      if (currentSession) {
+        const updatedSession = {
+          ...currentSession,
+          user: {
+            ...currentSession.user,
+            name: updatedProfile.name || updatedProfile.display_name || currentSession.user.name,
+            role: updatedProfile.role || currentSession.user.role
+          }
+        }
+        SessionStorage.setSession(updatedSession)
+      }
+
+      console.log('✅ Profile updated successfully')
+    } catch (error: any) {
+      console.error('❌ Profile update error:', error)
+      throw error
+    }
+  }
+
   // Accept agreement
   async acceptAgreement(): Promise<boolean> {
     try {
