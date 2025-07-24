@@ -1082,203 +1082,56 @@ export default function OptimizedDashboardPage() {
                          </CardContent>
            </Card>
         </TabsContent>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Crown className="h-5 w-5" />
-                  Top Performers
-                </CardTitle>
-                <CardDescription>Best performance in last {selectedTimeframe} days</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {topPerformers.topPlayer && (
-                    <div className="flex items-center gap-3 p-3 bg-yellow-900/40 backdrop-blur-lg border border-yellow-400/60 rounded-lg shadow-xl">
-                      <Star className="h-5 w-5 text-yellow-400" />
-                      <div>
-                        <p className="font-semibold text-sm text-white drop-shadow-md">{topPerformers.topPlayer.name}</p>
-                        <p className="text-xs text-white/80 drop-shadow-sm">{topPerformers.topPlayer.metric}: {topPerformers.topPlayer.value.toFixed(1)}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {topPerformers.topTeam && shouldSeeAllData && (
-                    <div className="flex items-center gap-3 p-3 bg-blue-500/10 backdrop-blur-md border-blue-500/20 rounded-lg">
-                      <Trophy className="h-5 w-5 text-blue-500" />
-                      <div>
-                        <p className="font-semibold text-sm">{topPerformers.topTeam.name}</p>
-                        <p className="text-xs text-muted-foreground">Win Rate: {topPerformers.topTeam.winRate.toFixed(1)}%</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {!topPerformers.topPlayer && !topPerformers.topTeam && (
-                    <div className="text-center py-4">
-                      <Activity className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">No performance data available</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+
+        <TabsContent value="performance" className="space-y-6">
+          <div className="text-center py-12">
+            <Target className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-xl font-semibold mb-2">Performance Analytics</h3>
+            <p className="text-muted-foreground mb-6">
+              Detailed performance metrics and analytics will be available here
+            </p>
+            <Button asChild>
+              <Link href="/dashboard/performance">View Performance Details</Link>
+            </Button>
           </div>
-
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Recent Matches
-              </CardTitle>
-              <CardDescription>Latest performance entries</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentPerformances.length > 0 ? (
-                <div className="space-y-2">
-                  {recentPerformances.slice(0, 5).map((perf, index) => (
-                                          <div key={perf.id} className="flex items-center justify-between p-3 bg-white/10 backdrop-blur-md border-white/20 rounded-lg">
-                      <div>
-                        <p className="font-medium text-sm">{perf.map || 'Unknown Map'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Placement: #{perf.placement || 'N/A'} • {perf.kills || 0} kills • {formatNumber(perf.damage || 0)} damage
-                        </p>
-                      </div>
-                      <Badge variant={perf.placement === 1 ? 'default' : 'secondary'}>
-                        {perf.placement === 1 ? '🥇 Win' : `#${perf.placement || 'N/A'}`}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Gamepad2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">No Recent Matches</h3>
-                  <p className="text-muted-foreground mb-4">Start submitting performance data to see your recent activity</p>
-                  <Link href="/dashboard/performance">
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Submit Performance
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
 
-        <TabsContent value="performance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Overview</CardTitle>
-              <CardDescription>Quick performance metrics and trends</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">Performance Dashboard</h3>
-                <p className="text-muted-foreground mb-4">View detailed performance analytics</p>
-                <Link href="/dashboard/performance">
-                  <Button>
-                    <Target className="h-4 w-4 mr-2" />
-                    Open Performance Module
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="analytics" className="space-y-6">
+          <div className="text-center py-12">
+            <TrendingUp className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-xl font-semibold mb-2">Advanced Analytics</h3>
+            <p className="text-muted-foreground mb-6">
+              In-depth analytics and reporting features coming soon
+            </p>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/analytics">Explore Analytics</Link>
+            </Button>
+          </div>
         </TabsContent>
 
-        {canAccessAnalytics && (
-          <TabsContent value="analytics">
-            <Card>
-              <CardHeader>
-                <CardTitle>Analytics Dashboard</CardTitle>
-                <CardDescription>Detailed performance analytics and insights</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/dashboard/analytics">
-                  <Button className="w-full">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Open Full Analytics
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
-
-        {(canAccessFinance || canAccessUsers) && (
-          <TabsContent value="management">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <TabsContent value="management" className="space-y-6">
+          <div className="text-center py-12">
+            <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-xl font-semibold mb-2">Team Management</h3>
+            <p className="text-muted-foreground mb-6">
+              Access team management tools and administrative features
+            </p>
+            <div className="flex gap-3 justify-center">
               {canAccessUsers && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>User Management</CardTitle>
-                    <CardDescription>Manage users, roles, and permissions</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Active Players</span>
-                        <span className="text-lg font-bold">{stats?.activePlayers || 0}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Active Teams</span>
-                        <span className="text-lg font-bold">{stats?.activeTeams || 0}</span>
-                      </div>
-                      <Link href="/dashboard/user-management">
-                        <Button variant="outline" className="w-full">
-                          Manage Users
-                          <ChevronRight className="h-4 w-4 ml-2" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
+                <Button asChild>
+                  <Link href="/dashboard/users">Manage Users</Link>
+                </Button>
               )}
-              
               {canAccessFinance && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Finance Management</CardTitle>
-                    <CardDescription>Track expenses, winnings, and financial performance</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Link href="/dashboard/finance">
-                      <Button variant="outline" className="w-full">
-                        Open Finance Module
-                        <ChevronRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+                <Button asChild variant="outline">
+                  <Link href="/dashboard/finance">Finance</Link>
+                </Button>
               )}
             </div>
-          </TabsContent>
-        )}
-      </ResponsiveTabs>
+          </div>
+        </TabsContent>
 
-      {/* Cache Performance Stats (only in development) */}
-      {process.env.NODE_ENV === 'development' && cacheStats && (
-        <Card className="border-dashed border-gray-300">
-          <CardHeader>
-            <CardTitle className="text-sm">Cache Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4 text-xs">
-              <div>
-                <span className="font-medium">Entries:</span> {cacheStats.totalEntries}
-              </div>
-              <div>
-                <span className="font-medium">Memory:</span> {cacheStats.memoryUsage}
-              </div>
-              <div>
-                <span className="font-medium">Pending:</span> {cacheStats.pendingRequests}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      </ResponsiveTabs>
     </div>
   )
 }
