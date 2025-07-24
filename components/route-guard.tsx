@@ -41,24 +41,6 @@ export function RouteGuard({ children }: RouteGuardProps) {
   const pathname = usePathname()
   const [shouldRender, setShouldRender] = useState(false)
   const [loadingStep, setLoadingStep] = useState<LoadingStep>('connecting')
-  const [hasTimedOut, setHasTimedOut] = useState(false)
-
-  // Handle timeout scenarios
-  const handleTimeout = () => {
-    console.warn('🕐 Route guard timeout - forcing refresh')
-    setHasTimedOut(true)
-    
-    // Try to recover by clearing storage and redirecting
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('raptor-session')
-      localStorage.removeItem('raptor-access-token')
-      
-      // Force reload after a short delay
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
-    }
-  }
 
   useEffect(() => {
     // Don't render anything while auth is loading
@@ -131,23 +113,20 @@ export function RouteGuard({ children }: RouteGuardProps) {
   }, [isAuthenticated, user, profile, agreementStatus, pathname, router, isLoading])
 
   // Show advanced loading while auth is loading
-  if (isLoading || hasTimedOut) {
+  if (isLoading) {
     const steps: LoadingStep[] = ['connecting', 'authenticating', 'checking-agreement', 'loading-profile', 'initializing']
     
     return (
       <AdvancedLoading
-        currentStep={hasTimedOut ? 'error' : loadingStep}
+        currentStep={loadingStep}
         steps={steps}
-        customTitle={hasTimedOut ? "Connection Timeout" : undefined}
-        customDescription={hasTimedOut ? "Refreshing the application..." : undefined}
-        onTimeout={handleTimeout}
-        timeoutMs={15000}
-        showProgress={!hasTimedOut}
+        timeoutMs={0} // ✅ No timeout for route guard - let auth flow handle it
+        showProgress={true}
       />
     )
   }
 
-  // Show loading while checking auth/profile for protected routes
+  // Show loading while checking auth/profile for protected routes  
   if (!isPublicRoute(pathname) && (!shouldRender || !profile)) {
     const steps: LoadingStep[] = ['authenticating', 'loading-profile', 'initializing']
     
@@ -170,8 +149,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
         currentStep={currentStep}
         steps={steps}
         customDescription={description}
-        onTimeout={handleTimeout}
-        timeoutMs={12000}
+        timeoutMs={0} // ✅ No timeout for navigation
         showProgress={true}
       />
     )

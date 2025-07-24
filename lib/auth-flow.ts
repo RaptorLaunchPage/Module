@@ -42,6 +42,7 @@ class AuthFlowManager {
     error: null
   }
   private listeners: Set<(state: AuthState) => void> = new Set()
+  private isInitialLogin: boolean = true // Track if this is initial login or navigation
 
   static getInstance(): AuthFlowManager {
     if (!AuthFlowManager.instance) {
@@ -50,45 +51,160 @@ class AuthFlowManager {
     return AuthFlowManager.instance
   }
 
-  // State management
-  private setState(updates: Partial<AuthState>) {
-    this.state = { ...this.state, ...updates }
-    this.notifyListeners()
-  }
+  private constructor() {}
 
-  private notifyListeners() {
-    this.listeners.forEach(listener => listener(this.state))
-  }
-
+  // Subscribe to state changes
   subscribe(listener: (state: AuthState) => void): () => void {
     this.listeners.add(listener)
     return () => this.listeners.delete(listener)
   }
 
+  // Get current state
   getState(): AuthState {
     return { ...this.state }
   }
 
-  // Initialize the auth system
-  async initialize(): Promise<AuthFlowResult> {
-    // Add timeout to prevent infinite loading
-    const initPromise = this.performInitialize()
-    const timeoutPromise = new Promise<AuthFlowResult>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error('Authentication initialization timeout'))
-      }, 12000) // 12 second timeout
-    })
+  // Update state and notify listeners
+  private setState(updates: Partial<AuthState>) {
+    this.state = { ...this.state, ...updates }
+    this.listeners.forEach(listener => listener(this.state))
+  }
 
+  // Initialize the auth system
+  async initialize(isInitialLoad: boolean = true): Promise<AuthFlowResult> {
+    this.isInitialLogin = isInitialLoad
+    
+    console.log(`🚀 Auth initialize called with isInitialLoad: ${isInitialLoad}`)
+    
+    // Add timeout only for initial login, not for navigation
+    if (isInitialLoad) {
+      console.log('⏰ Using timeout for initial login')
+      const initPromise = this.performInitialize()
+      const timeoutPromise = new Promise<AuthFlowResult>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Authentication initialization timeout'))
+        }, 12000) // 12 second timeout only for initial login
+      })
+
+      try {
+        return await Promise.race([initPromise, timeoutPromise])
+      } catch (error: any) {
+        console.error('❌ Auth initialization failed or timed out:', error)
+        
+        // For initial login timeout, try session recovery
+        if (error.message.includes('timeout')) {
+          return await this.attemptSessionRecovery()
+        }
+        
+        this.setState({
+          isInitialized: true,
+          isLoading: false,
+          error: error.message || 'Authentication initialization failed'
+        })
+        return { success: false, shouldRedirect: false, error: error.message }
+      }
+    } else {
+      // For navigation, no timeout - just perform initialization
+      console.log('🚀 No timeout for navigation - performing direct initialization')
+      return await this.performInitialize()
+    }
+  }
+
+  // Attempt to recover session without full re-authentication
+  private async attemptSessionRecovery(): Promise<AuthFlowResult> {
     try {
-      return await Promise.race([initPromise, timeoutPromise])
-    } catch (error: any) {
-      console.error('❌ Auth initialization failed or timed out:', error)
+      console.log('🔄 Attempting session recovery...')
+      
+      // Check if we have a valid session in storage
+      const existingSession = SessionStorage.getSession()
+      const accessToken = SessionStorage.getAccessToken()
+      
+      if (existingSession && accessToken) {
+        console.log('📱 Found existing session, validating...')
+        
+        // Try to get user info without timeout
+        const { data: { user }, error } = await supabase.auth.getUser(accessToken)
+        
+        if (user && !error) {
+          console.log('✅ Session recovered successfully')
+          
+          // Start from agreement checking stage as requested
+          this.setState({
+            isAuthenticated: true,
+            isInitialized: true,
+            isLoading: false,
+            user: existingSession.user,
+            profile: null, // Will be loaded separately
+            agreementStatus: { requiresAgreement: false, isChecked: false }
+          })
+          
+          // Load profile in background without timeout
+          this.loadProfileInBackground(user, existingSession)
+          
+          return { 
+            success: true, 
+            shouldRedirect: true, 
+            redirectPath: '/agreement-review' // Start from agreement checking
+          }
+        }
+      }
+      
+      // If session recovery fails, redirect to login
+      console.log('❌ Session recovery failed, redirecting to login')
       this.setState({
+        isAuthenticated: false,
         isInitialized: true,
         isLoading: false,
-        error: error.message || 'Authentication initialization failed'
+        error: 'Session expired. Please sign in again.'
       })
-      return { success: false, shouldRedirect: false, error: error.message }
+      
+      return { 
+        success: true, 
+        shouldRedirect: true, 
+        redirectPath: '/auth/login' 
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Session recovery error:', error)
+      
+      // Fallback to login
+      this.setState({
+        isAuthenticated: false,
+        isInitialized: true,
+        isLoading: false,
+        error: 'Please sign in again.'
+      })
+      
+      return { 
+        success: true, 
+        shouldRedirect: true, 
+        redirectPath: '/auth/login' 
+      }
+    }
+  }
+
+  // Load profile in background without blocking UI
+  private async loadProfileInBackground(user: User, sessionData: SessionData) {
+    try {
+      console.log('🔄 Loading profile in background...')
+      
+      const profile = await this.performLoadUserProfile(user)
+      
+      if (profile) {
+        // Check agreement status
+        const agreementStatus = await this.checkAgreementStatus(profile)
+        
+        this.setState({
+          profile,
+          agreementStatus
+        })
+      }
+    } catch (error: any) {
+      console.error('❌ Background profile loading failed:', error)
+      // Don't fail the entire auth flow for profile loading issues
+      this.setState({
+        error: 'Profile loading failed. Some features may be limited.'
+      })
     }
   }
 
@@ -105,7 +221,7 @@ class AuthFlowManager {
       if (existingSession && accessToken && !SessionStorage.isTokenExpired()) {
         console.log('🔄 Restoring session from storage')
         
-        // Validate session with Supabase
+        // Validate session with Supabase (no timeout for navigation)
         const { data: { user }, error } = await supabase.auth.getUser(accessToken)
         
         if (user && !error) {
@@ -155,7 +271,7 @@ class AuthFlowManager {
       
       const user = session.user
       
-      // Load user profile
+      // Load user profile with timeout only during initial login
       const profile = await this.loadUserProfile(user)
       if (!profile) {
         throw new Error('Failed to load user profile')
@@ -200,48 +316,53 @@ class AuthFlowManager {
     }
   }
 
-  // Process authenticated user (check agreements, set redirects)
+  // Process authenticated user
   private async processAuthenticatedUser(user: User, sessionData: SessionData): Promise<AuthFlowResult> {
     try {
-      // Load fresh profile
-      const profile = await this.loadUserProfile(user)
+      console.log('👤 Processing authenticated user...')
+      
+      // Load user profile if not already loaded
+      let profile = this.state.profile
       if (!profile) {
-        throw new Error('Failed to load user profile')
+        profile = await this.loadUserProfile(user)
+        if (!profile) {
+          throw new Error('Failed to load user profile')
+        }
       }
 
-      // Update state with authenticated user
+      // Check agreement status
+      const agreementStatus = await this.checkAgreementStatus(profile)
+
+      // Update auth state
       this.setState({
         isAuthenticated: true,
         isInitialized: true,
         isLoading: false,
         user: sessionData.user,
         profile,
+        agreementStatus,
         error: null
       })
 
-      // Check agreement status
-      const agreementResult = await this.checkAgreementStatus(profile)
-      
       // Determine redirect path
+      if (agreementStatus.requiresAgreement) {
+        return {
+          success: true,
+          shouldRedirect: true,
+          redirectPath: '/agreement-review'
+        }
+      }
+
+      // Check for intended route
       let redirectPath = '/dashboard'
-      
-      if (profile.role === 'pending_player') {
-        redirectPath = '/onboarding'
-      } else if (agreementResult.requiresAgreement) {
-        redirectPath = '/agreement-review'
-      } else {
-        // Check for intended route
-        const intendedRoute = typeof window !== 'undefined' ? 
-          localStorage.getItem('raptor-intended-route') : null
-        
+      if (typeof window !== 'undefined') {
+        const intendedRoute = localStorage.getItem('raptor-intended-route')
         if (intendedRoute && intendedRoute !== '/auth/login') {
           redirectPath = intendedRoute
           localStorage.removeItem('raptor-intended-route')
         }
       }
 
-      console.log(`✅ Auth flow complete, redirecting to: ${redirectPath}`)
-      
       return {
         success: true,
         shouldRedirect: true,
@@ -254,7 +375,7 @@ class AuthFlowManager {
         isAuthenticated: false,
         isInitialized: true,
         isLoading: false,
-        error: error.message || 'User authentication failed'
+        error: error.message || 'User processing failed'
       })
       return { success: false, shouldRedirect: false, error: error.message }
     }
@@ -262,19 +383,28 @@ class AuthFlowManager {
 
   // Load user profile from database
   private async loadUserProfile(user: User): Promise<any> {
-    // Add timeout to prevent infinite loading
-    const profilePromise = this.performLoadUserProfile(user)
-    const timeoutPromise = new Promise<any>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error('Profile loading timeout'))
-      }, 15000) // 15 second timeout
-    })
+    console.log(`👤 Loading user profile, isInitialLogin: ${this.isInitialLogin}`)
+    
+    // Add timeout only for initial login, not for navigation
+    if (this.isInitialLogin) {
+      console.log('⏰ Using timeout for profile loading (initial login)')
+      const profilePromise = this.performLoadUserProfile(user)
+      const timeoutPromise = new Promise<any>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Profile loading timeout'))
+        }, 15000) // 15 second timeout only for initial login
+      })
 
-    try {
-      return await Promise.race([profilePromise, timeoutPromise])
-    } catch (error: any) {
-      console.error('❌ Profile loading failed or timed out:', error)
-      throw error
+      try {
+        return await Promise.race([profilePromise, timeoutPromise])
+      } catch (error: any) {
+        console.error('❌ Profile loading failed or timed out:', error)
+        throw error
+      }
+    } else {
+      // For navigation, no timeout - just load the profile
+      console.log('🚀 No timeout for profile loading (navigation)')
+      return await this.performLoadUserProfile(user)
     }
   }
 
@@ -317,148 +447,86 @@ class AuthFlowManager {
         console.log('✅ Profile created successfully')
         return profileResult.profile
       } else {
-        throw new Error(profileResult.error || "Failed to create profile")
+        throw new Error(profileResult.error || 'Failed to create profile')
       }
 
     } catch (error: any) {
-      console.error('❌ Profile load error:', error)
+      console.error('❌ Profile loading error:', error)
       throw error
     }
   }
 
-  // Check user agreement status
-  private async checkAgreementStatus(profile: any): Promise<{ requiresAgreement: boolean; isChecked: boolean; status?: string }> {
+  // Check agreement status
+  private async checkAgreementStatus(profile: any): Promise<typeof this.state.agreementStatus> {
     try {
-      console.log('🔍 Checking agreement status for role:', profile.role)
-
-      // Check if development override is enabled
-      const isDev = process.env.NODE_ENV === 'development'
-      const hasOverride = process.env.NEXT_PUBLIC_DISABLE_AGREEMENT_ENFORCEMENT === 'true'
-      
-      if (isDev && hasOverride) {
-        console.log('🔧 Agreement enforcement disabled in development')
-        this.setState({
-          agreementStatus: { requiresAgreement: false, isChecked: true, status: 'bypassed' }
-        })
-        return { requiresAgreement: false, isChecked: true, status: 'bypassed' }
-      }
-
-      // Check if role requires agreement
       if (!isAgreementRole(profile.role)) {
-        console.log('📝 Role does not require agreement')
-        this.setState({
-          agreementStatus: { requiresAgreement: false, isChecked: true, status: 'bypassed' }
-        })
-        return { requiresAgreement: false, isChecked: true, status: 'bypassed' }
-      }
-
-      // Fetch agreement status from API
-      const token = SessionStorage.getAccessToken()
-      if (!token) {
-        throw new Error('No access token available')
-      }
-
-      const response = await fetch('/api/agreements', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to check agreement status: ${response.statusText}`)
-      }
-
-      const data = await response.json()
-      const agreementStatus = data.agreement_status
-
-      console.log('📋 Agreement status:', agreementStatus.status)
-
-      this.setState({
-        agreementStatus: {
-          requiresAgreement: agreementStatus.requires_agreement,
+        return {
+          requiresAgreement: false,
           isChecked: true,
-          status: agreementStatus.status,
-          current_version: agreementStatus.current_version,
-          required_version: agreementStatus.required_version
+          status: 'bypassed'
         }
-      })
+      }
+
+      const requiredVersion = getRequiredAgreementVersion(profile.role)
+      
+      const { data: agreement, error } = await supabase
+        .from('user_agreements')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('role', profile.role)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (error && error.code !== 'PGRST116') {
+        throw new Error(`Agreement check failed: ${error.message}`)
+      }
+
+      if (!agreement) {
+        return {
+          requiresAgreement: true,
+          isChecked: true,
+          status: 'missing',
+          required_version: requiredVersion
+        }
+      }
+
+      if (agreement.version < requiredVersion) {
+        return {
+          requiresAgreement: true,
+          isChecked: true,
+          status: 'outdated',
+          current_version: agreement.version,
+          required_version: requiredVersion
+        }
+      }
+
+      if (agreement.status !== 'accepted') {
+        return {
+          requiresAgreement: true,
+          isChecked: true,
+          status: agreement.status as any,
+          current_version: agreement.version,
+          required_version: requiredVersion
+        }
+      }
 
       return {
-        requiresAgreement: agreementStatus.requires_agreement,
+        requiresAgreement: false,
         isChecked: true,
-        status: agreementStatus.status
+        status: 'current',
+        current_version: agreement.version,
+        required_version: requiredVersion
       }
 
     } catch (error: any) {
-      console.error('❌ Agreement check failed:', error)
-      
-      // On error, don't block access but log the issue
-      this.setState({
-        agreementStatus: { requiresAgreement: false, isChecked: true, status: 'error' }
-      })
-      
-      return { requiresAgreement: false, isChecked: true, status: 'error' }
-    }
-  }
-
-  // Sign in with email/password
-  async signIn(email: string, password: string): Promise<AuthFlowResult> {
-    try {
-      console.log('🔐 Sign in attempt:', email)
-      this.setState({ isLoading: true, error: null })
-
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({ 
-        email, 
-        password 
-      })
-
-      if (signInError) {
-        console.error('❌ Sign in failed:', signInError.message)
-        this.setState({ isLoading: false, error: signInError.message })
-        return { success: false, shouldRedirect: false, error: signInError.message }
+      console.error('❌ Agreement status check failed:', error)
+      return {
+        requiresAgreement: true,
+        isChecked: true,
+        status: 'error',
+        required_version: getRequiredAgreementVersion(profile.role)
       }
-
-      if (data.session) {
-        console.log('✅ Sign in successful')
-        return await this.handleSupabaseSession(data.session)
-      }
-
-      throw new Error('No session returned from sign in')
-
-    } catch (error: any) {
-      console.error('❌ Sign in exception:', error)
-      this.setState({ isLoading: false, error: error.message })
-      return { success: false, shouldRedirect: false, error: error.message }
-    }
-  }
-
-  // Sign out
-  async signOut(): Promise<void> {
-    try {
-      console.log('🚪 Signing out...')
-
-      // Clear session storage immediately
-      SessionStorage.clearSession()
-      
-      // Update state
-      this.setState({
-        isAuthenticated: false,
-        isLoading: false,
-        user: null,
-        profile: null,
-        agreementStatus: { requiresAgreement: false, isChecked: true },
-        error: null
-      })
-
-      // Sign out from Supabase
-      await supabase.auth.signOut()
-
-      console.log('✅ Sign out complete')
-
-    } catch (error: any) {
-      console.error('❌ Sign out error:', error)
-      // Still clear local state even if Supabase signout fails
     }
   }
 
@@ -529,11 +597,12 @@ class AuthFlowManager {
         agreementStatus: {
           requiresAgreement: false,
           isChecked: true,
-          status: 'current'
+          status: 'current',
+          current_version: requiredVersion,
+          required_version: requiredVersion
         }
       })
 
-      console.log('✅ Agreement accepted successfully')
       return true
 
     } catch (error: any) {
@@ -541,7 +610,73 @@ class AuthFlowManager {
       return false
     }
   }
+
+  // Sign in
+  async signIn(email: string, password: string): Promise<AuthFlowResult> {
+    try {
+      console.log('🔐 Signing in user:', email)
+      this.setState({ isLoading: true, error: null })
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+
+      if (error) {
+        console.error('❌ Sign in failed:', error.message)
+        this.setState({
+          isLoading: false,
+          error: error.message
+        })
+        return { success: false, shouldRedirect: false, error: error.message }
+      }
+
+      if (data.session?.user) {
+        console.log('✅ Sign in successful')
+        return await this.handleSupabaseSession(data.session)
+      }
+
+      throw new Error('No session returned from sign in')
+
+    } catch (error: any) {
+      console.error('❌ Sign in error:', error)
+      this.setState({
+        isLoading: false,
+        error: error.message || 'Sign in failed'
+      })
+      return { success: false, shouldRedirect: false, error: error.message }
+    }
+  }
+
+  // Sign out
+  async signOut(): Promise<void> {
+    try {
+      console.log('🚪 Signing out user...')
+
+      // Clear local state first
+      SessionStorage.clearSession()
+      this.setState({
+        isAuthenticated: false,
+        isInitialized: true,
+        isLoading: false,
+        user: null,
+        profile: null,
+        agreementStatus: { requiresAgreement: false, isChecked: true },
+        error: null
+      })
+
+      // Sign out from Supabase
+      await supabase.auth.signOut()
+
+      console.log('✅ Sign out complete')
+
+    } catch (error: any) {
+      console.error('❌ Sign out error:', error)
+      // Still clear local state even if Supabase signout fails
+    }
+  }
 }
 
-export const authFlow = AuthFlowManager.getInstance()
+// Export singleton instance
+const authFlow = AuthFlowManager.getInstance()
 export default authFlow

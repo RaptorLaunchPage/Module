@@ -209,7 +209,8 @@ export default function ProfileSettingsPage() {
         userId: displayProfile.id, 
         updates,
         currentUserRole: currentProfile.role,
-        canEdit: canEdit
+        canEdit: canEdit,
+        isOwnProfile
       })
       
       const response = await fetch('/api/profile', {
@@ -226,6 +227,7 @@ export default function ProfileSettingsPage() {
       
       const data = await response.json()
       console.log('API response:', data)
+      console.log('Updated profile data:', data.profile)
       
       if (!response.ok) {
         throw new Error(data.error || `HTTP ${response.status}`)
@@ -238,6 +240,28 @@ export default function ProfileSettingsPage() {
         if (targetProfile) {
           setTargetProfile(data.profile)
         }
+        // Also update the form data to reflect the saved changes
+        setPersonalData({
+          full_name: data.profile.full_name || '',
+          display_name: data.profile.display_name || '',
+          bio: data.profile.bio || '',
+          contact_number: data.profile.contact_number || '',
+          emergency_contact_name: data.profile.emergency_contact_name || '',
+          emergency_contact_number: data.profile.emergency_contact_number || '',
+          date_of_birth: data.profile.date_of_birth || '',
+          address: data.profile.address || '',
+          instagram_handle: data.profile.instagram_handle || '',
+          discord_id: data.profile.discord_id || '',
+          profile_visibility: (data.profile.profile_visibility as 'public' | 'team' | 'private') || 'team'
+        })
+        setDeviceData({
+          device_info: data.profile.device_info || '',
+          device_model: data.profile.device_model || '',
+          ram: data.profile.ram || '',
+          fps: data.profile.fps || '',
+          storage: data.profile.storage || '',
+          gyroscope_enabled: data.profile.gyroscope_enabled ?? true
+        })
       } else {
         setTargetProfile(data.profile)
       }
