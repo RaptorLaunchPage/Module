@@ -74,8 +74,11 @@ class AuthFlowManager {
   async initialize(isInitialLoad: boolean = true): Promise<AuthFlowResult> {
     this.isInitialLogin = isInitialLoad
     
+    console.log(`🚀 Auth initialize called with isInitialLoad: ${isInitialLoad}`)
+    
     // Add timeout only for initial login, not for navigation
     if (isInitialLoad) {
+      console.log('⏰ Using timeout for initial login')
       const initPromise = this.performInitialize()
       const timeoutPromise = new Promise<AuthFlowResult>((_, reject) => {
         setTimeout(() => {
@@ -102,6 +105,7 @@ class AuthFlowManager {
       }
     } else {
       // For navigation, no timeout - just perform initialization
+      console.log('🚀 No timeout for navigation - performing direct initialization')
       return await this.performInitialize()
     }
   }
@@ -379,8 +383,11 @@ class AuthFlowManager {
 
   // Load user profile from database
   private async loadUserProfile(user: User): Promise<any> {
+    console.log(`👤 Loading user profile, isInitialLogin: ${this.isInitialLogin}`)
+    
     // Add timeout only for initial login, not for navigation
     if (this.isInitialLogin) {
+      console.log('⏰ Using timeout for profile loading (initial login)')
       const profilePromise = this.performLoadUserProfile(user)
       const timeoutPromise = new Promise<any>((_, reject) => {
         setTimeout(() => {
@@ -396,6 +403,7 @@ class AuthFlowManager {
       }
     } else {
       // For navigation, no timeout - just load the profile
+      console.log('🚀 No timeout for profile loading (navigation)')
       return await this.performLoadUserProfile(user)
     }
   }

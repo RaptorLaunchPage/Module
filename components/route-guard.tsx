@@ -41,16 +41,6 @@ export function RouteGuard({ children }: RouteGuardProps) {
   const pathname = usePathname()
   const [shouldRender, setShouldRender] = useState(false)
   const [loadingStep, setLoadingStep] = useState<LoadingStep>('connecting')
-  const [hasTimedOut, setHasTimedOut] = useState(false)
-
-  // Handle timeout scenarios - only for display, no aggressive actions
-  const handleTimeout = () => {
-    console.warn('🕐 Route guard timeout - showing timeout message')
-    setHasTimedOut(true)
-    
-    // Don't clear storage or force reload - just show timeout message
-    // Let the user decide what to do
-  }
 
   useEffect(() => {
     // Don't render anything while auth is loading
@@ -123,23 +113,20 @@ export function RouteGuard({ children }: RouteGuardProps) {
   }, [isAuthenticated, user, profile, agreementStatus, pathname, router, isLoading])
 
   // Show advanced loading while auth is loading
-  if (isLoading || hasTimedOut) {
+  if (isLoading) {
     const steps: LoadingStep[] = ['connecting', 'authenticating', 'checking-agreement', 'loading-profile', 'initializing']
     
     return (
       <AdvancedLoading
-        currentStep={hasTimedOut ? 'error' : loadingStep}
+        currentStep={loadingStep}
         steps={steps}
-        customTitle={hasTimedOut ? "Taking Longer Than Expected" : undefined}
-        customDescription={hasTimedOut ? "Please try refreshing the page if this continues..." : undefined}
-        onTimeout={handleTimeout}
-        timeoutMs={30000} // Increased to 30 seconds for navigation
-        showProgress={!hasTimedOut}
+        timeoutMs={0} // ✅ No timeout for route guard - let auth flow handle it
+        showProgress={true}
       />
     )
   }
 
-  // Show loading while checking auth/profile for protected routes
+  // Show loading while checking auth/profile for protected routes  
   if (!isPublicRoute(pathname) && (!shouldRender || !profile)) {
     const steps: LoadingStep[] = ['authenticating', 'loading-profile', 'initializing']
     
@@ -162,8 +149,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
         currentStep={currentStep}
         steps={steps}
         customDescription={description}
-        onTimeout={handleTimeout}
-        timeoutMs={25000} // Increased to 25 seconds for navigation
+        timeoutMs={0} // ✅ No timeout for navigation
         showProgress={true}
       />
     )
