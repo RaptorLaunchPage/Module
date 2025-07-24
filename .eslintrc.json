@@ -2,20 +2,5 @@
   "extends": [
     "next/core-web-vitals",
     "next/typescript"
-  ],
-  "rules": {
-    // Disable style/preference warnings - these are just noise
-    "@typescript-eslint/no-unused-vars": "off",
-    "@typescript-eslint/no-explicit-any": "off",
-    "react/no-unescaped-entities": "off",
-    "@next/next/no-img-element": "off",
-    "@typescript-eslint/no-require-imports": "off",
-    "prefer-const": "off",
-    "react-hooks/exhaustive-deps": "off",
-    "@next/next/no-assign-module-variable": "off",
-    "@typescript-eslint/no-non-null-asserted-optional-chain": "off",
-    
-    // Keep only the critical rule that prevents actual runtime errors
-    "react-hooks/rules-of-hooks": "error"
-  }
+  ]
 }
