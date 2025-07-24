@@ -1,21 +1,33 @@
 "use client"
 
-import { FullPageLoader, useSequentialLoading } from "@/components/ui/full-page-loader"
+import { AdvancedLoading, useSequentialLoading, LoadingStep } from "@/components/ui/advanced-loading"
 
 export default function Loading() {
+  // Handle timeout by forcing a page refresh
+  const handleTimeout = () => {
+    console.warn('🕐 Page loading timeout - refreshing')
+    if (typeof window !== 'undefined') {
+      window.location.reload()
+    }
+  }
+
   // Sequential loading states for better UX
-  const currentState = useSequentialLoading([
+  const loadingSteps: LoadingStep[] = [
     'connecting',
-    'initializing',
-    'loading-profile'
-  ], 1500)
+    'authenticating', 
+    'checking-agreement',
+    'loading-profile',
+    'initializing'
+  ]
 
   return (
-    <FullPageLoader 
-      state={currentState}
+    <AdvancedLoading 
+      steps={loadingSteps}
       customTitle="Loading Raptor Hub"
-      customDescription="Initializing your esports experience"
-      size="lg"
+      customDescription="Initializing your esports experience..."
+      onTimeout={handleTimeout}
+      timeoutMs={20000}
+      showProgress={true}
     />
   )
 }

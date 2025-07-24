@@ -22,6 +22,7 @@ interface AuthContextType extends AuthState {
   
   // Utility
   refreshProfile: () => Promise<void>
+  updateProfile: (updatedProfile: any) => Promise<void>
   clearError: () => void
   getToken: () => Promise<string | null>
 }
@@ -337,6 +338,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [toast])
 
+  // Update profile without full re-initialization
+  const updateProfile = useCallback(async (updatedProfile: any) => {
+    try {
+      await authFlow.updateProfile(updatedProfile)
+    } catch (error: any) {
+      console.error('❌ Profile update error:', error)
+      toast({
+        title: 'Update Error',
+        description: 'Failed to update profile data',
+        variant: 'destructive'
+      })
+    }
+  }, [toast])
+
   // Clear error
   const clearError = useCallback(() => {
     // The auth flow manager will handle error clearing in its state
@@ -369,6 +384,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Utility
     refreshProfile,
+    updateProfile,
     clearError,
     getToken
   }

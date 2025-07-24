@@ -71,6 +71,29 @@ class AuthFlowManager {
 
   // Initialize the auth system
   async initialize(): Promise<AuthFlowResult> {
+    // Add timeout to prevent infinite loading
+    const initPromise = this.performInitialize()
+    const timeoutPromise = new Promise<AuthFlowResult>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Authentication initialization timeout'))
+      }, 12000) // 12 second timeout
+    })
+
+    try {
+      return await Promise.race([initPromise, timeoutPromise])
+    } catch (error: any) {
+      console.error('❌ Auth initialization failed or timed out:', error)
+      this.setState({
+        isInitialized: true,
+        isLoading: false,
+        error: error.message || 'Authentication initialization failed'
+      })
+      return { success: false, shouldRedirect: false, error: error.message }
+    }
+  }
+
+  // Actual initialization logic
+  private async performInitialize(): Promise<AuthFlowResult> {
     try {
       console.log('🚀 Initializing auth flow...')
       this.setState({ isLoading: true, error: null })
@@ -239,6 +262,24 @@ class AuthFlowManager {
 
   // Load user profile from database
   private async loadUserProfile(user: User): Promise<any> {
+    // Add timeout to prevent infinite loading
+    const profilePromise = this.performLoadUserProfile(user)
+    const timeoutPromise = new Promise<any>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Profile loading timeout'))
+      }, 15000) // 15 second timeout
+    })
+
+    try {
+      return await Promise.race([profilePromise, timeoutPromise])
+    } catch (error: any) {
+      console.error('❌ Profile loading failed or timed out:', error)
+      throw error
+    }
+  }
+
+  // Actual profile loading logic
+  private async performLoadUserProfile(user: User): Promise<any> {
     try {
       console.log(`🔍 Loading profile for user: ${user.email}`)
 
@@ -418,6 +459,36 @@ class AuthFlowManager {
     } catch (error: any) {
       console.error('❌ Sign out error:', error)
       // Still clear local state even if Supabase signout fails
+    }
+  }
+
+  // Update profile data without full re-initialization
+  async updateProfile(updatedProfile: any): Promise<void> {
+    try {
+      console.log('🔄 Updating profile data in auth state...')
+      
+      this.setState({
+        profile: updatedProfile
+      })
+
+      // Update session storage with new profile data
+      const currentSession = SessionStorage.getSession()
+      if (currentSession) {
+        const updatedSession = {
+          ...currentSession,
+          user: {
+            ...currentSession.user,
+            name: updatedProfile.name || updatedProfile.display_name || currentSession.user.name,
+            role: updatedProfile.role || currentSession.user.role
+          }
+        }
+        SessionStorage.setSession(updatedSession)
+      }
+
+      console.log('✅ Profile updated successfully')
+    } catch (error: any) {
+      console.error('❌ Profile update error:', error)
+      throw error
     }
   }
 

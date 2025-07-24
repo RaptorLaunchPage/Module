@@ -130,13 +130,10 @@ export function AvatarUpload({
         variant: "default"
       })
 
-      // Notify parent component
+      // Notify parent component to update avatar URL
       if (onAvatarUpdate) {
         onAvatarUpdate(data.avatar_url)
       }
-
-      // Reload page to update avatar everywhere
-      window.location.reload()
 
     } catch (error: any) {
       console.error('Avatar upload error:', error)
@@ -197,13 +194,10 @@ export function AvatarUpload({
         variant: "default"
       })
 
-      // Notify parent component
+      // Notify parent component to remove avatar URL
       if (onAvatarUpdate) {
         onAvatarUpdate('')
       }
-
-      // Reload page to update avatar everywhere
-      window.location.reload()
 
     } catch (error: any) {
       console.error('Avatar removal error:', error)
