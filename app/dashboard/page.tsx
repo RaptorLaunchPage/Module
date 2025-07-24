@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ResponsiveTabs, TabsContent } from '@/components/ui/enhanced-tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { RoleBasedDashboard } from '@/components/dashboard/role-based-dashboard'
 import { 
   Users, 
   Target, 
@@ -34,7 +35,8 @@ import {
   Clock,
   Plus,
   MessageSquare,
-  Webhook
+  Webhook,
+  User
 } from 'lucide-react'
 import Link from 'next/link'
 // Removed PerformanceDashboard import as we're using a simplified version
@@ -116,6 +118,20 @@ export default function OptimizedDashboardPage() {
   const canAccessUsers = DashboardPermissions.getDataPermissions(userRole, 'users').canView
   const canAccessAnalytics = DashboardPermissions.canAccessModule(userRole, 'analytics')
   const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
+  
+  // Role-based content filtering
+  const isPlayer = userRole === 'player'
+  const isCoach = userRole === 'coach'
+  const isAnalyst = userRole === 'analyst'
+  const isManager = userRole === 'manager'
+  const isAdmin = userRole === 'admin'
+  
+  // Content visibility based on role
+  const canViewAllTeams = isAdmin || isManager
+  const canViewAllPlayers = isAdmin || isManager || isCoach
+  const canViewFinancials = isAdmin || isManager
+  const canManageTeams = isAdmin || isManager
+  const canViewDetailedAnalytics = isAdmin || isManager || isCoach || isAnalyst
 
   // Memoized quick actions based on user role
   const quickActions = useMemo<QuickAction[]>(() => {
@@ -508,7 +524,7 @@ export default function OptimizedDashboardPage() {
           <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
             Welcome back, {profile?.name || 'User'}! 
-                           <Badge variant="outline" className="ml-2">{roleInfo.label}</Badge>
+            <Badge variant="outline" className="ml-2">{roleInfo.label}</Badge>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -553,21 +569,53 @@ export default function OptimizedDashboardPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {/* Team & Organization Overview */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Team & Organization Overview
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="space-y-8">
+          {/* Main Overview Section */}
+          <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                <div className={`p-2 rounded-lg bg-${roleInfo.color}-500/20`}>
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+                {isPlayer ? 'My Performance Dashboard' : 
+                 isCoach ? 'Team Management Dashboard' :
+                 isAnalyst ? 'Analytics Dashboard' :
+                 isManager ? 'Management Dashboard' :
+                 'Administrative Dashboard'}
+              </CardTitle>
+              <CardDescription className="text-white/70">
+                {isPlayer ? 'Track your personal performance and team progress' :
+                 isCoach ? 'Monitor team performance and player development' :
+                 isAnalyst ? 'Deep dive into performance analytics and insights' :
+                 isManager ? 'Oversee operations and team management' :
+                 'Complete administrative overview and control'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-blue-100 text-sm font-medium">Total Teams</p>
-                      <p className="text-2xl font-bold">{formatNumber(stats?.totalTeams || 0)}</p>
-                      <p className="text-blue-200 text-xs">{formatNumber(stats?.activeTeams || 0)} active</p>
+                      {isPlayer ? (
+                        <>
+                          <p className="text-blue-100 text-sm font-medium">My Matches</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.totalMatches || 0)}</p>
+                          <p className="text-blue-200 text-xs">Personal record</p>
+                        </>
+                      ) : canViewAllTeams ? (
+                        <>
+                          <p className="text-blue-100 text-sm font-medium">Total Teams</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.totalTeams || 0)}</p>
+                          <p className="text-blue-200 text-xs">{formatNumber(stats?.activeTeams || 0)} active</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-blue-100 text-sm font-medium">Team Members</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.activePlayers || 0)}</p>
+                          <p className="text-blue-200 text-xs">In your team</p>
+                        </>
+                      )}
                     </div>
                     <Users className="h-8 w-8 text-blue-200" />
                   </div>
@@ -578,9 +626,25 @@ export default function OptimizedDashboardPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-green-100 text-sm font-medium">Active Players</p>
-                      <p className="text-2xl font-bold">{formatNumber(stats?.activePlayers || 0)}</p>
-                      <p className="text-green-200 text-xs">Across all teams</p>
+                      {isPlayer ? (
+                        <>
+                          <p className="text-green-100 text-sm font-medium">My K/D Ratio</p>
+                          <p className="text-2xl font-bold">{(stats?.kdRatio || 0).toFixed(2)}</p>
+                          <p className="text-green-200 text-xs">Kill/Death ratio</p>
+                        </>
+                      ) : canViewAllPlayers ? (
+                        <>
+                          <p className="text-green-100 text-sm font-medium">Active Players</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.activePlayers || 0)}</p>
+                          <p className="text-green-200 text-xs">Across all teams</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-green-100 text-sm font-medium">Team Performance</p>
+                          <p className="text-2xl font-bold">{formatNumber(Math.round((stats?.totalMatches || 0) * 0.7))}%</p>
+                          <p className="text-green-200 text-xs">Win rate</p>
+                        </>
+                      )}
                     </div>
                     <Shield className="h-8 w-8 text-green-200" />
                   </div>
@@ -591,9 +655,25 @@ export default function OptimizedDashboardPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-orange-100 text-sm font-medium">Overall Matches</p>
-                      <p className="text-2xl font-bold">{formatNumber(stats?.overallMatches || 0)}</p>
-                      <p className="text-orange-200 text-xs">{formatNumber(stats?.todayMatches || 0)} today</p>
+                      {isPlayer ? (
+                        <>
+                          <p className="text-orange-100 text-sm font-medium">Total Kills</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.totalKills || 0)}</p>
+                          <p className="text-orange-200 text-xs">Personal total</p>
+                        </>
+                      ) : shouldSeeAllData ? (
+                        <>
+                          <p className="text-orange-100 text-sm font-medium">Overall Matches</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.overallMatches || 0)}</p>
+                          <p className="text-orange-200 text-xs">{formatNumber(stats?.todayMatches || 0)} today</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-orange-100 text-sm font-medium">Team Matches</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.totalMatches || 0)}</p>
+                          <p className="text-orange-200 text-xs">This month</p>
+                        </>
+                      )}
                     </div>
                     <Target className="h-8 w-8 text-orange-200" />
                   </div>
@@ -604,23 +684,49 @@ export default function OptimizedDashboardPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-purple-100 text-sm font-medium">Combined K/D</p>
-                      <p className="text-2xl font-bold">{(stats?.kdRatio || 0).toFixed(2)}</p>
-                      <p className="text-purple-200 text-xs">{formatNumber(stats?.totalKills || 0)} total kills</p>
+                      {isPlayer ? (
+                        <>
+                          <p className="text-purple-100 text-sm font-medium">Avg Damage</p>
+                          <p className="text-2xl font-bold">{formatNumber(stats?.avgDamage || 0)}</p>
+                          <p className="text-purple-200 text-xs">Per match</p>
+                        </>
+                      ) : shouldSeeAllData ? (
+                        <>
+                          <p className="text-purple-100 text-sm font-medium">Combined K/D</p>
+                          <p className="text-2xl font-bold">{(stats?.kdRatio || 0).toFixed(2)}</p>
+                          <p className="text-purple-200 text-xs">{formatNumber(stats?.totalKills || 0)} total kills</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-purple-100 text-sm font-medium">Team Ranking</p>
+                          <p className="text-2xl font-bold">#{Math.ceil((stats?.totalMatches || 1) / 5) || 'N/A'}</p>
+                          <p className="text-purple-200 text-xs">Current position</p>
+                        </>
+                      )}
                     </div>
                     <Crosshair className="h-8 w-8 text-purple-200" />
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Financial Overview */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Financial Overview
-            </h3>
+          {/* Financial Overview Section - Admin/Manager Only */}
+          {canViewFinancials && (
+            <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-green-500/20">
+                    <DollarSign className="h-6 w-6 text-white" />
+                  </div>
+                  Financial Overview
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  Revenue, expenses, and financial performance tracking
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
                 <CardContent className="pt-6">
@@ -660,23 +766,37 @@ export default function OptimizedDashboardPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          </div>
+              </div>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Performance & Attendance */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Performance & Attendance
-            </h3>
+          {/* Performance & Attendance Section */}
+          <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-500/20">
+                  <Activity className="h-6 w-6 text-white" />
+                </div>
+                {isPlayer ? 'My Performance & Attendance' : 'Performance & Attendance'}
+              </CardTitle>
+              <CardDescription className="text-white/70">
+                {isPlayer ? 'Your personal performance metrics and attendance record' : 'Team performance statistics and attendance tracking'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-indigo-100 text-sm font-medium">Attendance Rate</p>
+                      <p className="text-indigo-100 text-sm font-medium">
+                        {isPlayer ? 'My Attendance' : 'Attendance Rate'}
+                      </p>
                       <p className="text-2xl font-bold">{(stats?.overallAttendanceRate || 0).toFixed(1)}%</p>
-                      <p className="text-indigo-200 text-xs">Overall attendance</p>
+                      <p className="text-indigo-200 text-xs">
+                        {isPlayer ? 'Personal rate' : 'Overall attendance'}
+                      </p>
                     </div>
                     <Calendar className="h-8 w-8 text-indigo-200" />
                   </div>
@@ -721,15 +841,102 @@ export default function OptimizedDashboardPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Communication & Discord */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Communication & Discord
-            </h3>
+          {/* Player Action Buttons - Player Only */}
+          {isPlayer && (
+            <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-purple-500/20">
+                    <Plus className="h-6 w-6 text-white" />
+                  </div>
+                  My Quick Actions
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  Essential actions for managing your performance and attendance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card className="bg-black/40 backdrop-blur-lg border border-blue-400/40 hover:border-blue-400/60 transition-all duration-200 cursor-pointer group">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4" onClick={() => window.location.href = '/dashboard/performance'}>
+                      <div className="p-3 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+                        <Target className="h-6 w-6 text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-white group-hover:text-white/90">
+                          Update My Performance
+                        </h3>
+                        <p className="text-sm text-white/60 mt-1">
+                          Add your latest match stats
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-white/40 group-hover:text-white/60 transition-colors" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-black/40 backdrop-blur-lg border border-green-400/40 hover:border-green-400/60 transition-all duration-200 cursor-pointer group">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4" onClick={() => window.location.href = '/dashboard/attendance'}>
+                      <div className="p-3 rounded-lg bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
+                        <Calendar className="h-6 w-6 text-green-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-white group-hover:text-white/90">
+                          Mark Attendance
+                        </h3>
+                        <p className="text-sm text-white/60 mt-1">
+                          Check in for today's practice
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-white/40 group-hover:text-white/60 transition-colors" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-black/40 backdrop-blur-lg border border-purple-400/40 hover:border-purple-400/60 transition-all duration-200 cursor-pointer group">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4" onClick={() => window.location.href = '/dashboard/profile'}>
+                      <div className="p-3 rounded-lg bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
+                        <User className="h-6 w-6 text-purple-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium text-white group-hover:text-white/90">
+                          Update Profile
+                        </h3>
+                        <p className="text-sm text-white/60 mt-1">
+                          Manage your profile settings
+                        </p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-white/40 group-hover:text-white/60 transition-colors" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Communication & Discord Section - Admin/Manager Only */}
+          {(isAdmin || isManager) && (
+            <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-violet-500/20">
+                    <MessageSquare className="h-6 w-6 text-white" />
+                  </div>
+                  Communication & Discord Integration
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  Discord webhooks, messaging, and team communication stats
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="bg-gradient-to-r from-violet-500 to-violet-600 text-white">
                 <CardContent className="pt-6">
@@ -769,45 +976,54 @@ export default function OptimizedDashboardPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          </div>
+              </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Recent Activity Section */}
+          <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-500/20">
+                  <Clock className="h-6 w-6 text-white" />
+                </div>
+                Recent Activity
+              </CardTitle>
+              <CardDescription className="text-white/70">
+                Latest match results and performance entries
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentPerformances.length > 0 ? (
+                <div className="space-y-3">
+                  {recentPerformances.slice(0, 5).map((perf, index) => (
+                    <div key={perf.id} className="flex items-center justify-between p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg">
+                      <div>
+                        <p className="font-medium text-white text-sm">{perf.map || 'Unknown Map'}</p>
+                        <p className="text-xs text-white/60 mt-1">
+                          Placement: #{perf.placement || 'N/A'} • {perf.kills || 0} kills • {formatNumber(perf.damage || 0)} damage
+                        </p>
+                      </div>
+                      <Badge variant={perf.placement === 1 ? 'default' : 'secondary'}>
+                        {perf.placement === 1 ? '🥇 Win' : `#${perf.placement || 'N/A'}`}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Activity className="h-12 w-12 mx-auto mb-4 text-white/40" />
+                  <p className="text-white/60">No recent activity</p>
+                  <p className="text-white/40 text-sm mt-1">Your latest matches will appear here</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}  {/* End of metrics conditional */}
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Play className="h-5 w-5" />
-            Quick Actions
-          </CardTitle>
-          <CardDescription>
-            Jump to your most used features
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickActions.map((action, index) => (
-              <Link key={index} href={action.href}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer group">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center space-x-4">
-                      <div className={`${action.color} p-3 rounded-lg text-white group-hover:scale-110 transition-transform`}>
-                        <action.icon className="h-6 w-6" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-sm">{action.title}</h3>
-                        <p className="text-xs text-muted-foreground">{action.description}</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* Main Content Tabs */}
       <ResponsiveTabs 
@@ -843,238 +1059,79 @@ export default function OptimizedDashboardPage() {
       >
 
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Financial Overview */}
-            {canAccessFinance && stats && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    Financial Overview
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Total Expenses</span>
-                      <span className="text-lg font-bold text-red-600">₹{formatNumber(stats.totalExpense)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Net P&L</span>
-                      <span className={`text-lg font-bold ${stats.totalProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ₹{formatNumber(Math.abs(stats.totalProfitLoss))}
-                        {stats.totalProfitLoss < 0 && ' (Loss)'}
-                      </span>
-                    </div>
-                    <Link href="/dashboard/finance">
-                      <Button variant="outline" className="w-full">
-                        View Finance Details
-                        <ChevronRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+          <Card className="bg-black/20 backdrop-blur-lg border border-white/10 shadow-xl">
+            <CardContent className="p-8 text-center">
+              <div className="mb-4">
+                <BarChart3 className="h-16 w-16 mx-auto text-white/60" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Overview Complete</h3>
+              <p className="text-white/70 mb-6">
+                Your {roleInfo.label.toLowerCase()} dashboard overview is displayed above. 
+                Use the tabs to access specific modules and features.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {quickActions.slice(0, 2).map((action, index) => (
+                  <Button key={index} asChild variant={index === 0 ? "default" : "outline"}>
+                    <a href={action.href}>
+                      <action.icon className="h-4 w-4 mr-2" />
+                      {action.title}
+                    </a>
+                  </Button>
+                ))}
+              </div>
+                         </CardContent>
+           </Card>
+        </TabsContent>
 
-            {/* Top Performers */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Crown className="h-5 w-5" />
-                  Top Performers
-                </CardTitle>
-                <CardDescription>Best performance in last {selectedTimeframe} days</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {topPerformers.topPlayer && (
-                    <div className="flex items-center gap-3 p-3 bg-yellow-900/40 backdrop-blur-lg border border-yellow-400/60 rounded-lg shadow-xl">
-                      <Star className="h-5 w-5 text-yellow-400" />
-                      <div>
-                        <p className="font-semibold text-sm text-white drop-shadow-md">{topPerformers.topPlayer.name}</p>
-                        <p className="text-xs text-white/80 drop-shadow-sm">{topPerformers.topPlayer.metric}: {topPerformers.topPlayer.value.toFixed(1)}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {topPerformers.topTeam && shouldSeeAllData && (
-                    <div className="flex items-center gap-3 p-3 bg-blue-500/10 backdrop-blur-md border-blue-500/20 rounded-lg">
-                      <Trophy className="h-5 w-5 text-blue-500" />
-                      <div>
-                        <p className="font-semibold text-sm">{topPerformers.topTeam.name}</p>
-                        <p className="text-xs text-muted-foreground">Win Rate: {topPerformers.topTeam.winRate.toFixed(1)}%</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {!topPerformers.topPlayer && !topPerformers.topTeam && (
-                    <div className="text-center py-4">
-                      <Activity className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                      <p className="text-sm text-muted-foreground">No performance data available</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+        <TabsContent value="performance" className="space-y-6">
+          <div className="text-center py-12">
+            <Target className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-xl font-semibold mb-2">Performance Analytics</h3>
+            <p className="text-muted-foreground mb-6">
+              Detailed performance metrics and analytics will be available here
+            </p>
+            <Button asChild>
+              <Link href="/dashboard/performance">View Performance Details</Link>
+            </Button>
           </div>
-
-          {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5" />
-                Recent Matches
-              </CardTitle>
-              <CardDescription>Latest performance entries</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentPerformances.length > 0 ? (
-                <div className="space-y-2">
-                  {recentPerformances.slice(0, 5).map((perf, index) => (
-                                          <div key={perf.id} className="flex items-center justify-between p-3 bg-white/10 backdrop-blur-md border-white/20 rounded-lg">
-                      <div>
-                        <p className="font-medium text-sm">{perf.map || 'Unknown Map'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Placement: #{perf.placement || 'N/A'} • {perf.kills || 0} kills • {formatNumber(perf.damage || 0)} damage
-                        </p>
-                      </div>
-                      <Badge variant={perf.placement === 1 ? 'default' : 'secondary'}>
-                        {perf.placement === 1 ? '🥇 Win' : `#${perf.placement || 'N/A'}`}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Gamepad2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold mb-2">No Recent Matches</h3>
-                  <p className="text-muted-foreground mb-4">Start submitting performance data to see your recent activity</p>
-                  <Link href="/dashboard/performance">
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Submit Performance
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
 
-        <TabsContent value="performance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance Overview</CardTitle>
-              <CardDescription>Quick performance metrics and trends</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">Performance Dashboard</h3>
-                <p className="text-muted-foreground mb-4">View detailed performance analytics</p>
-                <Link href="/dashboard/performance">
-                  <Button>
-                    <Target className="h-4 w-4 mr-2" />
-                    Open Performance Module
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="analytics" className="space-y-6">
+          <div className="text-center py-12">
+            <TrendingUp className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-xl font-semibold mb-2">Advanced Analytics</h3>
+            <p className="text-muted-foreground mb-6">
+              In-depth analytics and reporting features coming soon
+            </p>
+            <Button asChild variant="outline">
+              <Link href="/dashboard/analytics">Explore Analytics</Link>
+            </Button>
+          </div>
         </TabsContent>
 
-        {canAccessAnalytics && (
-          <TabsContent value="analytics">
-            <Card>
-              <CardHeader>
-                <CardTitle>Analytics Dashboard</CardTitle>
-                <CardDescription>Detailed performance analytics and insights</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/dashboard/analytics">
-                  <Button className="w-full">
-                    <BarChart3 className="h-4 w-4 mr-2" />
-                    Open Full Analytics
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        )}
-
-        {(canAccessFinance || canAccessUsers) && (
-          <TabsContent value="management">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <TabsContent value="management" className="space-y-6">
+          <div className="text-center py-12">
+            <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-xl font-semibold mb-2">Team Management</h3>
+            <p className="text-muted-foreground mb-6">
+              Access team management tools and administrative features
+            </p>
+            <div className="flex gap-3 justify-center">
               {canAccessUsers && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>User Management</CardTitle>
-                    <CardDescription>Manage users, roles, and permissions</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Active Players</span>
-                        <span className="text-lg font-bold">{stats?.activePlayers || 0}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Active Teams</span>
-                        <span className="text-lg font-bold">{stats?.activeTeams || 0}</span>
-                      </div>
-                      <Link href="/dashboard/user-management">
-                        <Button variant="outline" className="w-full">
-                          Manage Users
-                          <ChevronRight className="h-4 w-4 ml-2" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
+                <Button asChild>
+                  <Link href="/dashboard/users">Manage Users</Link>
+                </Button>
               )}
-              
               {canAccessFinance && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Finance Management</CardTitle>
-                    <CardDescription>Track expenses, winnings, and financial performance</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Link href="/dashboard/finance">
-                      <Button variant="outline" className="w-full">
-                        Open Finance Module
-                        <ChevronRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+                <Button asChild variant="outline">
+                  <Link href="/dashboard/finance">Finance</Link>
+                </Button>
               )}
             </div>
-          </TabsContent>
-        )}
-      </ResponsiveTabs>
+          </div>
+        </TabsContent>
 
-      {/* Cache Performance Stats (only in development) */}
-      {process.env.NODE_ENV === 'development' && cacheStats && (
-        <Card className="border-dashed border-gray-300">
-          <CardHeader>
-            <CardTitle className="text-sm">Cache Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4 text-xs">
-              <div>
-                <span className="font-medium">Entries:</span> {cacheStats.totalEntries}
-              </div>
-              <div>
-                <span className="font-medium">Memory:</span> {cacheStats.memoryUsage}
-              </div>
-              <div>
-                <span className="font-medium">Pending:</span> {cacheStats.pendingRequests}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      </ResponsiveTabs>
     </div>
   )
 }

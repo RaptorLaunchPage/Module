@@ -32,17 +32,9 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [lastError, setLastError] = useState<string | null>(null)
 
-  // Defensive: Only allow players with valid profile
-  if (!profile || profile.role !== "player") return null
-  if (!profile?.id) {
-    return <div className="text-center text-red-500 py-8">Your player profile is incomplete. Please contact support.</div>;
-  }
-  if (!profile?.team_id) {
-    return <div className="text-center text-yellow-600 py-8">You are not assigned to a team. Please contact your coach or admin.</div>;
-  }
-
-  // Fetch team info and slots
+  // Move useEffect before conditional returns
   useEffect(() => {
+    if (!profile?.team_id) return
     const fetchTeamAndSlots = async () => {
       setSlotsLoading(true)
       setTeam(null)
@@ -57,6 +49,15 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
     }
     fetchTeamAndSlots()
   }, [profile.team_id])
+
+  // Defensive: Only allow players with valid profile
+  if (!profile || profile.role !== "player") return null
+  if (!profile?.id) {
+    return <div className="text-center text-red-500 py-8">Your player profile is incomplete. Please contact support.</div>;
+  }
+  if (!profile?.team_id) {
+    return <div className="text-center text-yellow-600 py-8">You are not assigned to a team. Please contact your coach or admin.</div>;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

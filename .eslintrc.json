@@ -4,15 +4,16 @@
     "next/typescript"
   ],
   "rules": {
-    "@typescript-eslint/no-unused-vars": "warn",
+    // Downgrade these from errors to warnings to prevent build failures
     "@typescript-eslint/no-explicit-any": "warn",
     "react/no-unescaped-entities": "warn",
-    "react-hooks/exhaustive-deps": "warn",
-    "react-hooks/rules-of-hooks": "warn",
-    "@next/next/no-img-element": "warn",
-    "@next/next/no-assign-module-variable": "warn",
+    "prefer-const": "warn",
     "@typescript-eslint/no-require-imports": "warn",
+    "@next/next/no-assign-module-variable": "warn",
     "@typescript-eslint/no-non-null-asserted-optional-chain": "warn",
-    "prefer-const": "warn"
+    
+    // Keep critical errors that prevent runtime issues
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn"
   }
 }

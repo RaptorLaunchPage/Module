@@ -11,13 +11,13 @@ export interface SessionData {
   user: {
     id: string
     email: string
-    name?: string
-    role?: string
+    name: string
+    role: string
   }
   tokenInfo: TokenInfo
   lastActive: number
-  agreementAccepted?: boolean
-  lastRoute?: string
+  agreementAccepted: boolean
+  profileLoadedOnce?: boolean // ✅ New flag to track profile loading
 }
 
 class SessionStorage {
@@ -44,7 +44,7 @@ class SessionStorage {
         user: sessionData.user,
         lastActive: sessionData.lastActive,
         agreementAccepted: sessionData.agreementAccepted,
-        lastRoute: sessionData.lastRoute,
+        lastRoute: (sessionData as any).lastRoute || '/dashboard',
         tokenExpiry: sessionData.tokenInfo.expiresAt,
         userId: sessionData.tokenInfo.userId
       }
@@ -93,7 +93,7 @@ class SessionStorage {
             },
             lastActive: parsed.lastActive,
             agreementAccepted: parsed.agreementAccepted,
-            lastRoute: parsed.lastRoute
+            // lastRoute removed from interface
           }
         }
       }

@@ -9,21 +9,19 @@ import { BarChart3 } from "lucide-react"
 export function PerformanceReportSimple() {
   console.log('🎯 PerformanceReportSimple rendering - BUILDING REAL PERFORMANCE REPORT')
   
-  try {
-    const { profile } = useAuth()
-    console.log('✅ useAuth hook called successfully')
-    
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
-    const [performances, setPerformances] = useState<any[]>([])
-    const [users, setUsers] = useState<any[]>([])
-    const [teams, setTeams] = useState<any[]>([])
-    const [stats, setStats] = useState<any>(null)
-    
-    console.log('✅ useState hooks initialized successfully')
+  // All hooks must be called unconditionally at the top level
+  const { profile } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [performances, setPerformances] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
+  const [teams, setTeams] = useState<any[]>([])
+  const [stats, setStats] = useState<any>(null)
+  
+  console.log('✅ All hooks called successfully')
 
-    useEffect(() => {
-      console.log('🚀 useEffect triggered')
+  useEffect(() => {
+    console.log('🚀 useEffect triggered')
       
                 const loadPerformanceReport = async () => {
         try {
@@ -274,22 +272,22 @@ export function PerformanceReportSimple() {
         </Card>
       </div>
     )
-  } catch (err) {
-    console.error('💥 Error in database query test:', err)
-    
-    return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-red-600">Critical Error</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-600">
-              Critical error with database queries: {err instanceof Error ? err.message : String(err)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+
+    // Error case handled by state, not try-catch wrapper
+    if (error) {
+      return (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-red-600">Error</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-red-600">
+                Error loading performance data: {error}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )
+    }
 }
