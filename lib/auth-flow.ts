@@ -70,123 +70,34 @@ class AuthFlowManager {
     this.listeners.forEach(listener => listener(this.state))
   }
 
-  // Initialize the auth system
+  // Initialize the auth system - NO TIMEOUTS
   async initialize(isInitialLoad: boolean = true): Promise<AuthFlowResult> {
     this.isInitialLogin = isInitialLoad
     
-    console.log(`🚀 Auth initialize called with isInitialLoad: ${isInitialLoad}`)
+    console.log(`🚀 Auth initialize called - NO TIMEOUT APPLIED`)
     
-    // Add timeout only for initial login, not for navigation
-    if (isInitialLoad) {
-      console.log('⏰ Using timeout for initial login')
-      const initPromise = this.performInitialize()
-      const timeoutPromise = new Promise<AuthFlowResult>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Authentication initialization timeout'))
-        }, 12000) // 12 second timeout only for initial login
-      })
-
-      try {
-        return await Promise.race([initPromise, timeoutPromise])
-      } catch (error: any) {
-        console.error('❌ Auth initialization failed or timed out:', error)
-        
-        // For initial login timeout, try session recovery
-        if (error.message.includes('timeout')) {
-          return await this.attemptSessionRecovery()
-        }
-        
-        this.setState({
-          isInitialized: true,
-          isLoading: false,
-          error: error.message || 'Authentication initialization failed'
-        })
-        return { success: false, shouldRedirect: false, error: error.message }
-      }
-    } else {
-      // For navigation, no timeout - just perform initialization
-      console.log('🚀 No timeout for navigation - performing direct initialization')
-      return await this.performInitialize()
-    }
-  }
-
-  // Attempt to recover session without full re-authentication
-  private async attemptSessionRecovery(): Promise<AuthFlowResult> {
+    // Always perform initialization without any timeout constraints
+    console.log('🚀 Performing direct initialization without timeout')
     try {
-      console.log('🔄 Attempting session recovery...')
-      
-      // Check if we have a valid session in storage
-      const existingSession = SessionStorage.getSession()
-      const accessToken = SessionStorage.getAccessToken()
-      
-      if (existingSession && accessToken) {
-        console.log('📱 Found existing session, validating...')
-        
-        // Try to get user info without timeout
-        const { data: { user }, error } = await supabase.auth.getUser(accessToken)
-        
-        if (user && !error) {
-          console.log('✅ Session recovered successfully')
-          
-          // Start from agreement checking stage as requested
-          this.setState({
-            isAuthenticated: true,
-            isInitialized: true,
-            isLoading: false,
-            user: existingSession.user,
-            profile: null, // Will be loaded separately
-            agreementStatus: { requiresAgreement: false, isChecked: false }
-          })
-          
-          // Load profile in background without timeout
-          this.loadProfileInBackground(user, existingSession)
-          
-          return { 
-            success: true, 
-            shouldRedirect: true, 
-            redirectPath: '/agreement-review' // Start from agreement checking
-          }
-        }
-      }
-      
-      // If session recovery fails, redirect to login
-      console.log('❌ Session recovery failed, redirecting to login')
-      this.setState({
-        isAuthenticated: false,
-        isInitialized: true,
-        isLoading: false,
-        error: 'Session expired. Please sign in again.'
-      })
-      
-      return { 
-        success: true, 
-        shouldRedirect: true, 
-        redirectPath: '/auth/login' 
-      }
-      
+      return await this.performInitialize()
     } catch (error: any) {
-      console.error('❌ Session recovery error:', error)
+      console.error('❌ Auth initialization failed:', error)
       
-      // Fallback to login
       this.setState({
-        isAuthenticated: false,
         isInitialized: true,
         isLoading: false,
-        error: 'Please sign in again.'
+        error: error.message || 'Authentication initialization failed'
       })
-      
-      return { 
-        success: true, 
-        shouldRedirect: true, 
-        redirectPath: '/auth/login' 
-      }
+      return { success: false, shouldRedirect: false, error: error.message }
     }
   }
+
+
 
   // Load profile in background without blocking UI
   private async loadProfileInBackground(user: User, sessionData: SessionData) {
     try {
-      console.log('🔄 Loading profile in background...')
+      console.log('🔄 Loading profile in background - no timeout constraints')
       
       const profile = await this.performLoadUserProfile(user)
       
@@ -198,6 +109,8 @@ class AuthFlowManager {
           profile,
           agreementStatus
         })
+        
+        console.log('✅ Background profile loading completed successfully')
       }
     } catch (error: any) {
       console.error('❌ Background profile loading failed:', error)
@@ -381,41 +294,26 @@ class AuthFlowManager {
     }
   }
 
-  // Load user profile from database
+  // Load user profile from database - NO TIMEOUTS
   private async loadUserProfile(user: User): Promise<any> {
-    console.log(`👤 Loading user profile, isInitialLogin: ${this.isInitialLogin}`)
+    console.log(`👤 Loading user profile - NO TIMEOUT APPLIED`)
     
     // Check if profile was already loaded once in this session
     const existingSession = SessionStorage.getSession()
     if (existingSession?.profileLoadedOnce && !this.isInitialLogin) {
       console.log('✅ Profile already loaded once in this session, using cached data')
-      // Still load profile but without timeout constraints
-      return await this.performLoadUserProfile(user)
     }
     
-    // Add timeout only for initial login, not for navigation
-    if (this.isInitialLogin) {
-      console.log('⏰ Using timeout for profile loading (initial login)')
-      const profilePromise = this.performLoadUserProfile(user)
-      const timeoutPromise = new Promise<any>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Profile loading timeout'))
-        }, 15000) // 15 second timeout only for initial login
-      })
-
-      try {
-        const profile = await Promise.race([profilePromise, timeoutPromise])
-        // Mark profile as loaded once after successful initial load
-        this.markProfileAsLoaded()
-        return profile
-      } catch (error: any) {
-        console.error('❌ Profile loading failed or timed out:', error)
-        throw error
-      }
-    } else {
-      // For navigation, no timeout - just load the profile
-      console.log('🚀 No timeout for profile loading (navigation)')
-      return await this.performLoadUserProfile(user)
+    // Always load profile without any timeout constraints
+    console.log('🚀 Loading profile without timeout')
+    try {
+      const profile = await this.performLoadUserProfile(user)
+      // Mark profile as loaded once after successful load
+      this.markProfileAsLoaded()
+      return profile
+    } catch (error: any) {
+      console.error('❌ Profile loading failed:', error)
+      throw error
     }
   }
 
