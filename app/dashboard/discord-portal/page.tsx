@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ResponsiveTabs, TabsContent } from "@/components/ui/enhanced-tabs"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -251,29 +251,35 @@ export default function CommunicationPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-4 md:grid-cols-2 sm:grid-cols-2">
-          <TabsTrigger value="overview" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
-            <Activity className="h-3 w-3 md:h-4 md:w-4" />
-            <span className="hidden sm:inline">Overview</span>
-            <span className="sm:hidden">Home</span>
-          </TabsTrigger>
-          <TabsTrigger value="webhooks" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
-            <Webhook className="h-3 w-3 md:h-4 md:w-4" />
-            <span className="hidden sm:inline">Webhooks</span>
-            <span className="sm:hidden">Hooks</span>
-          </TabsTrigger>
-          <TabsTrigger value="logs" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm md:col-start-1 lg:col-start-auto">
-            <MessageSquare className="h-3 w-3 md:h-4 md:w-4" />
-            <span className="hidden sm:inline">Message Logs</span>
-            <span className="sm:hidden">Logs</span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
-            <Settings className="h-3 w-3 md:h-4 md:w-4" />
-            <span className="hidden sm:inline">Settings</span>
-            <span className="sm:hidden">Config</span>
-          </TabsTrigger>
-        </TabsList>
+      <ResponsiveTabs 
+        tabs={[
+          {
+            value: "overview",
+            label: "Overview",
+            icon: Activity
+          },
+          {
+            value: "webhooks",
+            label: "Webhooks",
+            icon: Webhook
+          },
+          {
+            value: "logs",
+            label: "Message Logs",
+            icon: MessageSquare
+          },
+          {
+            value: "settings",
+            label: "Settings",
+            icon: Settings
+          }
+        ]}
+        defaultValue="overview"
+        variant="default"
+        size="md"
+        responsiveMode="auto"
+        className="space-y-6"
+      >
 
         <TabsContent value="overview" className="space-y-6">
           {/* Custom Date Range */}
@@ -567,7 +573,7 @@ export default function CommunicationPage() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+      </ResponsiveTabs>
     </div>
   )
 }

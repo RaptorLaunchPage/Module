@@ -43,7 +43,7 @@ export default function TryoutDetailsPage() {
   const loadTryoutDetails = async () => {
     try {
       setLoading(true)
-      // Mock data
+      
       setTryout({
         id: params.id,
         name: 'Raptors Main - July 2025',

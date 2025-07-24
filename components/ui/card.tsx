@@ -1,7 +1,7 @@
 import * as React from "react"
-
 import { cn } from "@/lib/utils"
 
+// Enhanced card styling with proper contrast and visibility
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -9,7 +9,16 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border bg-white/10 backdrop-blur-md border-white/20 text-white shadow-xl",
+      // Base styles with improved contrast and visibility
+      "rounded-lg border shadow-xl",
+      // Enhanced glassmorphic background with better contrast
+      "bg-black/80 backdrop-blur-lg border-white/40",
+      // Improved text visibility
+      "text-white",
+      // Mobile-optimized styling
+      "min-h-fit",
+      // Hover effects for better interactivity
+      "hover:bg-black/85 hover:border-white/50 transition-all duration-200",
       className
     )}
     {...props}
@@ -23,7 +32,12 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    className={cn(
+      "flex flex-col space-y-1.5 p-4 sm:p-6",
+      // Ensure header content is visible
+      "text-white",
+      className
+    )}
     {...props}
   />
 ))
@@ -36,7 +50,12 @@ const CardTitle = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "text-2xl font-semibold leading-none tracking-tight text-white",
+      // Enhanced title styling with better readability
+      "text-lg sm:text-xl lg:text-2xl font-bold leading-tight tracking-tight",
+      // High contrast white text
+      "text-white",
+      // Text shadow for better visibility on any background
+      "drop-shadow-lg",
       className
     )}
     {...props}
@@ -50,7 +69,12 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm text-white/80", className)}
+    className={cn(
+      "text-sm text-white/90",
+      // Better contrast for description text
+      "drop-shadow-md",
+      className
+    )}
     {...props}
   />
 ))
@@ -60,7 +84,16 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+  <div 
+    ref={ref} 
+    className={cn(
+      "p-4 sm:p-6 pt-0",
+      // Ensure content text is visible
+      "text-white",
+      className
+    )} 
+    {...props} 
+  />
 ))
 CardContent.displayName = "CardContent"
 
@@ -70,7 +103,12 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center p-6 pt-0", className)}
+    className={cn(
+      "flex items-center p-4 sm:p-6 pt-0",
+      // Footer text visibility
+      "text-white",
+      className
+    )}
     {...props}
   />
 ))

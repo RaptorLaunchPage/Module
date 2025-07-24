@@ -348,7 +348,7 @@ export function AttendanceStats({ attendances, teams, users, userRole }: Attenda
         <CardContent>
           <div className="space-y-3">
             {stats.daily.map((day) => (
-              <div key={day.date} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                              <div key={day.date} className="flex items-center justify-between p-2 hover:bg-black/20 hover:backdrop-blur-sm rounded">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium w-20">
                     {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}

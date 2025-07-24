@@ -6,6 +6,7 @@ import { AuthProvider } from "@/hooks/use-auth"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
 import { RouteGuard } from "@/components/route-guard"
+import { LoadingErrorBoundary } from "@/components/loading-error-boundary"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -23,14 +24,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} bg-transparent`}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          <AuthProvider>
-            <RouteGuard>
-              {children}
-            </RouteGuard>
-            <Toaster />
-          </AuthProvider>
-        </ThemeProvider>
+        <LoadingErrorBoundary>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+            <AuthProvider>
+              <RouteGuard>
+                {children}
+              </RouteGuard>
+              <Toaster />
+            </AuthProvider>
+          </ThemeProvider>
+        </LoadingErrorBoundary>
       </body>
     </html>
   )

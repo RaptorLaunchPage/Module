@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ResponsiveTabs, TabsContent } from "@/components/ui/enhanced-tabs"
 import { Trash2, Edit, RefreshCw, Users, Mail, Bot, CheckCircle, XCircle, AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import type { Database } from "@/lib/supabase"
@@ -525,12 +525,34 @@ export default function UserManagementPage() {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="all">All Users ({allUsers.length})</TabsTrigger>
-          <TabsTrigger value="email">Email Users ({emailUsers.length})</TabsTrigger>
-          <TabsTrigger value="discord">Discord Users ({discordUsers.length})</TabsTrigger>
-        </TabsList>
+      <ResponsiveTabs 
+        tabs={[
+          {
+            value: "all",
+            label: `All Users`,
+            badge: allUsers.length,
+            icon: Users
+          },
+          {
+            value: "email",
+            label: `Email Users`,
+            badge: emailUsers.length,
+            icon: Mail
+          },
+          {
+            value: "discord",
+            label: `Discord Users`,
+            badge: discordUsers.length,
+            icon: Bot
+          }
+        ]}
+        value={activeTab}
+        onValueChange={setActiveTab}
+        defaultValue="all"
+        variant="default"
+        size="md"
+        responsiveMode="auto"
+      >
 
         <TabsContent value="all" className="space-y-6">
           <UserTable users={allUsers} title="All Users" />
@@ -543,7 +565,7 @@ export default function UserManagementPage() {
         <TabsContent value="discord" className="space-y-6">
           <UserTable users={discordUsers} title="Discord Users" />
         </TabsContent>
-      </Tabs>
+      </ResponsiveTabs>
 
       {editingUser && (
         <Card>

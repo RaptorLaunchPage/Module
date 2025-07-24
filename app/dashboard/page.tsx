@@ -8,7 +8,7 @@ import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ResponsiveTabs, TabsContent } from '@/components/ui/enhanced-tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { 
   Users, 
@@ -810,13 +810,37 @@ export default function OptimizedDashboardPage() {
       </Card>
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
-          {canAccessAnalytics && <TabsTrigger value="analytics">Analytics</TabsTrigger>}
-          {(canAccessFinance || canAccessUsers) && <TabsTrigger value="management">Management</TabsTrigger>}
-        </TabsList>
+      <ResponsiveTabs 
+        tabs={[
+          {
+            value: "overview",
+            label: "Overview",
+            icon: BarChart3
+          },
+          {
+            value: "performance",
+            label: "Performance",
+            icon: Target
+          },
+          {
+            value: "analytics",
+            label: "Analytics",
+            icon: TrendingUp,
+            hidden: !canAccessAnalytics
+          },
+          {
+            value: "management",
+            label: "Management",
+            icon: Users,
+            hidden: !(canAccessFinance || canAccessUsers)
+          }
+        ]}
+        defaultValue="overview"
+        variant="default"
+        size="md"
+        responsiveMode="auto"
+        className="space-y-4"
+      >
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -865,11 +889,11 @@ export default function OptimizedDashboardPage() {
               <CardContent>
                 <div className="space-y-4">
                   {topPerformers.topPlayer && (
-                    <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-                      <Star className="h-5 w-5 text-yellow-500" />
+                    <div className="flex items-center gap-3 p-3 bg-yellow-900/40 backdrop-blur-lg border border-yellow-400/60 rounded-lg shadow-xl">
+                      <Star className="h-5 w-5 text-yellow-400" />
                       <div>
-                        <p className="font-semibold text-sm">{topPerformers.topPlayer.name}</p>
-                        <p className="text-xs text-muted-foreground">{topPerformers.topPlayer.metric}: {topPerformers.topPlayer.value.toFixed(1)}</p>
+                        <p className="font-semibold text-sm text-white drop-shadow-md">{topPerformers.topPlayer.name}</p>
+                        <p className="text-xs text-white/80 drop-shadow-sm">{topPerformers.topPlayer.metric}: {topPerformers.topPlayer.value.toFixed(1)}</p>
                       </div>
                     </div>
                   )}
@@ -1028,7 +1052,7 @@ export default function OptimizedDashboardPage() {
             </div>
           </TabsContent>
         )}
-      </Tabs>
+      </ResponsiveTabs>
 
       {/* Cache Performance Stats (only in development) */}
       {process.env.NODE_ENV === 'development' && cacheStats && (

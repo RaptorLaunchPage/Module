@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { AvatarUpload } from '@/components/profile/avatar-upload'
 import { 
   UserProfile, 
   formatBGMITier, 
@@ -35,9 +36,10 @@ interface ProfileHeaderProps {
   viewerProfile: UserProfile
   onEdit?: () => void
   isEditing?: boolean
+  showAvatarUpload?: boolean
 }
 
-export function ProfileHeader({ profile, viewerProfile, onEdit, isEditing }: ProfileHeaderProps) {
+export function ProfileHeader({ profile, viewerProfile, onEdit, isEditing, showAvatarUpload = false }: ProfileHeaderProps) {
   const completion = calculateProfileCompletion(profile)
   const status = getProfileStatus(profile)
   const canEdit = canEditProfile(
@@ -95,23 +97,44 @@ export function ProfileHeader({ profile, viewerProfile, onEdit, isEditing }: Pro
         <div className="flex flex-col md:flex-row gap-6">
           {/* Avatar and basic info */}
           <div className="flex-shrink-0">
-            <div className="relative">
-              <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-white shadow-lg">
-                <AvatarImage src={profile.avatar_url || undefined} />
-                <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-blue-500 to-purple-500 text-white">
-                  {getInitials(profile.display_name || profile.full_name || profile.name)}
-                </AvatarFallback>
-              </Avatar>
-              
-              {/* BGMI Tier Badge */}
-              {profile.bgmi_tier && (
-                <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-2 shadow-lg">
-                  <div className="text-xs font-bold text-center">
-                    {formatBGMITier(profile.bgmi_tier as any)}
+            {showAvatarUpload && canEdit ? (
+              <div className="relative">
+                <AvatarUpload
+                  currentAvatarUrl={profile.avatar_url}
+                  userId={profile.id}
+                  userName={profile.display_name || profile.full_name || profile.name || 'User'}
+                  canEdit={canEdit}
+                  size="lg"
+                />
+                
+                {/* BGMI Tier Badge */}
+                {profile.bgmi_tier && (
+                  <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-2 shadow-lg">
+                    <div className="text-xs font-bold text-center">
+                      {formatBGMITier(profile.bgmi_tier as any)}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ) : (
+              <div className="relative">
+                <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-white shadow-lg">
+                  <AvatarImage src={profile.avatar_url || undefined} />
+                  <AvatarFallback className="text-2xl font-bold bg-gradient-to-br from-blue-500 to-purple-500 text-white">
+                    {getInitials(profile.display_name || profile.full_name || profile.name)}
+                  </AvatarFallback>
+                </Avatar>
+                
+                {/* BGMI Tier Badge */}
+                {profile.bgmi_tier && (
+                  <div className="absolute -bottom-2 -right-2 bg-white rounded-full p-2 shadow-lg">
+                    <div className="text-xs font-bold text-center">
+                      {formatBGMITier(profile.bgmi_tier as any)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           
           {/* Main info */}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ResponsiveTabs, TabsContent } from "@/components/ui/enhanced-tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -509,25 +509,32 @@ export default function PerformancePage() {
         )}
       </div>
 
-      <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-          <TabsTrigger value="dashboard" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Dashboard</span>
-          </TabsTrigger>
-          {canViewReport && (
-            <TabsTrigger value="report" className="flex items-center gap-2">
-              <Target className="h-4 w-4" />
-              <span className="hidden sm:inline">Report</span>
-            </TabsTrigger>
-          )}
-          {canSubmitPerformance && (
-            <TabsTrigger value="submit" className="flex items-center gap-2">
-              <Gamepad2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Submit</span>
-            </TabsTrigger>
-          )}
-        </TabsList>
+      <ResponsiveTabs 
+        tabs={[
+          {
+            value: "dashboard",
+            label: "Dashboard",
+            icon: BarChart3
+          },
+          {
+            value: "report",
+            label: "Report",
+            icon: Target,
+            hidden: !canViewReport
+          },
+          {
+            value: "submit",
+            label: "Submit",
+            icon: Gamepad2,
+            hidden: !canSubmitPerformance
+          }
+        ]}
+        defaultValue="dashboard"
+        variant="default"
+        size="md"
+        responsiveMode="auto"
+        className="space-y-4"
+      >
 
         <TabsContent value="dashboard" className="space-y-6">
           {/* Filters */}
@@ -835,7 +842,7 @@ export default function PerformancePage() {
             })()}
           </TabsContent>
         )}
-      </Tabs>
+      </ResponsiveTabs>
     </div>
   )
 }

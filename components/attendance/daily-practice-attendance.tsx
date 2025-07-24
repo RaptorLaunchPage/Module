@@ -172,10 +172,10 @@ export function DailyPracticeAttendance({ userProfile, teams, users }: DailyPrac
 
   const getSessionColor = (subtype: string) => {
     switch (subtype) {
-      case 'Morning': return 'border-yellow-200 bg-yellow-50'
-      case 'Evening': return 'border-orange-200 bg-orange-50'
-      case 'Night': return 'border-purple-200 bg-purple-50'
-      default: return 'border-gray-200 bg-gray-50'
+      case 'Morning': return 'bg-yellow-900/40 backdrop-blur-lg border border-yellow-400/60 text-white shadow-xl'
+      case 'Evening': return 'bg-orange-900/40 backdrop-blur-lg border border-orange-400/60 text-white shadow-xl'
+      case 'Night': return 'bg-purple-900/40 backdrop-blur-lg border border-purple-400/60 text-white shadow-xl'
+      default: return 'bg-black/85 backdrop-blur-lg border border-white/40 text-white shadow-xl'
     }
   }
 
@@ -241,14 +241,14 @@ export function DailyPracticeAttendance({ userProfile, teams, users }: DailyPrac
       </div>
 
       {/* Attendance Rules Info */}
-      <Card className="border-blue-200 bg-blue-50">
+      <Card className="bg-black/85 backdrop-blur-lg border border-blue-400/60 shadow-2xl text-white rounded-lg">
         <CardContent className="p-4">
           <div className="flex items-start gap-2">
-            <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
+            <AlertCircle className="h-5 w-5 text-blue-400 mt-0.5" />
             <div className="text-sm">
-              <p className="font-medium text-blue-900">Daily Practice Rules:</p>
-              <ul className="mt-1 space-y-1 text-blue-700">
-                <li>• Mark attendance for <strong>any one session</strong> per day to be counted present</li>
+              <p className="font-medium text-blue-200 drop-shadow-md">Daily Practice Rules:</p>
+              <ul className="mt-1 space-y-1 text-white/90 drop-shadow-sm">
+                <li>• Mark attendance for <strong className="text-white font-semibold">any one session</strong> per day to be counted present</li>
                 <li>• Once marked, other sessions for the day are disabled</li>
                 <li>• Attendance must be marked before cutoff time (usually 12:00 PM)</li>
                 <li>• Practice sessions are mandatory for all players</li>

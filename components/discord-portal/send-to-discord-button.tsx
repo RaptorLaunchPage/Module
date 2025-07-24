@@ -349,12 +349,12 @@ export function SendToDiscordButton({
                   Loading available channels...
                 </div>
               ) : availableWebhooks.length === 0 ? (
-                <div className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-yellow-900/40 backdrop-blur-lg border border-yellow-400/60 rounded-lg shadow-xl text-white">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                                          <AlertCircle className="h-4 w-4 text-yellow-400" />
                     <div className="text-sm">
-                      <div className="font-medium text-yellow-800">No webhooks found</div>
-                      <div className="text-yellow-700">Configure Discord webhooks first to send messages</div>
+                      <div className="font-medium text-yellow-200 drop-shadow-md">No webhooks found</div>
+                      <div className="text-white/90 drop-shadow-sm">Configure Discord webhooks first to send messages</div>
                     </div>
                   </div>
                   <Button 
