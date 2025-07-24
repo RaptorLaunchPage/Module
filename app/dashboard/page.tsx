@@ -569,17 +569,30 @@ export default function OptimizedDashboardPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {/* Role-Specific Overview */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              {isPlayer ? 'My Team & Performance Overview' : 
-               isCoach ? 'Team Management Overview' :
-               isAnalyst ? 'Analytics Overview' :
-               'Team & Organization Overview'}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="space-y-8">
+          {/* Main Overview Section */}
+          <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                <div className={`p-2 rounded-lg bg-${roleInfo.color}-500/20`}>
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+                {isPlayer ? 'My Performance Dashboard' : 
+                 isCoach ? 'Team Management Dashboard' :
+                 isAnalyst ? 'Analytics Dashboard' :
+                 isManager ? 'Management Dashboard' :
+                 'Administrative Dashboard'}
+              </CardTitle>
+              <CardDescription className="text-white/70">
+                {isPlayer ? 'Track your personal performance and team progress' :
+                 isCoach ? 'Monitor team performance and player development' :
+                 isAnalyst ? 'Deep dive into performance analytics and insights' :
+                 isManager ? 'Oversee operations and team management' :
+                 'Complete administrative overview and control'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
@@ -695,16 +708,25 @@ export default function OptimizedDashboardPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Financial Overview - Admin/Manager Only */}
+          {/* Financial Overview Section - Admin/Manager Only */}
           {canViewFinancials && (
-            <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Financial Overview
-              </h3>
+            <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-green-500/20">
+                    <DollarSign className="h-6 w-6 text-white" />
+                  </div>
+                  Financial Overview
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  Revenue, expenses, and financial performance tracking
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white">
                 <CardContent className="pt-6">
@@ -744,16 +766,25 @@ export default function OptimizedDashboardPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-            </div>
+              </div>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Performance & Attendance */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              {isPlayer ? 'My Performance & Attendance' : 'Performance & Attendance'}
-            </h3>
+          {/* Performance & Attendance Section */}
+          <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-500/20">
+                  <Activity className="h-6 w-6 text-white" />
+                </div>
+                {isPlayer ? 'My Performance & Attendance' : 'Performance & Attendance'}
+              </CardTitle>
+              <CardDescription className="text-white/70">
+                {isPlayer ? 'Your personal performance metrics and attendance record' : 'Team performance statistics and attendance tracking'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white">
                 <CardContent className="pt-6">
@@ -810,16 +841,25 @@ export default function OptimizedDashboardPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Player Action Buttons - Player Only */}
           {isPlayer && (
-            <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                Quick Actions
-              </h3>
+            <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-purple-500/20">
+                    <Plus className="h-6 w-6 text-white" />
+                  </div>
+                  My Quick Actions
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  Essential actions for managing your performance and attendance
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Card className="bg-black/40 backdrop-blur-lg border border-blue-400/40 hover:border-blue-400/60 transition-all duration-200 cursor-pointer group">
                   <CardContent className="p-6">
@@ -878,16 +918,25 @@ export default function OptimizedDashboardPage() {
                   </CardContent>
                 </Card>
               </div>
-            </div>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Communication & Discord - Admin/Manager Only */}
+          {/* Communication & Discord Section - Admin/Manager Only */}
           {(isAdmin || isManager) && (
-            <div>
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Communication & Discord
-              </h3>
+            <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-violet-500/20">
+                    <MessageSquare className="h-6 w-6 text-white" />
+                  </div>
+                  Communication & Discord Integration
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  Discord webhooks, messaging, and team communication stats
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Card className="bg-gradient-to-r from-violet-500 to-violet-600 text-white">
                 <CardContent className="pt-6">
@@ -927,46 +976,54 @@ export default function OptimizedDashboardPage() {
                   </div>
                 </CardContent>
               </Card>
-            </div>
-            </div>
+              </div>
+              </CardContent>
+            </Card>
           )}
+
+          {/* Recent Activity Section */}
+          <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-500/20">
+                  <Clock className="h-6 w-6 text-white" />
+                </div>
+                Recent Activity
+              </CardTitle>
+              <CardDescription className="text-white/70">
+                Latest match results and performance entries
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentPerformances.length > 0 ? (
+                <div className="space-y-3">
+                  {recentPerformances.slice(0, 5).map((perf, index) => (
+                    <div key={perf.id} className="flex items-center justify-between p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg">
+                      <div>
+                        <p className="font-medium text-white text-sm">{perf.map || 'Unknown Map'}</p>
+                        <p className="text-xs text-white/60 mt-1">
+                          Placement: #{perf.placement || 'N/A'} • {perf.kills || 0} kills • {formatNumber(perf.damage || 0)} damage
+                        </p>
+                      </div>
+                      <Badge variant={perf.placement === 1 ? 'default' : 'secondary'}>
+                        {perf.placement === 1 ? '🥇 Win' : `#${perf.placement || 'N/A'}`}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Activity className="h-12 w-12 mx-auto mb-4 text-white/40" />
+                  <p className="text-white/60">No recent activity</p>
+                  <p className="text-white/40 text-sm mt-1">Your latest matches will appear here</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}  {/* End of metrics conditional */}
 
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Play className="h-5 w-5" />
-            Quick Actions
-          </CardTitle>
-          <CardDescription>
-            Jump to your most used features
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickActions.map((action, index) => (
-              <Link key={index} href={action.href}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer group">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center space-x-4">
-                      <div className={`${action.color} p-3 rounded-lg text-white group-hover:scale-110 transition-transform`}>
-                        <action.icon className="h-6 w-6" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-sm">{action.title}</h3>
-                        <p className="text-xs text-muted-foreground">{action.description}</p>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* Main Content Tabs */}
       <ResponsiveTabs 
@@ -1002,41 +1059,29 @@ export default function OptimizedDashboardPage() {
       >
 
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Financial Overview */}
-            {canAccessFinance && stats && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5" />
-                    Financial Overview
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Total Expenses</span>
-                      <span className="text-lg font-bold text-red-600">₹{formatNumber(stats.totalExpense)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Net P&L</span>
-                      <span className={`text-lg font-bold ${stats.totalProfitLoss >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ₹{formatNumber(Math.abs(stats.totalProfitLoss))}
-                        {stats.totalProfitLoss < 0 && ' (Loss)'}
-                      </span>
-                    </div>
-                    <Link href="/dashboard/finance">
-                      <Button variant="outline" className="w-full">
-                        View Finance Details
-                        <ChevronRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Top Performers */}
+          <Card className="bg-black/20 backdrop-blur-lg border border-white/10 shadow-xl">
+            <CardContent className="p-8 text-center">
+              <div className="mb-4">
+                <BarChart3 className="h-16 w-16 mx-auto text-white/60" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Overview Complete</h3>
+              <p className="text-white/70 mb-6">
+                Your {roleInfo.label.toLowerCase()} dashboard overview is displayed above. 
+                Use the tabs to access specific modules and features.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                {quickActions.slice(0, 2).map((action, index) => (
+                  <Button key={index} asChild variant={index === 0 ? "default" : "outline"}>
+                    <a href={action.href}>
+                      <action.icon className="h-4 w-4 mr-2" />
+                      {action.title}
+                    </a>
+                  </Button>
+                ))}
+              </div>
+                         </CardContent>
+           </Card>
+        </TabsContent>
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

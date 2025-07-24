@@ -256,6 +256,15 @@ class AuthFlowManager {
         agreementStatus,
         error: null
       })
+      
+      console.log('✅ Auth state updated successfully:', {
+        isAuthenticated: true,
+        isInitialized: true, 
+        isLoading: false,
+        hasUser: !!sessionData.user,
+        hasProfile: !!profile,
+        agreementStatus
+      })
 
       // Determine redirect path
       if (agreementStatus.requiresAgreement) {
