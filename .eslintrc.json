@@ -4,7 +4,7 @@
     "next/typescript"
   ],
   "rules": {
-    // Disable all ESLint warnings/errors for clean build
+    // Disable style/preference warnings - these are just noise
     "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/no-explicit-any": "off",
     "react/no-unescaped-entities": "off",
@@ -12,8 +12,10 @@
     "@typescript-eslint/no-require-imports": "off",
     "prefer-const": "off",
     "react-hooks/exhaustive-deps": "off",
-    "react-hooks/rules-of-hooks": "off",
     "@next/next/no-assign-module-variable": "off",
-    "@typescript-eslint/no-non-null-asserted-optional-chain": "off"
+    "@typescript-eslint/no-non-null-asserted-optional-chain": "off",
+    
+    // Keep only the critical rule that prevents actual runtime errors
+    "react-hooks/rules-of-hooks": "error"
   }
 }
