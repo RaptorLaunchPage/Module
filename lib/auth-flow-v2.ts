@@ -65,30 +65,9 @@ class AuthFlowV2Manager {
     return { ...this.state }
   }
 
-  // Force complete loading state (emergency fallback)
-  forceCompleteLoading(): void {
-    console.log('🚨 Auth flow: Force completing loading state')
-    this.setState({
-      isInitialized: true,
-      isLoading: false,
-      error: 'Loading was forced to complete due to timeout'
-    })
-  }
-
   // Update state and notify listeners
   private setState(updates: Partial<AuthState>) {
-    const prevState = { ...this.state }
     this.state = { ...this.state, ...updates }
-    
-    // Log state changes for debugging
-    if (updates.isLoading !== undefined || updates.isAuthenticated !== undefined) {
-      console.log('🔄 Auth state change:', {
-        from: { isLoading: prevState.isLoading, isAuthenticated: prevState.isAuthenticated, hasProfile: !!prevState.profile },
-        to: { isLoading: this.state.isLoading, isAuthenticated: this.state.isAuthenticated, hasProfile: !!this.state.profile },
-        timestamp: new Date().toISOString()
-      })
-    }
-    
     this.listeners.forEach(listener => listener(this.state))
   }
 
@@ -132,89 +111,68 @@ class AuthFlowV2Manager {
       console.log('🚀 Starting streamlined auth initialization...')
       this.setState({ isLoading: true, error: null })
 
-      // Add timeout protection for the entire initialization process
-      const initializationPromise = this.doInitialization(isInitialLoad)
-      const timeoutPromise = new Promise<AuthFlowResult>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Authentication initialization timed out after 10 seconds'))
-        }, 10000)
+      // Step 1: Check for existing session
+      const existingSession = SessionStorage.getSession()
+      const accessToken = SessionStorage.getAccessToken()
+
+      if (existingSession && accessToken && !SessionStorage.isTokenExpired()) {
+        console.log('✅ Valid session found in storage')
+        
+        // Try to restore user with cached profile if available
+        const cachedProfile = this.profileCache.get(existingSession.user.id)
+        if (cachedProfile) {
+          console.log('✅ Using cached profile data')
+          return await this.setAuthenticatedState(existingSession, cachedProfile, false) // Don't redirect on restore
+        }
+
+        // Validate session with Supabase
+        const { data: { user }, error } = await supabase.auth.getUser(accessToken)
+        
+        if (user && !error) {
+          // Load profile in parallel
+          const profile = await this.loadUserProfileFast(user)
+          if (profile) {
+            this.profileCache.set(user.id, profile)
+            return await this.setAuthenticatedState(existingSession, profile, false) // Don't redirect on restore
+          }
+        } else {
+          console.log('⚠️ Stored session invalid, clearing...')
+          SessionStorage.clearSession()
+          this.profileCache.clear()
+        }
+      }
+
+      // Step 2: Check for active Supabase session
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (session?.user) {
+        console.log('🔄 Active Supabase session found, processing...')
+        return await this.handleSupabaseSession(session)
+      }
+
+      // Step 3: No active session
+      console.log('📝 No active session found')
+      this.setState({
+        isAuthenticated: false,
+        isInitialized: true,
+        isLoading: false,
+        user: null,
+        profile: null,
+        agreementStatus: { requiresAgreement: false, isChecked: true }
       })
 
-      return await Promise.race([initializationPromise, timeoutPromise])
+      return { success: true, shouldRedirect: false }
 
     } catch (error: any) {
       console.error('❌ Auth initialization failed:', error)
-      
-      // Ensure we always set loading to false
       this.setState({
         isInitialized: true,
         isLoading: false,
-        isAuthenticated: false,
-        user: null,
-        profile: null,
-        agreementStatus: { requiresAgreement: false, isChecked: true },
         error: error.message || 'Authentication initialization failed'
       })
-      
       return { success: false, shouldRedirect: false, error: error.message }
     }
   }
-
-  // Separate the actual initialization logic
-  private async doInitialization(isInitialLoad: boolean): Promise<AuthFlowResult> {
-    // Step 1: Check for existing session
-    const existingSession = SessionStorage.getSession()
-    const accessToken = SessionStorage.getAccessToken()
-
-    if (existingSession && accessToken && !SessionStorage.isTokenExpired()) {
-      console.log('✅ Valid session found in storage')
-      
-      // Try to restore user with cached profile if available
-      const cachedProfile = this.profileCache.get(existingSession.user.id)
-      if (cachedProfile) {
-        console.log('✅ Using cached profile data')
-        return await this.setAuthenticatedState(existingSession, cachedProfile, false) // Don't redirect on restore
-      }
-
-      // Validate session with Supabase
-      const { data: { user }, error } = await supabase.auth.getUser(accessToken)
-      
-      if (user && !error) {
-        // Load profile in parallel
-        const profile = await this.loadUserProfileFast(user)
-        if (profile) {
-          this.profileCache.set(user.id, profile)
-          return await this.setAuthenticatedState(existingSession, profile, false) // Don't redirect on restore
-        }
-      } else {
-        console.log('⚠️ Stored session invalid, clearing...')
-        SessionStorage.clearSession()
-        this.profileCache.clear()
-      }
-    }
-
-    // Step 2: Check for active Supabase session
-    const { data: { session } } = await supabase.auth.getSession()
-    
-    if (session?.user) {
-      console.log('🔄 Active Supabase session found, processing...')
-      return await this.handleSupabaseSession(session)
-    }
-
-    // Step 3: No active session
-    console.log('📝 No active session found')
-    this.setState({
-      isAuthenticated: false,
-      isInitialized: true,
-      isLoading: false,
-      user: null,
-      profile: null,
-      agreementStatus: { requiresAgreement: false, isChecked: true }
-    })
-
-    return { success: true, shouldRedirect: false }
-
-     }
 
   // Fast profile loading with proper error handling
   private async loadUserProfileFast(user: User): Promise<any> {

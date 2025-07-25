@@ -225,17 +225,11 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         currentStep={currentStep}
         steps={steps}
         customDescription={description}
-        timeoutMs={8000} // Reduced timeout to 8 seconds
+        timeoutMs={10000} // Add timeout to prevent infinite loading
         showProgress={true}
         onTimeout={() => {
           console.log('⚠️ Route guard loading timeout - forcing completion')
           setIsLoading(false)
-          
-          // If we're stuck on a protected route, redirect to login
-          if (!isPublicRoute(pathname)) {
-            console.log('🔄 Route guard: Timeout on protected route, redirecting to login')
-            router.push('/auth/login')
-          }
         }}
       />
     )
