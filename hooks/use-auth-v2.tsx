@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import { useState, useEffect, useCallback, createContext, useContext, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import authFlowV2, { AuthState, AuthFlowResult } from '@/lib/auth-flow-v2'
@@ -44,15 +44,19 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
   // Auth flow state
   const [authState, setAuthState] = useState<AuthState>(authFlowV2.getState())
   
+  // Track pending redirect for instant redirect when auth completes
+  const pendingRedirect = useRef<{ redirectPath: string; isFromAuthPage: boolean; isRequiredRedirect: boolean } | null>(null)
+  const mounted = useRef(true)
+  const redirectTimeout = useRef<NodeJS.Timeout | null>(null)
+  
   // Track Supabase auth events
   useEffect(() => {
     console.log('🔗 Setting up Supabase auth listener...')
     
-    let mounted = true
-    let redirectTimeout: NodeJS.Timeout | null = null
+
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, supabaseSession) => {
-      if (!mounted) return
+      if (!mounted.current) return
       
       console.log(`🔄 Supabase AUTH EVENT: ${event}`)
       
@@ -61,9 +65,9 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           console.log('🚪 Supabase signed out - cleaning up completely')
           
           // Clear any pending redirects
-          if (redirectTimeout) {
-            clearTimeout(redirectTimeout)
-            redirectTimeout = null
+          if (redirectTimeout.current) {
+            clearTimeout(redirectTimeout.current)
+            redirectTimeout.current = null
           }
           
           // Clear all auth state immediately
@@ -89,15 +93,33 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
             if (isFromAuthPage || isRequiredRedirect) {
               // Don't redirect if already on the target page
               if (currentPath !== result.redirectPath) {
-                console.log('🎬 Starting login animation sequence before redirect to:', result.redirectPath)
+                console.log('🎬 Sign in detected, preparing for redirect to:', result.redirectPath)
                 
-                // Give enough time for the complete login animation sequence
-                redirectTimeout = setTimeout(() => {
-                  if (mounted) {
-                    console.log('🔄 Animation complete, redirecting to:', result.redirectPath)
-                    router.push(result.redirectPath!)
-                  }
-                }, 2500)
+                // Store redirect information for instant redirect when auth completes
+                pendingRedirect.current = {
+                  redirectPath: result.redirectPath,
+                  isFromAuthPage,
+                  isRequiredRedirect
+                }
+                
+                // If authentication is already complete (profile loaded), redirect immediately
+                if (authState.isAuthenticated && !authState.isLoading && authState.profile) {
+                  console.log('⚡ Profile already ready, redirecting immediately to:', result.redirectPath)
+                  router.push(result.redirectPath)
+                  pendingRedirect.current = null
+                } else {
+                  console.log('⏳ Waiting for profile to load before redirect...')
+                  // The useEffect watching authState will handle the redirect when ready
+                  
+                  // Fallback timeout in case something goes wrong (increased to 5 seconds)
+                  redirectTimeout.current = setTimeout(() => {
+                    if (mounted.current && pendingRedirect.current) {
+                      console.log('⚠️ Fallback timeout triggered, redirecting to:', pendingRedirect.current.redirectPath)
+                      router.push(pendingRedirect.current.redirectPath)
+                      pendingRedirect.current = null
+                    }
+                  }, 5000)
+                }
               } else {
                 console.log('🔄 Already on target page, skipping redirect')
               }
@@ -119,9 +141,9 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
     })
 
     return () => {
-      mounted = false
-      if (redirectTimeout) {
-        clearTimeout(redirectTimeout)
+      mounted.current = false
+      if (redirectTimeout.current) {
+        clearTimeout(redirectTimeout.current)
       }
       subscription.unsubscribe()
     }
@@ -136,9 +158,38 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
     return unsubscribe
   }, [])
 
+  // Handle instant redirect when authentication is complete
+  useEffect(() => {
+    if (!mounted.current) return
+
+    // Check if we should trigger an instant redirect after authentication completes
+    if (authState.isAuthenticated && !authState.isLoading && authState.profile && pendingRedirect.current) {
+      const { redirectPath, isFromAuthPage, isRequiredRedirect } = pendingRedirect.current
+      const currentPath = window.location.pathname
+
+      console.log('🚀 Authentication complete! Profile ready, triggering instant redirect to:', redirectPath)
+      
+      // Clear any existing redirect timeout
+      if (redirectTimeout.current) {
+        clearTimeout(redirectTimeout.current)
+        redirectTimeout.current = null
+      }
+
+      // Don't redirect if already on the target page
+      if (currentPath !== redirectPath) {
+        console.log('⚡ Instant redirect to:', redirectPath)
+        router.push(redirectPath)
+      } else {
+        console.log('🔄 Already on target page, skipping redirect')
+      }
+
+      // Clear the pending redirect
+      pendingRedirect.current = null
+    }
+  }, [authState.isAuthenticated, authState.isLoading, authState.profile, router])
+
   // Initialize auth flow on mount
   useEffect(() => {
-    let mounted = true
     let initTimeout: NodeJS.Timeout | null = null
     
     const initializeAuth = async () => {
@@ -168,7 +219,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         console.log('🚀 Auth hook: Performing initialization...')
         const result = await authFlowV2.initialize(false)
         
-        if (!mounted) return
+        if (!mounted.current) return
         
         // Only redirect if explicitly needed and not on a public route
         if (result.success && result.shouldRedirect && result.redirectPath) {
@@ -178,7 +229,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
             console.log('🔄 Auth hook: Redirecting to:', result.redirectPath)
             
             initTimeout = setTimeout(() => {
-              if (mounted) {
+              if (mounted.current) {
                 router.push(result.redirectPath!)
               }
             }, 200)
@@ -186,7 +237,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         }
       } catch (error: any) {
         console.error('❌ Auth hook initialization error:', error)
-        if (mounted) {
+        if (mounted.current) {
           toast({
             title: 'Initialization Error',
             description: 'Failed to initialize authentication',
@@ -198,13 +249,13 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
 
     // Only initialize once on mount, not on every dependency change
     const delayedInit = setTimeout(() => {
-      if (mounted) {
+      if (mounted.current) {
         initializeAuth()
       }
     }, 100)
     
     return () => {
-      mounted = false
+      mounted.current = false
       clearTimeout(delayedInit)
       if (initTimeout) {
         clearTimeout(initTimeout)
