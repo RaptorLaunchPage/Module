@@ -27,6 +27,7 @@ import {
   Crown
 } from "lucide-react"
 import type { Database } from "@/lib/supabase"
+import type { AuthProfile } from "@/lib/auth-flow-v3"
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 type Team = Database["public"]["Tables"]["teams"]["Row"]
@@ -42,7 +43,7 @@ interface PlayerAttendanceState {
 
 interface EnhancedMarkAttendanceProps {
   onAttendanceMarked: () => void
-  userProfile: UserProfile | null
+  userProfile: AuthProfile | null
   teams: Team[]
   users: UserProfile[]
 }

@@ -798,7 +798,7 @@ export default function PerformancePage() {
                         time_period: selectedTimePeriod !== 'all'
                       }
                     }}
-                    teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id}
+                    teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id || undefined}
                     variant="outline"
                   />
                 </CardTitle>
@@ -818,7 +818,50 @@ export default function PerformancePage() {
             <PerformanceDashboard 
               performances={filteredPerformances} 
               users={users} 
-              currentUser={profile}
+              currentUser={profile ? {
+                ...profile,
+                role_level: null,
+                avatar_url: null,
+                created_at: '',
+                provider: '',
+                phone: null,
+                gaming_stats: null,
+                achievements: null,
+                last_seen: null,
+                agreement_status: '',
+                agreement_version: null,
+                agreement_signed_at: null,
+                preferred_slot_times: null,
+                preferred_game_modes: null,
+                performance_goals: null,
+                performance_notes: null,
+                coach_notes: null,
+                team_role: null,
+                onboarding_completed: false,
+                updated_at: null,
+                last_profile_update: null,
+                discord_id: null,
+                timezone: null,
+                practice_schedule: null,
+                availability: null,
+                emergency_contact: null,
+                date_of_birth: null,
+                guardian_contact: null,
+                medical_info: null,
+                dietary_restrictions: null,
+                experience_level: null,
+                previous_teams: null,
+                goals: null,
+                referral_source: null,
+                social_media: null,
+                streaming_info: null,
+                hardware_info: null,
+                internet_speed: null,
+                language_preferences: null,
+                communication_preferences: null,
+                training_focus: null,
+                improvement_areas: null
+              } as UserProfile : null}
               showFilters={false}
               compact={false}
             />

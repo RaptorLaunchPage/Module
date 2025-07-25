@@ -850,7 +850,7 @@ export default function FinancePage() {
                         amount: Math.max(...filteredExpenses.map(e => e.total), 0)
                       }
                     }}
-                    teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id}
+                    teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id || undefined}
                     variant="outline"
                     webhookTypes={['admin']} // Finance data only to admin channels
                   />

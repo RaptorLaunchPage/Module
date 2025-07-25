@@ -15,13 +15,14 @@ export interface AuthProfile {
   name: string
   email: string
   role: string
+  team_id?: string | null
   onboarding_completed?: boolean
   [key: string]: any
 }
 
 export interface AgreementStatus {
   requiresAgreement: boolean
-  status?: 'missing' | 'outdated' | 'current' | 'bypassed'
+  status?: 'missing' | 'outdated' | 'current' | 'bypassed' | 'declined' | 'pending'
   current_version?: number
   required_version?: number
 }

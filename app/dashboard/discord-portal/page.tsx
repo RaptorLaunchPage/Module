@@ -18,7 +18,7 @@ import {
   Plus,
   AlertTriangle
 } from "lucide-react"
-import { DashboardPermissions } from "@/lib/dashboard-permissions"
+import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
 
 interface CommunicationStats {
   totalMessages: number
@@ -39,7 +39,7 @@ export default function CommunicationPage() {
   const [customStartDate, setCustomStartDate] = useState<string>("")
   const [customEndDate, setCustomEndDate] = useState<string>("")
 
-  const permissions = DashboardPermissions.getPermissions(profile?.role || 'player')
+  const permissions = DashboardPermissions.getPermissions((profile?.role as UserRole) || 'player')
 
   useEffect(() => {
     if (profile?.id) {

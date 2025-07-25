@@ -424,7 +424,7 @@ export default function AttendancePage() {
                             .sort((a, b) => b.percentage - a.percentage)
                             .slice(0, 5)
                         }}
-                        teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id}
+                        teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id || undefined}
                         variant="outline"
                       />
                     </CardTitle>

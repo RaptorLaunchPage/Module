@@ -20,13 +20,14 @@ import {
   AlertCircle
 } from "lucide-react"
 import type { Database } from "@/lib/supabase"
+import type { AuthProfile } from "@/lib/auth-flow-v3"
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 type Team = Database["public"]["Tables"]["teams"]["Row"]
 
 interface MarkAttendanceProps {
   onAttendanceMarked: () => void
-  userProfile: UserProfile | null
+  userProfile: AuthProfile | null
   teams: Team[]
   users: UserProfile[]
 }

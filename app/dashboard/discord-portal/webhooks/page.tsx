@@ -23,7 +23,7 @@ import {
   ExternalLink,
   Loader2
 } from "lucide-react"
-import { DashboardPermissions } from "@/lib/dashboard-permissions"
+import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
 
 interface DiscordWebhook {
   id: string
@@ -60,7 +60,7 @@ export default function WebhooksPage() {
   const [validating, setValidating] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  const permissions = DashboardPermissions.getPermissions(profile?.role)
+  const permissions = DashboardPermissions.getPermissions(profile?.role as UserRole)
 
   useEffect(() => {
     if (profile?.id) {
