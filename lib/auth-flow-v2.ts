@@ -75,10 +75,26 @@ class AuthFlowV2Manager {
   async initialize(isInitialLoad: boolean = true): Promise<AuthFlowResult> {
     // Prevent multiple simultaneous initializations
     if (this.initPromise) {
-      console.log('🔄 Auth initialization already in progress, waiting...')
+      console.log('🔄 Auth flow: Initialization already in progress, waiting...')
       return this.initPromise
     }
 
+    // If already initialized and authenticated, return current state unless forcing reload
+    if (this.state.isInitialized && this.state.isAuthenticated && !isInitialLoad) {
+      console.log('✅ Auth flow: Already initialized and authenticated, returning current state')
+      return { 
+        success: true, 
+        shouldRedirect: false 
+      }
+    }
+
+    // If initialized but not authenticated (signed out state), only reinitialize if explicitly requested
+    if (this.state.isInitialized && !this.state.isAuthenticated && !isInitialLoad) {
+      console.log('🏠 Auth flow: In signed-out state, not reinitializing unless requested')
+      return { success: true, shouldRedirect: false }
+    }
+
+    console.log(`🚀 Auth flow: Starting initialization (isInitialLoad: ${isInitialLoad})`)
     this.initPromise = this.performInitialize(isInitialLoad)
     
     try {
@@ -223,18 +239,18 @@ class AuthFlowV2Manager {
       // Check agreement status
       const agreementStatus = await this.checkAgreementStatus(profile)
 
-      // Update auth state
+      // Update auth state - ENSURE loading is false
       this.setState({
         isAuthenticated: true,
         isInitialized: true,
-        isLoading: false,
+        isLoading: false, // Explicitly set to false
         user: sessionData.user,
         profile,
         agreementStatus,
         error: null
       })
       
-      console.log('✅ Authentication state set successfully')
+      console.log('✅ Authentication state set successfully - isLoading: false')
 
       // Priority 1: Agreement requirements
       if (agreementStatus.requiresAgreement) {
@@ -273,7 +289,8 @@ class AuthFlowV2Manager {
         }
       }
 
-      // For normal navigation/page refresh, don't redirect
+      // For normal navigation/page refresh, don't redirect - just update state
+      console.log('✅ Auth state updated, no redirect needed for normal navigation')
       return {
         success: true,
         shouldRedirect: false
@@ -467,12 +484,14 @@ class AuthFlowV2Manager {
     try {
       console.log('🚪 Signing out user...')
 
-      // Clear local state first
+      // Clear local state first to prevent any race conditions
       SessionStorage.clearSession()
       this.profileCache.clear()
+      
+      // Set a clear signed-out state
       this.setState({
         isAuthenticated: false,
-        isInitialized: true,
+        isInitialized: true, // Keep initialized as true to prevent restarts
         isLoading: false,
         user: null,
         profile: null,
@@ -480,14 +499,25 @@ class AuthFlowV2Manager {
         error: null
       })
 
-      // Sign out from Supabase
+      // Sign out from Supabase - do this after clearing local state
+      // to prevent the SIGNED_OUT event from re-triggering signOut
       await supabase.auth.signOut()
 
-      console.log('✅ Sign out complete')
+      console.log('✅ Sign out complete - user fully logged out')
 
     } catch (error: any) {
       console.error('❌ Sign out error:', error)
-      // Still clear local state even if Supabase signout fails
+      
+      // Still ensure we're in a clean signed-out state even if Supabase fails
+      this.setState({
+        isAuthenticated: false,
+        isInitialized: true,
+        isLoading: false,
+        user: null,
+        profile: null,
+        agreementStatus: { requiresAgreement: false, isChecked: true },
+        error: 'Sign out may have been incomplete'
+      })
     }
   }
 
@@ -571,6 +601,42 @@ class AuthFlowV2Manager {
       console.log('✅ Profile updated successfully')
     } catch (error: any) {
       console.error('❌ Profile update error:', error)
+      throw error
+    }
+  }
+
+  // Refresh profile data without full re-initialization
+  async refreshProfile(): Promise<void> {
+    try {
+      console.log('🔄 Refreshing profile data...')
+      
+      if (!this.state.isAuthenticated || !this.state.user) {
+        throw new Error('Cannot refresh profile - not authenticated')
+      }
+
+      // Get fresh user session
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) {
+        throw new Error('No active session found')
+      }
+
+      // Load fresh profile data
+      const profile = await this.loadUserProfileFast(session.user)
+      if (!profile) {
+        throw new Error('Failed to load fresh profile data')
+      }
+
+      // Update state with fresh profile
+      this.setState({
+        profile
+      })
+
+      // Update cache
+      this.profileCache.set(session.user.id, profile)
+
+      console.log('✅ Profile refreshed successfully')
+    } catch (error: any) {
+      console.error('❌ Profile refresh error:', error)
       throw error
     }
   }
