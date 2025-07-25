@@ -78,27 +78,34 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           console.log(`✅ Processing Supabase ${event}`)
           const result = await authFlowV2.handleSupabaseSession(supabaseSession)
           
-          // Only redirect on actual sign in, not token refresh, and only if not already on target page
+          // Only redirect on actual sign in from login page, not on app initialization or navigation
           if (event === 'SIGNED_IN' && result.success && result.shouldRedirect && result.redirectPath) {
             const currentPath = window.location.pathname
             
-            // Don't redirect if already on the target page
-            if (currentPath !== result.redirectPath) {
-              console.log('🎬 Starting login animation sequence before redirect to:', result.redirectPath)
-              
-              // Give enough time for the complete login animation sequence
-              // This allows the loading states to properly transition
-              redirectTimeout = setTimeout(() => {
-                if (mounted) {
-                  console.log('🔄 Animation complete, redirecting to:', result.redirectPath)
-                  router.push(result.redirectPath!)
-                }
-              }, 2500) // Increased time for proper animation sequence
+            // Only redirect if we're coming from an auth page (actual login) or if it's required (agreement/onboarding)
+            const isFromAuthPage = currentPath.startsWith('/auth/')
+            const isRequiredRedirect = result.redirectPath === '/agreement-review' || result.redirectPath === '/onboarding'
+            
+            if (isFromAuthPage || isRequiredRedirect) {
+              // Don't redirect if already on the target page
+              if (currentPath !== result.redirectPath) {
+                console.log('🎬 Starting login animation sequence before redirect to:', result.redirectPath)
+                
+                // Give enough time for the complete login animation sequence
+                redirectTimeout = setTimeout(() => {
+                  if (mounted) {
+                    console.log('🔄 Animation complete, redirecting to:', result.redirectPath)
+                    router.push(result.redirectPath!)
+                  }
+                }, 2500)
+              } else {
+                console.log('🔄 Already on target page, skipping redirect')
+              }
             } else {
-              console.log('🔄 Already on target page, skipping redirect')
+              console.log('🔄 Sign in detected but not from auth page, skipping redirect')
             }
           } else if (event === 'TOKEN_REFRESHED') {
-            console.log('🔄 Token refreshed - not redirecting')
+            console.log('🔄 Token refreshed - maintaining current page')
           }
         }
       } catch (error: any) {
@@ -136,39 +143,49 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
     
     const initializeAuth = async () => {
       try {
-        console.log('🚀 Initializing authentication v2...')
+        console.log('🚀 Auth hook: Checking if initialization needed...')
         
-        // Check if we just signed out - don't immediately reinitialize
+        // Don't initialize if route guard is handling it
+        // Route guard will initialize for protected routes
         const currentPath = window.location.pathname
-        if (currentPath === '/' && !authState.isAuthenticated) {
-          console.log('🏠 On home page after potential sign out - skipping auth restart')
+        const isPublicRoute = ['/', '/auth/login', '/auth/signup', '/auth/confirm', '/auth/forgot', '/auth/reset-password'].some(route => {
+          if (route === '/') return currentPath === '/'
+          return currentPath.startsWith(route)
+        })
+        
+        if (isPublicRoute) {
+          console.log('🏠 Auth hook: On public route, letting route guard handle auth initialization')
           return
         }
         
-        const result = await authFlowV2.initialize(false) // Don't redirect on app initialization
+        // Only initialize for protected routes if not already initialized
+        const currentState = authFlowV2.getState()
+        if (currentState.isInitialized && !currentState.isLoading) {
+          console.log('✅ Auth hook: Already initialized, skipping')
+          return
+        }
+        
+        console.log('🚀 Auth hook: Performing initialization...')
+        const result = await authFlowV2.initialize(false)
         
         if (!mounted) return
         
-        // Only redirect if explicitly needed (like agreement required or onboarding needed)
+        // Only redirect if explicitly needed and not on a public route
         if (result.success && result.shouldRedirect && result.redirectPath) {
           const currentPath = window.location.pathname
           
-          // Don't redirect if already on the target page or if it's just a dashboard redirect on page load
-          if (currentPath !== result.redirectPath && !(currentPath === '/dashboard' && result.redirectPath === '/dashboard')) {
-            console.log('🔄 Auth requires redirect to:', result.redirectPath)
+          if (currentPath !== result.redirectPath) {
+            console.log('🔄 Auth hook: Redirecting to:', result.redirectPath)
             
-            // Add delay for smoother transitions
             initTimeout = setTimeout(() => {
               if (mounted) {
                 router.push(result.redirectPath!)
               }
-            }, 300)
-          } else {
-            console.log('🔄 Already on target page or unnecessary redirect, skipping')
+            }, 200)
           }
         }
       } catch (error: any) {
-        console.error('❌ Auth initialization error:', error)
+        console.error('❌ Auth hook initialization error:', error)
         if (mounted) {
           toast({
             title: 'Initialization Error',
@@ -179,7 +196,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Small delay to prevent immediate initialization conflicts
+    // Only initialize once on mount, not on every dependency change
     const delayedInit = setTimeout(() => {
       if (mounted) {
         initializeAuth()
@@ -193,7 +210,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         clearTimeout(initTimeout)
       }
     }
-  }, [router, toast])
+  }, []) // Remove dependencies to prevent re-initialization
 
   // Sign in function
   const signIn = useCallback(async (email: string, password: string): Promise<AuthFlowResult> => {
@@ -396,10 +413,14 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
   // Refresh profile
   const refreshProfile = useCallback(async () => {
     try {
-      // Re-initialize the auth flow to refresh profile
-      await authFlowV2.initialize(false)
+      console.log('🔄 Auth hook: Refreshing profile data...')
+      
+      // Use dedicated refresh method to avoid full initialization
+      await authFlowV2.refreshProfile()
+      
+      console.log('✅ Auth hook: Profile refresh completed')
     } catch (error: any) {
-      console.error('❌ Profile refresh error:', error)
+      console.error('❌ Auth hook: Profile refresh error:', error)
       toast({
         title: 'Refresh Error',
         description: 'Failed to refresh profile',

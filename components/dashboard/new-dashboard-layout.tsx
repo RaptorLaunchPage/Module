@@ -107,10 +107,14 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
 
   const handleSignOut = async () => {
     try {
+      console.log('🚪 Dashboard: Starting sign out...')
       await signOut()
-      router.push('/')
+      // Don't manually redirect - let the auth hook handle the redirect
+      console.log('✅ Dashboard: Sign out complete, auth hook will handle redirect')
     } catch (error) {
-      console.error('Sign out error:', error)
+      console.error('❌ Dashboard sign out error:', error)
+      // Fallback redirect only on error
+      router.push('/')
     }
   }
 

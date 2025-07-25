@@ -47,12 +47,14 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
 
     const initializeAuth = async () => {
       try {
+        console.log('🚀 Route guard: Starting auth initialization...')
+        
         // Dynamic import to avoid potential circular dependencies
         const { default: authFlowV2 } = await import('@/lib/auth-flow-v2')
 
         if (!mounted) return
 
-        // Subscribe to auth state changes
+        // Subscribe to auth state changes first
         const unsubscribe = authFlowV2.subscribe((newState) => {
           if (!mounted) return
           
@@ -81,15 +83,25 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
           }
         })
 
-        // Initialize auth flow (don't redirect from route guard)
-        const result = await authFlowV2.initialize(false)
+        // Check if already initialized to prevent duplicate calls
+        const currentState = authFlowV2.getState()
+        if (currentState.isInitialized && !currentState.isLoading) {
+          console.log('✅ Route guard: Auth already initialized, using existing state')
+          setAuthState(currentState)
+          setIsLoading(false)
+          return unsubscribe
+        }
+
+        // Initialize auth flow - this should be the primary initialization point
+        console.log('🚀 Route guard: Performing fresh auth initialization...')
+        const result = await authFlowV2.initialize(true) // This is the main initialization
         
         if (!mounted) return
 
-        // Route guard should not redirect - let auth hook handle redirects
-        // Only log if there would have been a redirect
+        // Route guard focuses on protection, not redirection
+        // Let the auth flow handle its own redirects through events
         if (result.success && result.shouldRedirect && result.redirectPath) {
-          console.log('🔄 Route guard: Auth flow wants to redirect to', result.redirectPath, '- ignoring in route guard')
+          console.log('🔄 Route guard: Auth flow determined redirect needed to', result.redirectPath, '- auth hook will handle it')
         }
 
         return unsubscribe
@@ -103,7 +115,7 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
 
     initializeAuth().then((unsubscribe) => {
       if (mounted && unsubscribe) {
-        // Cleanup function will be called when component unmounts
+        // Store cleanup function
         return () => {
           mounted = false
           unsubscribe()
@@ -114,7 +126,7 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
     return () => {
       mounted = false
     }
-  }, [router, pathname])
+  }, [pathname]) // Only depend on pathname changes
 
   // Handle route protection logic
   useEffect(() => {
