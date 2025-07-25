@@ -358,7 +358,85 @@ CREATE TABLE IF NOT EXISTS public.rosters (
 );
 
 -- ====================================================================
--- 6. ADD MISSING FOREIGN KEY CONSTRAINTS
+-- 6. DISCORD BOT INTEGRATION TABLES
+-- ====================================================================
+
+-- Discord servers connected to teams
+CREATE TABLE IF NOT EXISTS public.discord_servers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  guild_id text UNIQUE NOT NULL,
+  name text,
+  owner_id text,
+  connected_team_id uuid,
+  features jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT discord_servers_pkey PRIMARY KEY (id),
+  CONSTRAINT discord_servers_connected_team_id_fkey FOREIGN KEY (connected_team_id) REFERENCES public.teams(id)
+);
+
+-- Discord users linked to CRM users
+CREATE TABLE IF NOT EXISTS public.discord_users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  discord_id text UNIQUE NOT NULL,
+  user_id uuid,
+  guild_id text,
+  username text,
+  discriminator text,
+  avatar text,
+  verified boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT discord_users_pkey PRIMARY KEY (id),
+  CONSTRAINT discord_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT discord_users_guild_id_fkey FOREIGN KEY (guild_id) REFERENCES public.discord_servers(guild_id)
+);
+
+-- Performance records from Discord bot
+CREATE TABLE IF NOT EXISTS public.performance_records (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  discord_id text,
+  guild_id text,
+  team_id uuid,
+  user_id uuid,
+  match_id text,
+  kills integer DEFAULT 0,
+  damage integer DEFAULT 0,
+  placement integer,
+  survival_time interval,
+  assists integer DEFAULT 0,
+  map_name text,
+  game_mode text,
+  source text DEFAULT 'bot',
+  metadata jsonb DEFAULT '{}'::jsonb,
+  processed boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT performance_records_pkey PRIMARY KEY (id),
+  CONSTRAINT performance_records_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.teams(id),
+  CONSTRAINT performance_records_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT performance_records_guild_id_fkey FOREIGN KEY (guild_id) REFERENCES public.discord_servers(guild_id)
+);
+
+-- Bot attendance tracking
+CREATE TABLE IF NOT EXISTS public.bot_attendance (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  discord_id text NOT NULL,
+  guild_id text,
+  user_id uuid,
+  session_id uuid,
+  attendance_type text CHECK (attendance_type = ANY (ARRAY['voice_join'::text, 'voice_leave'::text, 'manual_mark'::text])),
+  status text CHECK (status = ANY (ARRAY['present'::text, 'late'::text, 'absent'::text])),
+  duration interval,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT bot_attendance_pkey PRIMARY KEY (id),
+  CONSTRAINT bot_attendance_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT bot_attendance_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT bot_attendance_guild_id_fkey FOREIGN KEY (guild_id) REFERENCES public.discord_servers(guild_id)
+);
+
+-- ====================================================================
+-- 7. ADD MISSING FOREIGN KEY CONSTRAINTS
 -- ====================================================================
 
 -- Add foreign key for teams.coach_id -> users.id
@@ -495,4 +573,146 @@ BEGIN
     RAISE NOTICE '✅ Default data inserted';
     RAISE NOTICE '';
     RAISE NOTICE '🚀 Database is ready for the application!';
+END $$;
+
+-- ====================================================================
+-- 12. DISCORD BOT INTEGRATION UPDATES
+-- ====================================================================
+
+-- Update tryouts table for Discord bot integration (if it exists)
+DO $$
+BEGIN
+    -- Add mode column to tryouts table if it exists
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tryouts' AND table_schema = 'public') THEN
+        -- Add mode column for player/team tryouts
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tryouts' AND column_name = 'mode') THEN
+            ALTER TABLE public.tryouts ADD COLUMN mode text DEFAULT 'player' CHECK (mode = ANY (ARRAY['player'::text, 'team'::text]));
+        END IF;
+        
+        -- Add Discord-specific fields
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tryouts' AND column_name = 'guild_id') THEN
+            ALTER TABLE public.tryouts ADD COLUMN guild_id text;
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tryouts' AND column_name = 'discord_channel_id') THEN
+            ALTER TABLE public.tryouts ADD COLUMN discord_channel_id text;
+        END IF;
+    END IF;
+    
+    -- Update tryout_applications table if it exists
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'tryout_applications' AND table_schema = 'public') THEN
+        -- Add team mode fields
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tryout_applications' AND column_name = 'team_name') THEN
+            ALTER TABLE public.tryout_applications ADD COLUMN team_name text;
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tryout_applications' AND column_name = 'manager_name') THEN
+            ALTER TABLE public.tryout_applications ADD COLUMN manager_name text;
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tryout_applications' AND column_name = 'vod_link') THEN
+            ALTER TABLE public.tryout_applications ADD COLUMN vod_link text;
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tryout_applications' AND column_name = 'discord_id') THEN
+            ALTER TABLE public.tryout_applications ADD COLUMN discord_id text;
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tryout_applications' AND column_name = 'phase') THEN
+            ALTER TABLE public.tryout_applications ADD COLUMN phase text DEFAULT 'applied' CHECK (phase = ANY (ARRAY['applied'::text, 'screened'::text, 'invited'::text, 'evaluated'::text, 'selected'::text, 'rejected'::text]));
+        END IF;
+    END IF;
+    
+    RAISE NOTICE '✅ Discord bot integration tables and updates applied';
+END $$;
+
+-- Enable RLS on new Discord tables
+ALTER TABLE public.discord_servers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.discord_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.performance_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bot_attendance ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policies for Discord integration
+CREATE POLICY "Admins can manage discord servers" ON public.discord_servers
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.users 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+CREATE POLICY "Team members can view their discord server" ON public.discord_servers
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.users 
+      WHERE id = auth.uid() 
+      AND team_id = connected_team_id
+    )
+  );
+
+CREATE POLICY "Users can manage their own discord account" ON public.discord_users
+  FOR ALL USING (user_id = auth.uid());
+
+CREATE POLICY "Admins can view all discord users" ON public.discord_users
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.users 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+CREATE POLICY "Users can view own performance records" ON public.performance_records
+  FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Team staff can view team performance records" ON public.performance_records
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = auth.uid() 
+      AND u.role IN ('admin', 'manager', 'coach')
+      AND (u.role = 'admin' OR u.team_id = performance_records.team_id)
+    )
+  );
+
+CREATE POLICY "Users can view own bot attendance" ON public.bot_attendance
+  FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Team staff can manage team bot attendance" ON public.bot_attendance
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.users u
+      WHERE u.id = auth.uid() 
+      AND u.role IN ('admin', 'manager', 'coach')
+      AND (u.role = 'admin' OR u.team_id = (SELECT team_id FROM public.users WHERE id = bot_attendance.user_id))
+    )
+  );
+
+-- Add indexes for Discord integration
+CREATE INDEX IF NOT EXISTS idx_discord_servers_guild_id ON public.discord_servers(guild_id);
+CREATE INDEX IF NOT EXISTS idx_discord_servers_team_id ON public.discord_servers(connected_team_id);
+CREATE INDEX IF NOT EXISTS idx_discord_users_discord_id ON public.discord_users(discord_id);
+CREATE INDEX IF NOT EXISTS idx_discord_users_user_id ON public.discord_users(user_id);
+CREATE INDEX IF NOT EXISTS idx_discord_users_guild_id ON public.discord_users(guild_id);
+CREATE INDEX IF NOT EXISTS idx_performance_records_discord_id ON public.performance_records(discord_id);
+CREATE INDEX IF NOT EXISTS idx_performance_records_team_id ON public.performance_records(team_id);
+CREATE INDEX IF NOT EXISTS idx_performance_records_created_at ON public.performance_records(created_at);
+CREATE INDEX IF NOT EXISTS idx_bot_attendance_discord_id ON public.bot_attendance(discord_id);
+CREATE INDEX IF NOT EXISTS idx_bot_attendance_session_id ON public.bot_attendance(session_id);
+
+-- Final Discord integration success message
+DO $$
+BEGIN
+    RAISE NOTICE '';
+    RAISE NOTICE '🤖 RAPTORBOT INTEGRATION SETUP COMPLETE!';
+    RAISE NOTICE '';
+    RAISE NOTICE '✅ Discord servers table created';
+    RAISE NOTICE '✅ Discord users linking table created';
+    RAISE NOTICE '✅ Performance records from bot table created';
+    RAISE NOTICE '✅ Bot attendance tracking table created';
+    RAISE NOTICE '✅ Tryouts table updated for Discord integration';
+    RAISE NOTICE '✅ RLS policies configured for bot integration';
+    RAISE NOTICE '';
+    RAISE NOTICE '🚀 Database is ready for RaptorBot integration!';
+    RAISE NOTICE 'Set RAPTOR_BOT_API_KEY in your environment variables';
+    RAISE NOTICE '';
 END $$;
