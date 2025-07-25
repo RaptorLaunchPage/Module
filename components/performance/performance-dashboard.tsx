@@ -28,7 +28,6 @@ type UserProfile = Database["public"]["Tables"]["users"]["Row"]
 interface PerformanceDashboardProps {
   performances: Performance[]
   users: UserProfile[]
-  currentUser: UserProfile | null
   showFilters?: boolean
   compact?: boolean
 }
@@ -36,7 +35,6 @@ interface PerformanceDashboardProps {
 export function PerformanceDashboard({ 
   performances, 
   users, 
-  currentUser, 
   showFilters = true,
   compact = false
 }: PerformanceDashboardProps) {
