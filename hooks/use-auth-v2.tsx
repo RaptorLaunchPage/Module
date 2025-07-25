@@ -191,6 +191,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
   // Initialize auth flow on mount
   useEffect(() => {
     let initTimeout: NodeJS.Timeout | null = null
+    let fallbackTimeout: NodeJS.Timeout | null = null
     
     const initializeAuth = async () => {
       try {
@@ -254,11 +255,37 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       }
     }, 100)
     
+    // Fallback timeout to prevent infinite loading
+    fallbackTimeout = setTimeout(() => {
+      if (mounted.current) {
+        console.log('⚠️ Auth hook: Fallback timeout triggered - forcing completion')
+        const currentState = authFlowV2.getState()
+        if (currentState.isLoading) {
+          // Force the auth flow to complete
+          authFlowV2.forceCompleteLoading()
+          
+          // Redirect to login if on protected route
+          const currentPath = window.location.pathname
+          const isProtectedRoute = !['/','auth/login', '/auth/signup', '/auth/confirm', '/auth/forgot', '/auth/reset-password'].some(route => {
+            if (route === '/') return currentPath === '/'
+            return currentPath.startsWith(route)
+          })
+          
+          if (isProtectedRoute) {
+            router.push('/auth/login')
+          }
+        }
+      }
+    }, 12000) // 12 second fallback timeout
+    
     return () => {
       mounted.current = false
       clearTimeout(delayedInit)
       if (initTimeout) {
         clearTimeout(initTimeout)
+      }
+      if (fallbackTimeout) {
+        clearTimeout(fallbackTimeout)
       }
     }
   }, []) // Remove dependencies to prevent re-initialization
