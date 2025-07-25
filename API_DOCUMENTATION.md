@@ -1,511 +1,438 @@
-# 🔌 API Documentation
+# API Documentation
 
-Complete API reference for the Raptors Esports CRM system.
+## Overview
+The Raptor Esports Hub API provides RESTful endpoints for managing users, teams, performance data, finances, and Discord integration. All endpoints require authentication unless otherwise specified.
 
-## 🔐 **Authentication**
+## Authentication
+All API endpoints use Bearer token authentication via Supabase Auth.
 
-All API endpoints require authentication via JWT token in the Authorization header:
 ```
-Authorization: Bearer <jwt_token>
-```
-
-### **Getting a Token**
-Use the Supabase client to get the current user's token:
-```javascript
-const token = await supabase.auth.getSession().then(({ data }) => data.session?.access_token)
+Authorization: Bearer <supabase_access_token>
 ```
 
----
-
-## 👥 **Users API**
-
-### **GET /api/users**
-Fetch users with role-based filtering.
-
-**Permissions**: Admin, Manager, Coach, Analyst
-
-**Query Parameters**: None
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "role": "player",
-    "team_id": "uuid",
-    "status": "Active",
-    "created_at": "2025-01-15T10:00:00Z"
-  }
-]
+## Base URL
+```
+/api/
 ```
 
-### **PUT /api/users**
-Update user role and team assignment.
+## Core Endpoints
 
-**Permissions**: Admin only
+### Users Management
 
-**Request Body**:
-```json
-{
-  "userId": "uuid",
-  "role": "player",
-  "team_id": "uuid"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "user": { /* updated user object */ }
-}
-```
-
----
-
-## 🏆 **Teams API**
-
-### **GET /api/teams**
-Fetch teams based on user role.
-
-**Permissions**: Admin, Manager, Coach, Analyst
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid",
-    "name": "Raptors Main",
-    "tier": "T1",
-    "status": "active",
-    "coach_id": "uuid"
-  }
-]
-```
-
----
-
-## 🎯 **Performances API**
-
-### **GET /api/performances**
-Fetch performance data with role-based filtering.
-
-**Permissions**: All authenticated users
-
-**Query Parameters**:
-- `team_id`: Filter by team (optional)
-- `player_id`: Filter by player (optional)
-- `date_from`: Start date filter (optional)
-- `date_to`: End date filter (optional)
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid",
-    "team_id": "uuid",
-    "player_id": "uuid",
-    "match_number": 1,
-    "map": "Erangle",
-    "placement": 5,
-    "kills": 8,
-    "assists": 3,
-    "damage": 1250.5,
-    "survival_time": 1800.0,
-    "slot": "Tournament Slot A",
-    "created_at": "2025-01-15T10:00:00Z"
-  }
-]
-```
-
-### **POST /api/performances**
-Submit new performance data.
-
-**Permissions**: All authenticated users (players can only submit own data)
-
-**Request Body**:
-```json
-{
-  "player_id": "uuid",
-  "team_id": "uuid",
-  "match_number": 1,
-  "map": "Erangle",
-  "placement": 5,
-  "kills": 8,
-  "assists": 3,
-  "damage": 1250.5,
-  "survival_time": 1800.0,
-  "slot": "Tournament Slot A"
-}
-```
-
-**Response**:
-```json
-{
-  "success": true,
-  "performance": { /* created performance object */ },
-  "message": "Performance submitted successfully"
-}
-```
-
----
-
-## 📅 **Sessions API**
-
-### **GET /api/sessions**
-Fetch sessions with optional filtering.
-
-**Permissions**: All authenticated users
-
-**Query Parameters**:
-- `date`: Filter by specific date (YYYY-MM-DD)
-- `team_id`: Filter by team
-- `session_type`: Filter by type (practice, tournament, meeting)
-
-**Response**:
-```json
-[
-  {
-    "id": "uuid",
-    "team_id": "uuid",
-    "session_type": "practice",
-    "session_subtype": "Morning",
-    "date": "2025-01-15",
-    "start_time": "09:00:00",
-    "end_time": "12:00:00",
-    "cutoff_time": "12:00:00",
-    "title": "Morning Practice",
-    "is_mandatory": true,
-    "created_by": "uuid"
-  }
-]
-```
-
-### **POST /api/sessions**
-Create a new session.
+#### GET /api/users
+List all users with role-based filtering.
 
 **Permissions**: Admin, Manager
-
-**Request Body**:
-```json
-{
-  "team_id": "uuid",
-  "session_type": "practice",
-  "session_subtype": "Morning",
-  "date": "2025-01-15",
-  "start_time": "09:00:00",
-  "end_time": "12:00:00",
-  "cutoff_time": "12:00:00",
-  "title": "Morning Practice",
-  "description": "Regular morning practice session",
-  "is_mandatory": true
-}
-```
-
-### **PUT /api/sessions**
-Update an existing session.
-
-**Permissions**: Admin, Manager
-
-**Request Body**:
-```json
-{
-  "id": "uuid",
-  "title": "Updated Practice Session",
-  "start_time": "10:00:00"
-}
-```
-
-### **DELETE /api/sessions**
-Delete a session.
-
-**Permissions**: Admin, Manager
-
 **Query Parameters**:
-- `id`: Session ID to delete
-
----
-
-## ✅ **Attendance API**
-
-### **POST /api/sessions/mark-attendance**
-Mark attendance for a session.
-
-**Permissions**: All authenticated users
-
-**Request Body**:
-```json
-{
-  "session_id": "uuid",
-  "status": "present",
-  "player_id": "uuid" // Optional, for coaches marking others
-}
-```
+- `role` (optional) - Filter by user role
+- `team_id` (optional) - Filter by team
 
 **Response**:
 ```json
 {
-  "success": true,
-  "attendance": { /* attendance record */ },
-  "message": "Attendance marked as present"
-}
-```
-
----
-
-## 🎮 **Tryouts API**
-
-### **GET /api/tryouts**
-Fetch tryouts with application counts.
-
-**Permissions**: Admin, Manager, Coach
-
-**Response**:
-```json
-{
-  "tryouts": [
+  "users": [
     {
       "id": "uuid",
-      "name": "Raptors Main - July 2025",
-      "purpose": "existing_team",
-      "target_roles": ["Entry", "IGL"],
-      "type": "scrim",
-      "status": "active",
-      "application_deadline": "2025-01-31T23:59:59Z",
-      "evaluation_method": "mixed",
-      "open_to_public": true,
-      "_count": {
-        "applications": 15
-      },
-      "created_at": "2025-01-15T10:00:00Z"
+      "email": "user@example.com", 
+      "name": "User Name",
+      "role": "player",
+      "team_id": "uuid",
+      "onboarding_completed": true,
+      "created_at": "2024-01-01T00:00:00Z"
     }
   ]
 }
 ```
 
-### **POST /api/tryouts**
-Create a new tryout campaign.
+#### PUT /api/users/[id]
+Update user information.
 
-**Permissions**: Admin, Manager, Coach
-
-**Request Body**:
+**Permissions**: Admin, Manager, or self
+**Body**:
 ```json
 {
-  "name": "Raptors Main - July 2025",
-  "description": "Looking for skilled players",
-  "purpose": "existing_team",
-  "target_roles": ["Entry", "IGL"],
-  "type": "scrim",
-  "open_to_public": true,
-  "application_deadline": "2025-01-31T23:59:59Z",
-  "evaluation_method": "mixed",
-  "requirements": "Must have PUBG Mobile experience"
+  "name": "Updated Name",
+  "role": "player",
+  "team_id": "uuid"
 }
 ```
 
----
+### Teams Management
 
-## 💬 **Discord Portal API**
+#### GET /api/teams
+List all teams.
 
-### **GET /api/discord-portal/webhooks**
-Fetch Discord webhooks.
+**Permissions**: All authenticated users
+**Response**:
+```json
+{
+  "teams": [
+    {
+      "id": "uuid",
+      "name": "Team Alpha",
+      "tier": "T1",
+      "status": "active",
+      "coach_id": "uuid",
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+#### POST /api/teams
+Create a new team.
 
 **Permissions**: Admin, Manager
+**Body**:
+```json
+{
+  "name": "New Team",
+  "tier": "T2",
+  "coach_id": "uuid"
+}
+```
 
+### Performance Tracking
+
+#### GET /api/performances
+Get performance data with filtering.
+
+**Permissions**: Role-based access
 **Query Parameters**:
-- `teamId`: Filter by team (optional)
+- `player_id` (optional) - Filter by player
+- `team_id` (optional) - Filter by team
+- `days` (optional) - Number of days to look back
+- `limit` (optional) - Number of results
 
+**Response**:
+```json
+{
+  "performances": [
+    {
+      "id": "uuid",
+      "player_id": "uuid",
+      "team_id": "uuid",
+      "match_type": "tournament",
+      "map": "Sanhok",
+      "kills": 8,
+      "assists": 2,
+      "damage": 1245,
+      "survival_time": 1800,
+      "placement": 3,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+#### POST /api/performances
+Submit new performance data.
+
+**Permissions**: Player (own data), Coach, Manager, Admin
+**Body**:
+```json
+{
+  "match_type": "practice",
+  "map": "Erangel", 
+  "kills": 5,
+  "assists": 1,
+  "damage": 980,
+  "survival_time": 1500,
+  "placement": 1
+}
+```
+
+### Session & Attendance
+
+#### GET /api/sessions
+Get practice sessions.
+
+**Permissions**: All authenticated users
+**Response**:
+```json
+{
+  "sessions": [
+    {
+      "id": "uuid",
+      "title": "Team Practice",
+      "session_type": "practice",
+      "start_time": "2024-01-01T18:00:00Z",
+      "end_time": "2024-01-01T20:00:00Z",
+      "team_id": "uuid"
+    }
+  ]
+}
+```
+
+#### POST /api/sessions/mark-attendance
+Mark attendance for a session.
+
+**Permissions**: All authenticated users
+**Body**:
+```json
+{
+  "session_id": "uuid",
+  "status": "present"
+}
+```
+
+### Financial Management
+
+#### GET /api/expenses
+Get expense records.
+
+**Permissions**: Admin, Manager
+**Response**:
+```json
+{
+  "expenses": [
+    {
+      "id": "uuid",
+      "amount": 100.00,
+      "description": "Tournament slot fee",
+      "category": "tournament",
+      "team_id": "uuid",
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+#### POST /api/expenses
+Add new expense.
+
+**Permissions**: Admin, Manager
+**Body**:
+```json
+{
+  "amount": 150.00,
+  "description": "Equipment purchase",
+  "category": "equipment",
+  "team_id": "uuid"
+}
+```
+
+#### GET /api/winnings
+Get tournament winnings.
+
+**Permissions**: Admin, Manager
+**Response**:
+```json
+{
+  "winnings": [
+    {
+      "id": "uuid",
+      "amount": 500.00,
+      "tournament": "Weekly Championship",
+      "placement": 1,
+      "team_id": "uuid",
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+### Discord Integration
+
+#### GET /api/discord-portal/webhooks
+Get Discord webhooks.
+
+**Permissions**: Admin, Manager
 **Response**:
 ```json
 {
   "webhooks": [
     {
       "id": "uuid",
+      "name": "Team Notifications",
+      "url": "https://discord.com/api/webhooks/...",
       "team_id": "uuid",
-      "hook_url": "https://discord.com/api/webhooks/...",
-      "type": "team",
-      "active": true,
-      "channel_name": "general",
-      "created_at": "2025-01-15T10:00:00Z"
+      "active": true
     }
   ]
 }
 ```
 
-### **POST /api/discord-portal/webhooks**
-Create a new webhook.
+#### POST /api/discord-portal/webhooks
+Create Discord webhook.
 
 **Permissions**: Admin, Manager
-
-**Request Body**:
+**Body**:
 ```json
 {
-  "team_id": "uuid",
-  "hook_url": "https://discord.com/api/webhooks/...",
-  "type": "team",
-  "channel_name": "general"
+  "name": "New Webhook",
+  "url": "https://discord.com/api/webhooks/...",
+  "team_id": "uuid"
 }
 ```
 
-### **PUT /api/discord-portal/webhooks**
-Update a webhook.
+### Profile Management
 
-**Permissions**: Admin, Manager
+#### GET /api/profile
+Get current user's profile.
 
-**Request Body**:
-```json
-{
-  "id": "uuid",
-  "active": false,
-  "channel_name": "announcements"
-}
-```
-
-### **DELETE /api/discord-portal/webhooks**
-Delete a webhook.
-
-**Permissions**: Admin, Manager
-
-**Query Parameters**:
-- `id`: Webhook ID to delete
-
-### **POST /api/discord-portal/send**
-Send a message via Discord webhook.
-
-**Permissions**: Admin, Manager, Coach
-
-**Request Body**:
-```json
-{
-  "webhook_id": "uuid",
-  "message": "Hello team!",
-  "embed": {
-    "title": "Performance Update",
-    "description": "Great job in today's matches!",
-    "color": 0x00ff00
-  }
-}
-```
-
-### **GET /api/discord-portal/logs**
-Fetch communication logs.
-
-**Permissions**: Admin, Manager
-
-**Query Parameters**:
-- `limit`: Number of logs to return (default: 50)
-- `startDate`: Filter from date
-- `endDate`: Filter to date
-- `status`: Filter by status (success, failed, pending, retry)
-
+**Permissions**: Authenticated user
 **Response**:
 ```json
 {
-  "logs": [
+  "id": "uuid",
+  "email": "user@example.com",
+  "name": "User Name", 
+  "role": "player",
+  "team_id": "uuid",
+  "onboarding_completed": true,
+  "bio": "Player bio",
+  "contact_number": "+1234567890",
+  "experience": "intermediate"
+}
+```
+
+#### PUT /api/profile
+Update current user's profile.
+
+**Permissions**: Authenticated user
+**Body**:
+```json
+{
+  "name": "Updated Name",
+  "bio": "Updated bio",
+  "contact_number": "+1234567890"
+}
+```
+
+### Agreement System
+
+#### GET /api/agreements
+Get user agreements.
+
+**Permissions**: Authenticated user
+**Response**:
+```json
+{
+  "agreements": [
     {
       "id": "uuid",
-      "message_type": "performance_update",
-      "status": "success",
-      "response_code": 200,
-      "timestamp": "2025-01-15T10:00:00Z",
-      "webhook": {
-        "channel_name": "general"
-      }
+      "user_id": "uuid",
+      "role": "player",
+      "agreement_version": 1,
+      "status": "accepted",
+      "accepted_at": "2024-01-01T00:00:00Z"
     }
   ]
 }
 ```
 
----
+#### POST /api/agreements
+Accept an agreement.
 
-## 🔍 **Error Handling**
+**Permissions**: Authenticated user
+**Body**:
+```json
+{
+  "role": "player",
+  "version": 1,
+  "status": "accepted"
+}
+```
 
-### **Standard Error Response**
+## Error Responses
+
+All endpoints return consistent error responses:
+
 ```json
 {
   "error": "Error message",
   "code": "ERROR_CODE",
-  "details": { /* additional error details */ }
+  "status": 400
 }
 ```
 
-### **Common HTTP Status Codes**
-- `200`: Success
-- `201`: Created
-- `400`: Bad Request (validation error)
-- `401`: Unauthorized (invalid token)
-- `403`: Forbidden (insufficient permissions)
-- `404`: Not Found
-- `500`: Internal Server Error
+### Common Error Codes
+- `401` - Unauthorized (invalid or missing token)
+- `403` - Forbidden (insufficient permissions)
+- `404` - Not Found
+- `422` - Validation Error
+- `500` - Internal Server Error
 
-### **Authentication Errors**
-```json
-{
-  "error": "Authorization header required",
-  "code": "MISSING_AUTH_HEADER"
+## Rate Limiting
+No rate limiting is currently implemented.
+
+## Versioning
+API is currently v1. Future versions will be prefixed with version number.
+
+## Authentication Details
+
+### Getting Access Token
+Use Supabase client to get the current session token:
+
+```javascript
+const { data: { session } } = await supabase.auth.getSession()
+const token = session?.access_token
+```
+
+### Token Refresh
+Tokens are automatically refreshed by Supabase client. For manual refresh:
+
+```javascript
+const { data, error } = await supabase.auth.refreshSession()
+```
+
+## Role Permissions Summary
+
+| Endpoint | Admin | Manager | Coach | Analyst | Player |
+|----------|-------|---------|--------|---------|---------|
+| GET /api/users | ✅ | ✅ | ❌ | ❌ | ❌ |
+| GET /api/teams | ✅ | ✅ | ✅ | ✅ | ✅ |
+| GET /api/performances | ✅ | ✅ | ✅ | ✅ | Own only |
+| POST /api/performances | ✅ | ✅ | ✅ | ❌ | Own only |
+| GET /api/expenses | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Discord Webhooks | ✅ | ✅ | ❌ | ❌ | ❌ |
+
+## Data Models
+
+### User
+```typescript
+interface User {
+  id: string
+  email: string
+  name: string
+  role: 'admin' | 'manager' | 'coach' | 'analyst' | 'player' | 'pending_player'
+  team_id?: string
+  onboarding_completed: boolean
+  created_at: string
+  updated_at: string
 }
 ```
 
-```json
-{
-  "error": "Invalid token",
-  "code": "INVALID_TOKEN"
+### Team
+```typescript
+interface Team {
+  id: string
+  name: string
+  tier: 'God' | 'T1' | 'T2' | 'T3' | 'T4'
+  status: 'active' | 'inactive'
+  coach_id?: string
+  created_at: string
 }
 ```
 
-### **Permission Errors**
-```json
-{
-  "error": "Insufficient permissions to view users",
-  "code": "INSUFFICIENT_PERMISSIONS"
-}
-```
-
-### **Validation Errors**
-```json
-{
-  "error": "Missing required fields: name, email",
-  "code": "VALIDATION_ERROR",
-  "fields": ["name", "email"]
+### Performance
+```typescript
+interface Performance {
+  id: string
+  player_id: string
+  team_id?: string
+  match_type: 'practice' | 'tournament' | 'scrim'
+  map?: string
+  kills: number
+  assists: number
+  damage: number
+  survival_time: number
+  placement: number
+  created_at: string
 }
 ```
 
 ---
 
-## 📊 **Rate Limiting**
-
-### **Limits**
-- **General API**: 100 requests per minute per user
-- **Discord API**: 10 requests per minute per webhook
-- **Performance Submission**: 50 requests per hour per player
-
-### **Headers**
-Rate limit information is included in response headers:
-```
-X-RateLimit-Limit: 100
-X-RateLimit-Remaining: 95
-X-RateLimit-Reset: 1642694400
-```
-
----
-
-## 🔧 **Development**
-
-### **Testing API Endpoints**
-Use the built-in debug page at `/dashboard/debug` to test API connectivity.
-
-### **Environment Variables**
-Required environment variables:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-### **Database Connection**
-All API routes use the Supabase client with automatic connection handling and graceful fallbacks for missing credentials.
-
----
-
-**API Version**: v1.0 - Production Ready ✅
+For additional support or questions about the API, please contact the development team.

@@ -22,7 +22,7 @@ import {
   Target
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { useAuth } from '@/hooks/use-auth'
+import { useAuthV2 as useAuth } from '@/hooks/use-auth-v2'
 
 interface ProfileSearchProps {
   onSelectProfile: (profile: UserProfile) => void
