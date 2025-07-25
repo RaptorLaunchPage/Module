@@ -2,10 +2,10 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { AuthProviderV2 } from "@/hooks/use-auth-v2"
+import { AuthProviderV3 } from "@/hooks/use-auth-v3"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
-import { RouteGuardV2 } from "@/components/route-guard-v2"
+import { RouteGuardV3 } from "@/components/route-guard-v3"
 import { LoadingErrorBoundary } from "@/components/loading-error-boundary"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -26,12 +26,12 @@ export default function RootLayout({
       <body className={`${inter.className} bg-transparent`}>
         <LoadingErrorBoundary>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-            <AuthProviderV2>
-              <RouteGuardV2>
+            <AuthProviderV3>
+              <RouteGuardV3>
                 {children}
-              </RouteGuardV2>
+              </RouteGuardV3>
               <Toaster />
-            </AuthProviderV2>
+            </AuthProviderV3>
           </ThemeProvider>
         </LoadingErrorBoundary>
       </body>

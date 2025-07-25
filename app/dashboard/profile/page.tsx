@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
+import { useAuthV3 as useAuth } from "@/hooks/use-auth-v3"
 import { useSearchParams } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ResponsiveTabs, TabsContent } from "@/components/ui/enhanced-tabs"

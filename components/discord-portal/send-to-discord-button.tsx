@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
-import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
+import { useAuthV3 as useAuth } from "@/hooks/use-auth-v3"
 import { MessageSquare, Send, Eye, Loader2, Webhook, AlertCircle } from "lucide-react"
 import type { MessageType } from "@/modules/discord-portal"
 

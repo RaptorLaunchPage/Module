@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
+import { useAuthV3 as useAuth } from "@/hooks/use-auth-v3"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"

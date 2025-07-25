@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useAuthV2 as useAuth } from '@/hooks/use-auth-v2'
+import { useAuthV3 as useAuth } from '@/hooks/use-auth-v3'
 import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'

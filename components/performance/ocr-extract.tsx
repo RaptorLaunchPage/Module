@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useRef } from "react"
-import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
+import { useAuthV3 as useAuth } from "@/hooks/use-auth-v3"
 import { supabase } from "@/lib/supabase"
 import { OCRService } from "@/lib/ocr-service"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"

@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { useAuthV2 as useAuth } from '@/hooks/use-auth-v2'
+import { useAuthV3 as useAuth } from '@/hooks/use-auth-v3'
 import { 
   Upload, 
   X, 
