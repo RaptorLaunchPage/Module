@@ -18,6 +18,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showLoginAnimation, setShowLoginAnimation] = useState(false)
   const { signIn, signInWithDiscord, isAuthenticated, error } = useAuth()
 
   // If already authenticated, the route guard will handle redirect
@@ -39,11 +40,19 @@ export default function LoginPage() {
     setIsSubmitting(true)
     
     try {
-      await signIn(email, password)
+      const result = await signIn(email, password)
+      
+      if (result.success) {
+        console.log("✅ Login successful, starting animation sequence")
+        setShowLoginAnimation(true)
+        // The auth hook will handle the redirect after the animation
+      } else {
+        // Error case - make sure to reset submitting state
+        setIsSubmitting(false)
+      }
       // Navigation and error handling done by auth flow
     } catch (err: any) {
       console.error("❌ Login form exception:", err)
-    } finally {
       setIsSubmitting(false)
     }
   }
@@ -55,6 +64,8 @@ export default function LoginPage() {
     
     try {
       await signInWithDiscord()
+      // Discord OAuth will redirect externally, so we don't need to handle success here
+      // The redirect will happen automatically
     } catch (err: any) {
       console.error("Discord login error:", err)
       setIsSubmitting(false)
@@ -62,6 +73,34 @@ export default function LoginPage() {
   }
 
   // If already authenticated, route guard will handle redirect
+
+  // Show loading animation during successful login
+  if (showLoginAnimation) {
+    return (
+      <VideoBackground>
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Card className={`w-full max-w-md ${COMPONENT_STYLES.authCard}`}>
+            <CardContent className="text-center py-12">
+              <div className="space-y-6">
+                <div className="flex items-center justify-center">
+                  <Shield className="h-16 w-16 text-white animate-pulse" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold text-white">Welcome Back!</h3>
+                  <p className="text-slate-200">Taking you to your dashboard...</p>
+                </div>
+                <div className="flex justify-center space-x-1">
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </VideoBackground>
+    )
+  }
 
   return (
     <VideoBackground>

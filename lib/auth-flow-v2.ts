@@ -79,6 +79,12 @@ class AuthFlowV2Manager {
       return this.initPromise
     }
 
+    // If already initialized and in a signed-out state, don't restart unless explicitly needed
+    if (this.state.isInitialized && !this.state.isAuthenticated && !isInitialLoad) {
+      console.log('🏠 Already initialized in signed-out state - not restarting')
+      return { success: true, shouldRedirect: false }
+    }
+
     this.initPromise = this.performInitialize(isInitialLoad)
     
     try {
@@ -467,12 +473,14 @@ class AuthFlowV2Manager {
     try {
       console.log('🚪 Signing out user...')
 
-      // Clear local state first
+      // Clear local state first to prevent any race conditions
       SessionStorage.clearSession()
       this.profileCache.clear()
+      
+      // Set a clear signed-out state
       this.setState({
         isAuthenticated: false,
-        isInitialized: true,
+        isInitialized: true, // Keep initialized as true to prevent restarts
         isLoading: false,
         user: null,
         profile: null,
@@ -480,14 +488,25 @@ class AuthFlowV2Manager {
         error: null
       })
 
-      // Sign out from Supabase
+      // Sign out from Supabase - do this after clearing local state
+      // to prevent the SIGNED_OUT event from re-triggering signOut
       await supabase.auth.signOut()
 
-      console.log('✅ Sign out complete')
+      console.log('✅ Sign out complete - user fully logged out')
 
     } catch (error: any) {
       console.error('❌ Sign out error:', error)
-      // Still clear local state even if Supabase signout fails
+      
+      // Still ensure we're in a clean signed-out state even if Supabase fails
+      this.setState({
+        isAuthenticated: false,
+        isInitialized: true,
+        isLoading: false,
+        user: null,
+        profile: null,
+        agreementStatus: { requiresAgreement: false, isChecked: true },
+        error: 'Sign out may have been incomplete'
+      })
     }
   }
 

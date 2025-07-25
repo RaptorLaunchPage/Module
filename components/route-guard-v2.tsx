@@ -137,14 +137,19 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         localStorage.setItem('raptor-intended-route', pathname)
       }
       
-      router.push('/auth/login')
+      // Add slight delay to prevent jarring transitions
+      setTimeout(() => {
+        router.push('/auth/login')
+      }, 100)
       return
     }
 
     // Check agreement requirements
     if (authState.agreementStatus?.requiresAgreement && pathname !== '/agreement-review') {
       console.log('📋 Route guard: Agreement required, redirecting to review')
-      router.push('/agreement-review')
+      setTimeout(() => {
+        router.push('/agreement-review')
+      }, 100)
       return
     }
 
@@ -153,12 +158,16 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         !authState.profile?.onboarding_completed && 
         pathname !== '/onboarding') {
       console.log('🎯 Route guard: Onboarding required, redirecting to onboarding')
-      router.push('/onboarding')
+      setTimeout(() => {
+        router.push('/onboarding')
+      }, 100)
       return
     }
 
-    // All checks passed
-    setIsLoading(false)
+    // All checks passed - add small delay for smooth transitions
+    setTimeout(() => {
+      setIsLoading(false)
+    }, 200)
 
   }, [authState, pathname, router])
 
@@ -170,18 +179,21 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
     let description = 'Establishing connection...'
     
     if (authState) {
-      if (!authState.isAuthenticated) {
+      if (!authState.isAuthenticated && !authState.user) {
         currentStep = 'connecting'
         description = 'Establishing connection...'
-      } else if (!authState.profile) {
+      } else if (authState.isAuthenticated && !authState.profile) {
         currentStep = 'loading-profile'
         description = 'Loading your profile...'
-      } else if (authState.isLoading) {
+      } else if (authState.isAuthenticated && authState.profile && authState.isLoading) {
         currentStep = 'initializing'
         description = 'Setting up your dashboard...'
-      } else {
+      } else if (authState.isAuthenticated && authState.profile && !authState.isLoading) {
         currentStep = 'redirecting'
         description = 'Taking you to your dashboard...'
+      } else {
+        currentStep = 'authenticating'
+        description = 'Verifying your credentials...'
       }
     }
 

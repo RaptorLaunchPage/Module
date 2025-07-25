@@ -49,6 +49,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
     console.log('🔗 Setting up Supabase auth listener...')
     
     let mounted = true
+    let redirectTimeout: NodeJS.Timeout | null = null
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, supabaseSession) => {
       if (!mounted) return
@@ -57,8 +58,19 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       
       try {
         if (event === 'SIGNED_OUT') {
-          console.log('🚪 Supabase signed out')
+          console.log('🚪 Supabase signed out - cleaning up completely')
+          
+          // Clear any pending redirects
+          if (redirectTimeout) {
+            clearTimeout(redirectTimeout)
+            redirectTimeout = null
+          }
+          
+          // Clear all auth state immediately
           await authFlowV2.signOut()
+          
+          // Don't restart auth flow - stay in signed out state
+          console.log('✅ Sign out complete - staying in signed out state')
           return
         }
 
@@ -72,11 +84,16 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
             
             // Don't redirect if already on the target page
             if (currentPath !== result.redirectPath) {
-              console.log('🔄 Redirecting after sign in to:', result.redirectPath)
-              // Use setTimeout to prevent navigation conflicts
-              setTimeout(() => {
-                router.push(result.redirectPath!)
-              }, 150)
+              console.log('🎬 Starting login animation sequence before redirect to:', result.redirectPath)
+              
+              // Give enough time for the complete login animation sequence
+              // This allows the loading states to properly transition
+              redirectTimeout = setTimeout(() => {
+                if (mounted) {
+                  console.log('🔄 Animation complete, redirecting to:', result.redirectPath)
+                  router.push(result.redirectPath!)
+                }
+              }, 2500) // Increased time for proper animation sequence
             } else {
               console.log('🔄 Already on target page, skipping redirect')
             }
@@ -96,6 +113,9 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false
+      if (redirectTimeout) {
+        clearTimeout(redirectTimeout)
+      }
       subscription.unsubscribe()
     }
   }, [router, toast])
@@ -112,10 +132,19 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
   // Initialize auth flow on mount
   useEffect(() => {
     let mounted = true
+    let initTimeout: NodeJS.Timeout | null = null
     
     const initializeAuth = async () => {
       try {
         console.log('🚀 Initializing authentication v2...')
+        
+        // Check if we just signed out - don't immediately reinitialize
+        const currentPath = window.location.pathname
+        if (currentPath === '/' && !authState.isAuthenticated) {
+          console.log('🏠 On home page after potential sign out - skipping auth restart')
+          return
+        }
+        
         const result = await authFlowV2.initialize(false) // Don't redirect on app initialization
         
         if (!mounted) return
@@ -127,10 +156,13 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           // Don't redirect if already on the target page or if it's just a dashboard redirect on page load
           if (currentPath !== result.redirectPath && !(currentPath === '/dashboard' && result.redirectPath === '/dashboard')) {
             console.log('🔄 Auth requires redirect to:', result.redirectPath)
-            // Small delay to prevent conflicts with route guards
-            setTimeout(() => {
-              router.push(result.redirectPath!)
-            }, 200)
+            
+            // Add delay for smoother transitions
+            initTimeout = setTimeout(() => {
+              if (mounted) {
+                router.push(result.redirectPath!)
+              }
+            }, 300)
           } else {
             console.log('🔄 Already on target page or unnecessary redirect, skipping')
           }
@@ -147,10 +179,19 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       }
     }
 
-    initializeAuth()
+    // Small delay to prevent immediate initialization conflicts
+    const delayedInit = setTimeout(() => {
+      if (mounted) {
+        initializeAuth()
+      }
+    }, 100)
     
     return () => {
       mounted = false
+      clearTimeout(delayedInit)
+      if (initTimeout) {
+        clearTimeout(initTimeout)
+      }
     }
   }, [router, toast])
 
@@ -165,9 +206,9 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           description: 'You have been signed in successfully.'
         })
         
-        // Let the auth event handler manage the redirect to avoid conflicts
-        // The 'SIGNED_IN' event will handle the redirect properly
-        console.log('🔄 Sign in successful, redirect will be handled by auth event listener')
+        // Allow more time for the login animation to complete before redirecting
+        // The auth state listener will handle the actual redirect with proper timing
+        console.log('🔄 Sign in successful, animation sequence will complete before redirect')
       } else if (result.error) {
         toast({
           title: 'Sign In Failed',
@@ -234,6 +275,9 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
   // Sign out function
   const signOut = useCallback(async () => {
     try {
+      console.log('🚪 Starting sign out process...')
+      
+      // Clear auth state first to prevent any race conditions
       await authFlowV2.signOut()
       
       toast({
@@ -241,8 +285,11 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         description: 'You have been signed out successfully.'
       })
       
-      // Redirect to home
-      router.push('/')
+      // Small delay to ensure state is properly cleared before navigation
+      setTimeout(() => {
+        console.log('🏠 Redirecting to home after sign out')
+        router.push('/')
+      }, 100)
       
     } catch (error: any) {
       console.error('❌ Sign out error:', error)
@@ -251,6 +298,11 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         description: 'There was an issue signing out',
         variant: 'destructive'
       })
+      
+      // Still try to redirect to home even if there was an error
+      setTimeout(() => {
+        router.push('/')
+      }, 100)
     }
   }, [router, toast])
 
