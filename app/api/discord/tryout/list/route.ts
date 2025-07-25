@@ -75,39 +75,39 @@ export async function GET(request: NextRequest) {
         stats = {
           total_applications: applications.length,
           applications_by_status: {
-            applied: applications.filter(app => app.status === 'applied').length,
-            screened: applications.filter(app => app.status === 'screened').length,
-            shortlisted: applications.filter(app => app.status === 'shortlisted').length,
-            rejected: applications.filter(app => app.status === 'rejected').length
+            applied: applications.filter((app: any) => app.status === 'applied').length,
+            screened: applications.filter((app: any) => app.status === 'screened').length,
+            shortlisted: applications.filter((app: any) => app.status === 'shortlisted').length,
+            rejected: applications.filter((app: any) => app.status === 'rejected').length
           },
-          applications_by_phase: {
-            applied: applications.filter(app => app.phase === 'applied').length,
-            screened: applications.filter(app => app.phase === 'screened').length,
-            invited: applications.filter(app => app.phase === 'invited').length,
-            evaluated: applications.filter(app => app.phase === 'evaluated').length,
-            selected: applications.filter(app => app.phase === 'selected').length,
-            rejected: applications.filter(app => app.phase === 'rejected').length
+                      applications_by_phase: {
+              applied: applications.filter((app: any) => app.phase === 'applied').length,
+              screened: applications.filter((app: any) => app.phase === 'screened').length,
+              invited: applications.filter((app: any) => app.phase === 'invited').length,
+              evaluated: applications.filter((app: any) => app.phase === 'evaluated').length,
+                            selected: applications.filter((app: any) => app.phase === 'selected').length,
+              rejected: applications.filter((app: any) => app.phase === 'rejected').length
           },
           total_invitations: invitations.length,
-          invitation_statuses: {
-            invited: invitations.filter(inv => inv.status === 'invited').length,
-            accepted: invitations.filter(inv => inv.status === 'accepted').length,
-            declined: invitations.filter(inv => inv.status === 'declined').length,
-            expired: invitations.filter(inv => inv.status === 'expired').length
+                      invitation_statuses: {
+              invited: invitations.filter((inv: any) => inv.status === 'invited').length,
+              accepted: invitations.filter((inv: any) => inv.status === 'accepted').length,
+              declined: invitations.filter((inv: any) => inv.status === 'declined').length,
+              expired: invitations.filter((inv: any) => inv.status === 'expired').length
           },
           total_evaluations: evaluations.length,
           evaluation_recommendations: {
-            strong_select: evaluations.filter(evaluation => evaluation.recommendation === 'strong_select').length,
-            select: evaluations.filter(evaluation => evaluation.recommendation === 'select').length,
-            maybe: evaluations.filter(evaluation => evaluation.recommendation === 'maybe').length,
-            reject: evaluations.filter(evaluation => evaluation.recommendation === 'reject').length,
-            strong_reject: evaluations.filter(evaluation => evaluation.recommendation === 'strong_reject').length
+            strong_select: evaluations.filter((evaluation: any) => evaluation.recommendation === 'strong_select').length,
+            select: evaluations.filter((evaluation: any) => evaluation.recommendation === 'select').length,
+            maybe: evaluations.filter((evaluation: any) => evaluation.recommendation === 'maybe').length,
+            reject: evaluations.filter((evaluation: any) => evaluation.recommendation === 'reject').length,
+            strong_reject: evaluations.filter((evaluation: any) => evaluation.recommendation === 'strong_reject').length
           },
           average_score: evaluations.length > 0 
-            ? (evaluations.reduce((sum, evaluation) => sum + (evaluation.overall_score || 0), 0) / evaluations.length).toFixed(1)
+            ? (evaluations.reduce((sum: number, evaluation: any) => sum + (evaluation.overall_score || 0), 0) / evaluations.length).toFixed(1)
             : null,
           conversion_rate: applications.length > 0 
-            ? ((applications.filter(app => app.phase === 'selected').length / applications.length) * 100).toFixed(1)
+            ? ((applications.filter((app: any) => app.phase === 'selected').length / applications.length) * 100).toFixed(1)
             : '0.0'
         }
       }

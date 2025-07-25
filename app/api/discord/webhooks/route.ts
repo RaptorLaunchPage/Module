@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Process webhooks for response
-    const processedWebhooks = webhooks.map(webhook => ({
+    const processedWebhooks = webhooks.map((webhook: any) => ({
       id: webhook.id,
       url: webhook.hook_url,
       type: webhook.type,

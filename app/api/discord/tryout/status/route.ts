@@ -94,12 +94,12 @@ export async function GET(request: NextRequest) {
     const evaluations = evaluationsResult.status === 'fulfilled' ? evaluationsResult.value.data || [] : []
 
     // Process applications with their status
-    const processedApplications = applications.map(app => {
-      const invitation = invitations.find(inv => inv.application_id === app.id)
-      const evaluation = evaluations.find(evaluation => evaluation.tryout_id === app.tryout_id)
+    const processedApplications = applications.map((app: any) => {
+      const invitation = invitations.find((inv: any) => inv.application_id === app.id)
+      const evaluation = evaluations.find((evaluation: any) => evaluation.tryout_id === app.tryout_id)
 
       // Determine current phase
-      let currentPhase = app.phase || app.status
+      let currentPhase: string = app.phase || app.status
       let nextStep = 'Waiting for review'
       let canProgress = false
 
@@ -147,14 +147,17 @@ export async function GET(request: NextRequest) {
         next_step: nextStep,
         can_progress: canProgress,
         status_emoji: getStatusEmoji(currentPhase),
-        progress_percentage: {
-          'applied': 20,
-          'screened': 40,
-          'invited': 60,
-          'evaluated': 80,
-          'selected': 100,
-          'rejected': 0
-        }[currentPhase] || 0
+        progress_percentage: (() => {
+          const progressMap = {
+            'applied': 20,
+            'screened': 40,
+            'invited': 60,
+            'evaluated': 80,
+            'selected': 100,
+            'rejected': 0
+          } as const
+          return progressMap[currentPhase as keyof typeof progressMap] || 0
+        })()
       }
     })
 
