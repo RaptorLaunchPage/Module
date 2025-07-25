@@ -148,6 +148,15 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
       return
     }
 
+    // Check onboarding requirements for pending players
+    if (authState.profile?.role === 'pending_player' && 
+        !authState.profile?.onboarding_completed && 
+        pathname !== '/onboarding') {
+      console.log('🎯 Route guard: Onboarding required, redirecting to onboarding')
+      router.push('/onboarding')
+      return
+    }
+
     // All checks passed
     setIsLoading(false)
 

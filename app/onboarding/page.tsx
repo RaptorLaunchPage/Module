@@ -26,7 +26,7 @@ interface OnboardingForm {
 }
 
 export default function OnboardingPage() {
-  const { profile, isLoading: authLoading } = useAuth()
+  const { profile, isLoading: authLoading, refreshProfile } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -120,6 +120,9 @@ export default function OnboardingPage() {
         title: "Profile Complete!",
         description: "Welcome to Raptor Esports Hub. Redirecting to your dashboard...",
       })
+
+      // Refresh the auth state to pick up the profile changes
+      await refreshProfile()
 
       // Redirect to dashboard after a brief delay
       setTimeout(() => {
