@@ -236,7 +236,7 @@ class AuthFlowV2Manager {
       
       console.log('✅ Authentication state set successfully')
 
-      // Only redirect if explicitly requested (during login) or agreement required
+      // Priority 1: Agreement requirements
       if (agreementStatus.requiresAgreement) {
         return {
           success: true,
@@ -245,13 +245,22 @@ class AuthFlowV2Manager {
         }
       }
 
-      // Only redirect on initial login or if explicitly requested
+      // Priority 2: Onboarding requirements (pending_player who hasn't completed onboarding)
+      if (profile.role === 'pending_player' && !profile.onboarding_completed) {
+        return {
+          success: true,
+          shouldRedirect: true,
+          redirectPath: '/onboarding'
+        }
+      }
+
+      // Priority 3: Only redirect on explicit request (login, signup confirmation)
       if (shouldRedirect) {
         // Check for intended route
         let redirectPath = '/dashboard'
         if (typeof window !== 'undefined') {
           const intendedRoute = localStorage.getItem('raptor-intended-route')
-          if (intendedRoute && intendedRoute !== '/auth/login') {
+          if (intendedRoute && intendedRoute !== '/auth/login' && intendedRoute !== '/auth/signup') {
             redirectPath = intendedRoute
             localStorage.removeItem('raptor-intended-route')
           }

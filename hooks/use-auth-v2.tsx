@@ -66,13 +66,20 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           console.log(`✅ Processing Supabase ${event}`)
           const result = await authFlowV2.handleSupabaseSession(supabaseSession)
           
-          // Only redirect on actual sign in, not token refresh
+          // Only redirect on actual sign in, not token refresh, and only if not already on target page
           if (event === 'SIGNED_IN' && result.success && result.shouldRedirect && result.redirectPath) {
-            console.log('🔄 Redirecting after sign in to:', result.redirectPath)
-            // Use setTimeout to prevent navigation conflicts
-            setTimeout(() => {
-              router.push(result.redirectPath!)
-            }, 100)
+            const currentPath = window.location.pathname
+            
+            // Don't redirect if already on the target page
+            if (currentPath !== result.redirectPath) {
+              console.log('🔄 Redirecting after sign in to:', result.redirectPath)
+              // Use setTimeout to prevent navigation conflicts
+              setTimeout(() => {
+                router.push(result.redirectPath!)
+              }, 150)
+            } else {
+              console.log('🔄 Already on target page, skipping redirect')
+            }
           } else if (event === 'TOKEN_REFRESHED') {
             console.log('🔄 Token refreshed - not redirecting')
           }
@@ -113,13 +120,20 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         
         if (!mounted) return
         
-        // Only redirect if explicitly needed (like agreement required)
+        // Only redirect if explicitly needed (like agreement required or onboarding needed)
         if (result.success && result.shouldRedirect && result.redirectPath) {
-          console.log('🔄 Auth requires redirect to:', result.redirectPath)
-          // Small delay to prevent conflicts with route guards
-          setTimeout(() => {
-            router.push(result.redirectPath!)
-          }, 150)
+          const currentPath = window.location.pathname
+          
+          // Don't redirect if already on the target page or if it's just a dashboard redirect on page load
+          if (currentPath !== result.redirectPath && !(currentPath === '/dashboard' && result.redirectPath === '/dashboard')) {
+            console.log('🔄 Auth requires redirect to:', result.redirectPath)
+            // Small delay to prevent conflicts with route guards
+            setTimeout(() => {
+              router.push(result.redirectPath!)
+            }, 200)
+          } else {
+            console.log('🔄 Already on target page or unnecessary redirect, skipping')
+          }
         }
       } catch (error: any) {
         console.error('❌ Auth initialization error:', error)
@@ -151,11 +165,9 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           description: 'You have been signed in successfully.'
         })
         
-        if (result.shouldRedirect && result.redirectPath) {
-          setTimeout(() => {
-            router.push(result.redirectPath!)
-          }, 100)
-        }
+        // Let the auth event handler manage the redirect to avoid conflicts
+        // The 'SIGNED_IN' event will handle the redirect properly
+        console.log('🔄 Sign in successful, redirect will be handled by auth event listener')
       } else if (result.error) {
         toast({
           title: 'Sign In Failed',
