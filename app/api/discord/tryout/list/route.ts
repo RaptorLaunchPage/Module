@@ -32,16 +32,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query for tryouts
+    const baseSelect = '*'
+    const statsSelect = `
+      *,
+      tryout_applications(id, status, phase, created_at),
+      tryout_invitations(id, status, invited_at),
+      tryout_evaluations(id, recommendation, overall_score, is_final)
+    `
+    
     let query = supabase
       .from('tryouts')
-      .select(`
-        *,
-        ${include_stats ? `
-          tryout_applications(id, status, phase, created_at),
-          tryout_invitations(id, status, invited_at),
-          tryout_evaluations(id, recommendation, overall_score, is_final)
-        ` : ''}
-      `)
+      .select(include_stats ? statsSelect : baseSelect)
       .eq('guild_id', guild_id)
 
     // Filter by status
@@ -63,7 +64,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Process tryouts with statistics
-    const processedTryouts = tryouts.map(tryout => {
+    const processedTryouts = tryouts.map((tryout: any) => {
       let stats = null
       
       if (include_stats && tryout.tryout_applications) {
