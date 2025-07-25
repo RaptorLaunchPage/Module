@@ -1,6 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
 import type { Database } from "./supabase"
-import { logEnvironmentStatus } from "./env-debug"
 
 // Admin client with elevated permissions - uses service role key to bypass RLS
 const supabaseAdmin = createClient<Database>(
@@ -23,7 +22,6 @@ const supabaseAdmin = createClient<Database>(
 
 // Test environment variables when module loads
 console.log('🔧 SupabaseAdminService loading...')
-logEnvironmentStatus()
 
 export class SupabaseAdminService {
   /**

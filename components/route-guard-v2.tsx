@@ -81,18 +81,15 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
           }
         })
 
-        // Initialize auth flow
-        const result = await authFlowV2.initialize(true)
+        // Initialize auth flow (don't redirect from route guard)
+        const result = await authFlowV2.initialize(false)
         
         if (!mounted) return
 
+        // Route guard should not redirect - let auth hook handle redirects
+        // Only log if there would have been a redirect
         if (result.success && result.shouldRedirect && result.redirectPath) {
-          // Use setTimeout to prevent navigation conflicts
-          setTimeout(() => {
-            if (mounted) {
-              router.push(result.redirectPath!)
-            }
-          }, 100)
+          console.log('🔄 Route guard: Auth flow wants to redirect to', result.redirectPath, '- ignoring in route guard')
         }
 
         return unsubscribe
@@ -148,6 +145,15 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
     if (authState.agreementStatus?.requiresAgreement && pathname !== '/agreement-review') {
       console.log('📋 Route guard: Agreement required, redirecting to review')
       router.push('/agreement-review')
+      return
+    }
+
+    // Check onboarding requirements for pending players
+    if (authState.profile?.role === 'pending_player' && 
+        !authState.profile?.onboarding_completed && 
+        pathname !== '/onboarding') {
+      console.log('🎯 Route guard: Onboarding required, redirecting to onboarding')
+      router.push('/onboarding')
       return
     }
 

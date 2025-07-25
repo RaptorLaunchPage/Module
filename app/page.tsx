@@ -46,10 +46,16 @@ export default function HomePage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button 
-                  onClick={() => router.push(profile.role === "pending_player" ? "/onboarding" : "/dashboard")}
+                  onClick={() => {
+                    if (profile.role === "pending_player" && !profile.onboarding_completed) {
+                      router.push("/onboarding")
+                    } else {
+                      router.push("/dashboard")
+                    }
+                  }}
                   className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
                 >
-                  Continue to {profile.role === "pending_player" ? "Setup" : "Dashboard"}
+                  Continue to {(profile.role === "pending_player" && !profile.onboarding_completed) ? "Setup" : "Dashboard"}
                 </Button>
                 <Button 
                   variant="outline" 

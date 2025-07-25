@@ -106,7 +106,7 @@ class AuthFlowV2Manager {
         const cachedProfile = this.profileCache.get(existingSession.user.id)
         if (cachedProfile) {
           console.log('✅ Using cached profile data')
-          return await this.setAuthenticatedState(existingSession, cachedProfile)
+          return await this.setAuthenticatedState(existingSession, cachedProfile, false) // Don't redirect on restore
         }
 
         // Validate session with Supabase
@@ -117,7 +117,7 @@ class AuthFlowV2Manager {
           const profile = await this.loadUserProfileFast(user)
           if (profile) {
             this.profileCache.set(user.id, profile)
-            return await this.setAuthenticatedState(existingSession, profile)
+            return await this.setAuthenticatedState(existingSession, profile, false) // Don't redirect on restore
           }
         } else {
           console.log('⚠️ Stored session invalid, clearing...')
@@ -218,7 +218,7 @@ class AuthFlowV2Manager {
   }
 
   // Set authenticated state with profile
-  private async setAuthenticatedState(sessionData: SessionData, profile: any): Promise<AuthFlowResult> {
+  private async setAuthenticatedState(sessionData: SessionData, profile: any, shouldRedirect: boolean = false): Promise<AuthFlowResult> {
     try {
       // Check agreement status
       const agreementStatus = await this.checkAgreementStatus(profile)
@@ -236,7 +236,7 @@ class AuthFlowV2Manager {
       
       console.log('✅ Authentication state set successfully')
 
-      // Determine redirect path
+      // Priority 1: Agreement requirements
       if (agreementStatus.requiresAgreement) {
         return {
           success: true,
@@ -245,20 +245,38 @@ class AuthFlowV2Manager {
         }
       }
 
-      // Check for intended route
-      let redirectPath = '/dashboard'
-      if (typeof window !== 'undefined') {
-        const intendedRoute = localStorage.getItem('raptor-intended-route')
-        if (intendedRoute && intendedRoute !== '/auth/login') {
-          redirectPath = intendedRoute
-          localStorage.removeItem('raptor-intended-route')
+      // Priority 2: Onboarding requirements (pending_player who hasn't completed onboarding)
+      if (profile.role === 'pending_player' && !profile.onboarding_completed) {
+        return {
+          success: true,
+          shouldRedirect: true,
+          redirectPath: '/onboarding'
         }
       }
 
+      // Priority 3: Only redirect on explicit request (login, signup confirmation)
+      if (shouldRedirect) {
+        // Check for intended route
+        let redirectPath = '/dashboard'
+        if (typeof window !== 'undefined') {
+          const intendedRoute = localStorage.getItem('raptor-intended-route')
+          if (intendedRoute && intendedRoute !== '/auth/login' && intendedRoute !== '/auth/signup') {
+            redirectPath = intendedRoute
+            localStorage.removeItem('raptor-intended-route')
+          }
+        }
+
+        return {
+          success: true,
+          shouldRedirect: true,
+          redirectPath
+        }
+      }
+
+      // For normal navigation/page refresh, don't redirect
       return {
         success: true,
-        shouldRedirect: true,
-        redirectPath
+        shouldRedirect: false
       }
 
     } catch (error: any) {
@@ -313,7 +331,7 @@ class AuthFlowV2Manager {
       // Store session
       SessionStorage.setSession(sessionData)
 
-      return await this.setAuthenticatedState(sessionData, profile)
+      return await this.setAuthenticatedState(sessionData, profile, true) // Redirect on login
 
     } catch (error: any) {
       console.error('❌ Session handling failed:', error)

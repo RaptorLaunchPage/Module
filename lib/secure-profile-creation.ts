@@ -52,6 +52,7 @@ export class SecureProfileCreation {
         name: name || email.split('@')[0] || 'User',
         role: defaultRole,
         role_level: defaultRoleLevel,
+        onboarding_completed: false, // Explicitly set to false for new pending_player profiles
         created_at: new Date().toISOString()
       }
       
