@@ -96,14 +96,14 @@ export async function GET(request: NextRequest) {
           },
           total_evaluations: evaluations.length,
           evaluation_recommendations: {
-            strong_select: evaluations.filter(eval => eval.recommendation === 'strong_select').length,
-            select: evaluations.filter(eval => eval.recommendation === 'select').length,
-            maybe: evaluations.filter(eval => eval.recommendation === 'maybe').length,
-            reject: evaluations.filter(eval => eval.recommendation === 'reject').length,
-            strong_reject: evaluations.filter(eval => eval.recommendation === 'strong_reject').length
+            strong_select: evaluations.filter(evaluation => evaluation.recommendation === 'strong_select').length,
+            select: evaluations.filter(evaluation => evaluation.recommendation === 'select').length,
+            maybe: evaluations.filter(evaluation => evaluation.recommendation === 'maybe').length,
+            reject: evaluations.filter(evaluation => evaluation.recommendation === 'reject').length,
+            strong_reject: evaluations.filter(evaluation => evaluation.recommendation === 'strong_reject').length
           },
           average_score: evaluations.length > 0 
-            ? (evaluations.reduce((sum, eval) => sum + (eval.overall_score || 0), 0) / evaluations.length).toFixed(1)
+            ? (evaluations.reduce((sum, evaluation) => sum + (evaluation.overall_score || 0), 0) / evaluations.length).toFixed(1)
             : null,
           conversion_rate: applications.length > 0 
             ? ((applications.filter(app => app.phase === 'selected').length / applications.length) * 100).toFixed(1)

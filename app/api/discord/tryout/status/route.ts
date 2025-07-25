@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
     // Process applications with their status
     const processedApplications = applications.map(app => {
       const invitation = invitations.find(inv => inv.application_id === app.id)
-      const evaluation = evaluations.find(eval => eval.tryout_id === app.tryout_id)
+      const evaluation = evaluations.find(evaluation => evaluation.tryout_id === app.tryout_id)
 
       // Determine current phase
       let currentPhase = app.phase || app.status
