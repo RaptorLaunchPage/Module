@@ -239,18 +239,18 @@ class AuthFlowV2Manager {
       // Check agreement status
       const agreementStatus = await this.checkAgreementStatus(profile)
 
-      // Update auth state
+      // Update auth state - ENSURE loading is false
       this.setState({
         isAuthenticated: true,
         isInitialized: true,
-        isLoading: false,
+        isLoading: false, // Explicitly set to false
         user: sessionData.user,
         profile,
         agreementStatus,
         error: null
       })
       
-      console.log('✅ Authentication state set successfully')
+      console.log('✅ Authentication state set successfully - isLoading: false')
 
       // Priority 1: Agreement requirements
       if (agreementStatus.requiresAgreement) {

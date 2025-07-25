@@ -130,8 +130,19 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
 
   // Handle route protection logic
   useEffect(() => {
-    if (!authState || authState.isLoading) {
-      return // Still loading, don't make decisions yet
+    if (!authState) {
+      return // Still waiting for initial auth state
+    }
+
+    // If auth state shows not loading and we're still showing loading screen, clear it
+    if (!authState.isLoading && isLoading) {
+      console.log('🔄 Route guard: Auth completed, clearing loading screen')
+      setIsLoading(false)
+      return
+    }
+
+    if (authState.isLoading) {
+      return // Still loading, don't make route decisions yet
     }
 
     // Allow public routes immediately
@@ -176,12 +187,11 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
       return
     }
 
-    // All checks passed - add small delay for smooth transitions
-    setTimeout(() => {
-      setIsLoading(false)
-    }, 200)
+    // All checks passed and auth is complete - clear loading
+    console.log('✅ Route guard: All checks passed, access granted')
+    setIsLoading(false)
 
-  }, [authState, pathname, router])
+  }, [authState, pathname, router, isLoading])
 
   // Show loading screen while initializing or making route decisions
   if (isLoading || (authState?.isLoading)) {
@@ -201,8 +211,9 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         currentStep = 'initializing'
         description = 'Setting up your dashboard...'
       } else if (authState.isAuthenticated && authState.profile && !authState.isLoading) {
+        // Auth is complete but route guard is still processing
         currentStep = 'redirecting'
-        description = 'Taking you to your dashboard...'
+        description = 'Access granted! Loading your dashboard...'
       } else {
         currentStep = 'authenticating'
         description = 'Verifying your credentials...'
@@ -214,8 +225,12 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         currentStep={currentStep}
         steps={steps}
         customDescription={description}
-        timeoutMs={0} // No timeout - let auth flow handle timing
+        timeoutMs={10000} // Add timeout to prevent infinite loading
         showProgress={true}
+        onTimeout={() => {
+          console.log('⚠️ Route guard loading timeout - forcing completion')
+          setIsLoading(false)
+        }}
       />
     )
   }
