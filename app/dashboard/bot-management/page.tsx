@@ -37,7 +37,7 @@ interface DiscordServer {
     id: string
     name: string
     tier: string
-  }
+  }[]
 }
 
 interface BotStats {
@@ -125,7 +125,7 @@ export default function BotManagementOverview() {
 
   const filteredServers = servers.filter(server =>
     server.guild_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    server.teams?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    server.teams?.[0]?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const getModuleColor = (module: string) => {
@@ -299,9 +299,9 @@ export default function BotManagementOverview() {
                   <div className="mb-4">
                     <p className="text-sm font-medium mb-2">Connected Team</p>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline">{server.teams.name}</Badge>
+                      <Badge variant="outline">{server.teams?.[0]?.name}</Badge>
                       <Badge variant="secondary" className="text-xs">
-                        {server.teams.tier}
+                        {server.teams?.[0]?.tier}
                       </Badge>
                     </div>
                   </div>

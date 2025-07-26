@@ -40,7 +40,7 @@ interface WebhookData {
   team_id: string | null
   teams?: {
     name: string
-  }
+  }[]
 }
 
 interface CommunicationLog {
@@ -546,7 +546,7 @@ export default function WebhooksManager() {
                 {webhook.teams && (
                   <div className="flex items-center gap-2 text-sm">
                     <span className="font-medium">Team:</span>
-                    <Badge variant="outline">{webhook.teams.name}</Badge>
+                    <Badge variant="outline">{webhook.teams?.[0]?.name}</Badge>
                   </div>
                 )}
 

@@ -48,7 +48,7 @@ interface PerformanceRecord {
   users?: {
     name: string
     display_name: string
-  }
+  }[]
 }
 
 interface PerformanceSettings {
@@ -199,7 +199,7 @@ export default function PerformanceManager() {
         const playerId = record.player_id
         if (!acc[playerId]) {
           acc[playerId] = {
-            name: record.users?.display_name || record.users?.name || 'Unknown',
+            name: record.users?.[0]?.display_name || record.users?.[0]?.name || 'Unknown',
             totalKills: 0,
             totalDamage: 0,
             matches: 0
@@ -323,7 +323,7 @@ export default function PerformanceManager() {
     try {
       const csvData = records.map(record => ({
         Date: new Date(record.created_at).toLocaleDateString(),
-        Player: record.users?.display_name || record.users?.name || 'Unknown',
+        Player: record.users?.[0]?.display_name || record.users?.[0]?.name || 'Unknown',
         Map: record.map,
         Placement: record.placement,
         Kills: record.kills,
@@ -621,7 +621,7 @@ export default function PerformanceManager() {
                   <div className="flex-1 grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
                     <div>
                       <div className="font-medium">
-                        {record.users?.display_name || record.users?.name || 'Unknown'}
+                        {record.users?.[0]?.display_name || record.users?.[0]?.name || 'Unknown'}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {new Date(record.created_at).toLocaleDateString()}
