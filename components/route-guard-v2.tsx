@@ -44,14 +44,10 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
   })
   const [loadingStep, setLoadingStep] = useState<LoadingStep>('connecting')
 
-  // For public routes, render immediately without any loading
-  if (isPublicRoute(pathname)) {
-    console.log('🏠 Public route - rendering immediately:', pathname)
-    return <>{children}</>
-  }
-
   // Ultimate fallback - force completion after 15 seconds no matter what
   useEffect(() => {
+    if (isPublicRoute(pathname)) return // Skip for public routes
+
     const ultimateFallback = setTimeout(() => {
       console.log('⚠️ Ultimate fallback triggered - forcing loading completion after 15 seconds')
       setIsLoading(false)
@@ -68,6 +64,8 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
 
   // Force completion timeout to prevent infinite loading
   useEffect(() => {
+    if (isPublicRoute(pathname)) return // Skip for public routes
+
     const forceCompletionTimer = setTimeout(() => {
       if (isLoading && authState?.isAuthenticated && authState?.profile) {
         console.log('⚠️ Force completing authentication - timeout reached')
@@ -84,10 +82,12 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
     }, 3000) // Increased to 3 seconds for better UX
 
     return () => clearTimeout(forceCompletionTimer)
-  }, [isLoading, authState?.isAuthenticated, authState?.profile, pathname])
+  }, [isLoading, authState?.isAuthenticated, authState?.profile, authState?.isLoading, authState?.user, pathname])
 
   // Additional safety check - clear loading if we have complete auth data
   useEffect(() => {
+    if (isPublicRoute(pathname)) return // Skip for public routes
+
     if (isLoading && authState && !authState.isLoading && 
         authState.isAuthenticated && authState.user && authState.profile) {
       console.log('🔧 Safety check: Auth data complete, clearing loading state')
@@ -95,10 +95,12 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         setIsLoading(false)
       }, 100)
     }
-  }, [isLoading, authState])
+  }, [isLoading, authState, pathname])
 
   // Initialize auth and handle state changes
   useEffect(() => {
+    if (isPublicRoute(pathname)) return // Skip for public routes
+
     let mounted = true
     let initTimeout: NodeJS.Timeout | null = null
 
@@ -231,6 +233,8 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
 
   // Handle route protection logic
   useEffect(() => {
+    if (isPublicRoute(pathname)) return // Skip for public routes
+
     if (!authState) {
       return // Still waiting for initial auth state
     }
@@ -266,12 +270,6 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
 
     if (authState.isLoading) {
       return // Still loading, don't make route decisions yet
-    }
-
-    // Allow public routes immediately
-    if (isPublicRoute(pathname)) {
-      setIsLoading(false)
-      return
     }
 
     // If not authenticated, redirect to login
@@ -323,6 +321,12 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
     setIsLoading(false)
 
   }, [authState, pathname, router, isLoading])
+
+  // For public routes, render immediately without any loading
+  if (isPublicRoute(pathname)) {
+    console.log('🏠 Public route - rendering immediately:', pathname)
+    return <>{children}</>
+  }
 
   // Show loading screen while initializing or making route decisions
   if (isLoading || (authState?.isLoading)) {
