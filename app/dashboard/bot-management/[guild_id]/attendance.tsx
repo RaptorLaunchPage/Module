@@ -723,10 +723,10 @@ export default function AttendanceManager() {
                       <StatusIcon className={`w-4 h-4 ${getStatusColor(record.status).split(' ')[0]}`} />
                       <div>
                         <div className="font-medium">
-                          {record.users?.display_name || record.users?.name || 'Unknown'}
+                          {record.users?.[0]?.display_name || record.users?.[0]?.name || 'Unknown'}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {record.sessions?.title || 'Unknown Session'}
+                          {record.sessions?.[0]?.title || 'Unknown Session'}
                         </div>
                       </div>
                     </div>

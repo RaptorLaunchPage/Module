@@ -45,7 +45,7 @@ interface GuildData {
     id: string
     name: string
     tier: string
-  }
+  }[]
 }
 
 const AVAILABLE_MODULES = [
@@ -369,9 +369,9 @@ export default function GuildBotControls() {
           <CardContent className="pt-0">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Connected Team:</span>
-              <Badge variant="outline">{guildData.teams.name}</Badge>
+              <Badge variant="outline">{guildData.teams?.[0]?.name || 'None'}</Badge>
               <Badge variant="secondary" className="text-xs">
-                {guildData.teams.tier}
+                {guildData.teams?.[0]?.tier || ''}
               </Badge>
             </div>
           </CardContent>
@@ -418,7 +418,7 @@ export default function GuildBotControls() {
               {AVAILABLE_MODULES.map((module) => {
                 const isEnabled = enabledModules.includes(module.id)
                 const isPremium = module.requiresPremium
-                const canToggle = canManage && (!isPremium || guildData.teams?.tier !== 'Free')
+                const canToggle = canManage && (!isPremium || guildData.teams?.[0]?.tier !== 'Free')
 
                 return (
                   <Card key={module.id} className={`relative ${!canToggle ? 'opacity-60' : ''}`}>
