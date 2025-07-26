@@ -76,7 +76,7 @@ const LOG_STATUSES = {
 
 export default function WebhooksManager() {
   const params = useParams()
-  const { profile } = useAuth()
+  const { profile } = useAuthV2()
   const guildId = params.guild_id as string
   
   const [webhooks, setWebhooks] = useState<WebhookData[]>([])

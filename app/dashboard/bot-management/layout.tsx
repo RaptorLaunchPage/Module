@@ -20,7 +20,7 @@ import {
   Shield
 } from 'lucide-react'
 import { DashboardPermissions } from '@/lib/dashboard-permissions'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuthV2 } from '@/hooks/use-auth-v2'
 
 interface BotManagementLayoutProps {
   children: React.ReactNode
@@ -28,7 +28,7 @@ interface BotManagementLayoutProps {
 
 export default function BotManagementLayout({ children }: BotManagementLayoutProps) {
   const pathname = usePathname()
-  const { profile } = useAuth()
+  const { profile } = useAuthV2()
   const [selectedGuild, setSelectedGuild] = useState<string | null>(null)
   
   // Extract guild_id from pathname if we're in a guild-specific page

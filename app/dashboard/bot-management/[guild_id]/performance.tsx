@@ -70,7 +70,7 @@ interface PerformanceStats {
 
 export default function PerformanceManager() {
   const params = useParams()
-  const { profile } = useAuth()
+  const { profile } = useAuthV2()
   const guildId = params.guild_id as string
   
   const [records, setRecords] = useState<PerformanceRecord[]>([])

@@ -25,7 +25,7 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuthV2 } from '@/hooks/use-auth-v2'
 import { DashboardPermissions } from '@/lib/dashboard-permissions'
 import { toast } from 'sonner'
 
@@ -95,7 +95,7 @@ const AVAILABLE_MODULES = [
 
 export default function GuildBotControls() {
   const params = useParams()
-  const { profile } = useAuth()
+  const { profile } = useAuthV2()
   const guildId = params.guild_id as string
   
   const [guildData, setGuildData] = useState<GuildData | null>(null)

@@ -25,7 +25,7 @@ import {
   BarChart3
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuthV2 } from '@/hooks/use-auth-v2'
 import { DashboardPermissions } from '@/lib/dashboard-permissions'
 import { toast } from 'sonner'
 
@@ -41,12 +41,12 @@ interface AttendanceRecord {
   users?: {
     name: string
     display_name: string
-  }
+  }[]
   sessions?: {
     title: string
     session_type: string
     session_subtype: string
-  }
+  }[]
 }
 
 interface AttendanceSettings {
@@ -81,7 +81,7 @@ interface SessionData {
 
 export default function AttendanceManager() {
   const params = useParams()
-  const { profile } = useAuth()
+  const { profile } = useAuthV2()
   const guildId = params.guild_id as string
   
   const [records, setRecords] = useState<AttendanceRecord[]>([])
@@ -207,7 +207,7 @@ export default function AttendanceManager() {
         const playerId = record.player_id
         if (!acc[playerId]) {
           acc[playerId] = {
-            name: record.users?.display_name || record.users?.name || 'Unknown',
+            name: record.users?.[0]?.display_name || record.users?.[0]?.name || 'Unknown',
             present: 0,
             total: 0
           }
@@ -311,10 +311,10 @@ export default function AttendanceManager() {
 
       const csvData = records.map(record => ({
         Date: record.date,
-        Player: record.users?.display_name || record.users?.name || 'Unknown',
-        Session: record.sessions?.title || 'Unknown Session',
-        Type: record.sessions?.session_type || '',
-        Subtype: record.sessions?.session_subtype || '',
+        Player: record.users?.[0]?.display_name || record.users?.[0]?.name || 'Unknown',
+        Session: record.sessions?.[0]?.title || 'Unknown Session',
+        Type: record.sessions?.[0]?.session_type || '',
+        Subtype: record.sessions?.[0]?.session_subtype || '',
         Status: record.status,
         Source: record.source,
         Time: record.session_time

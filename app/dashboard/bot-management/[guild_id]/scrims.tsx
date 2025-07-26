@@ -66,7 +66,7 @@ const SCRIM_STATUSES = {
 
 export default function ScrimsManager() {
   const params = useParams()
-  const { profile } = useAuth()
+  const { profile } = useAuthV2()
   const guildId = params.guild_id as string
   
   const [scrims, setScrims] = useState<Scrim[]>([])

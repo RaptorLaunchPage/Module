@@ -169,7 +169,7 @@ const DEFAULT_LIMITS = {
 
 export default function FeatureToggles() {
   const params = useParams()
-  const { profile } = useAuth()
+  const { profile } = useAuthV2()
   const guildId = params.guild_id as string
   
   const [guildFeatures, setGuildFeatures] = useState<GuildFeatures | null>(null)

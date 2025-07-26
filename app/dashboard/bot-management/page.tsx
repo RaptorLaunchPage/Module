@@ -20,7 +20,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuthV2 } from '@/hooks/use-auth-v2'
 import { DashboardPermissions } from '@/lib/dashboard-permissions'
 
 interface DiscordServer {
@@ -48,7 +48,7 @@ interface BotStats {
 }
 
 export default function BotManagementOverview() {
-  const { profile } = useAuth()
+  const { profile } = useAuthV2()
   const [servers, setServers] = useState<DiscordServer[]>([])
   const [stats, setStats] = useState<BotStats>({
     totalServers: 0,
