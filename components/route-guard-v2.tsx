@@ -56,7 +56,7 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         })
         setIsLoading(false)
       }
-    }, 1500) // 1.5 second maximum loading time
+    }, 3000) // Increased to 3 seconds for better UX
 
     return () => clearTimeout(forceCompletionTimer)
   }, [isLoading, authState?.isAuthenticated, authState?.profile, pathname])
@@ -281,13 +281,24 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
       }
     }
 
+    console.log('🔄 Route guard showing loading screen:', {
+      currentStep,
+      description,
+      authStateLoading: authState?.isLoading,
+      routeGuardLoading: isLoading,
+      isAuthenticated: authState?.isAuthenticated,
+      hasProfile: !!authState?.profile,
+      pathname
+    })
+
     return (
       <AdvancedLoading
         currentStep={currentStep}
         steps={steps}
         customDescription={description}
-        timeoutMs={1000} // Further reduced timeout
+        timeoutMs={5000} // Increased timeout for better UX
         showProgress={true}
+        autoProgress={false} // Don't auto-progress, wait for actual auth completion
         onTimeout={() => {
           console.log('⚠️ Route guard loading timeout - forcing completion')
           console.log('🔍 Timeout details:', {
@@ -315,8 +326,9 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         currentStep="initializing"
         steps={['connecting', 'authenticating', 'loading-profile', 'initializing']}
         customDescription="Verifying access permissions..."
-        timeoutMs={0}
+        timeoutMs={5000}
         showProgress={true}
+        autoProgress={false} // Don't auto-progress, wait for actual auth completion
       />
     )
   }
