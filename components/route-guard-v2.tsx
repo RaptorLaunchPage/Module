@@ -286,7 +286,7 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         currentStep={currentStep}
         steps={steps}
         customDescription={description}
-        timeoutMs={2000} // Reduced timeout to prevent infinite loading
+        timeoutMs={1000} // Further reduced timeout
         showProgress={true}
         onTimeout={() => {
           console.log('⚠️ Route guard loading timeout - forcing completion')
