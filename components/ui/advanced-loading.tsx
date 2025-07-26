@@ -44,7 +44,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Connecting to Raptor servers...",
     color: "text-blue-400",
     bgColor: "from-blue-500/20 to-cyan-500/20",
-    duration: 1500
+    duration: 300
   },
   authenticating: {
     icon: Shield,
@@ -52,7 +52,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Authenticating your credentials...",
     color: "text-green-400", 
     bgColor: "from-green-500/20 to-emerald-500/20",
-    duration: 2000
+    duration: 300
   },
   'checking-agreement': {
     icon: CheckCircle,
@@ -60,7 +60,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Reviewing user agreement status...",
     color: "text-amber-400",
     bgColor: "from-amber-500/20 to-yellow-500/20", 
-    duration: 1200
+    duration: 300
   },
   'loading-profile': {
     icon: User,
@@ -68,7 +68,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Retrieving your player data...",
     color: "text-purple-400",
     bgColor: "from-purple-500/20 to-violet-500/20",
-    duration: 1800
+    duration: 300
   },
   initializing: {
     icon: Settings,
@@ -76,7 +76,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Setting up your esports hub...",
     color: "text-cyan-400",
     bgColor: "from-cyan-500/20 to-blue-500/20",
-    duration: 1600
+    duration: 300
   },
   redirecting: {
     icon: Globe,
@@ -84,7 +84,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Taking you to your dashboard...",
     color: "text-indigo-400",
     bgColor: "from-indigo-500/20 to-purple-500/20",
-    duration: 800
+    duration: 300
   },
   processing: {
     icon: Database,
@@ -92,7 +92,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Processing your request...",
     color: "text-orange-400",
     bgColor: "from-orange-500/20 to-red-500/20",
-    duration: 2000
+    duration: 300
   },
   error: {
     icon: AlertCircle,
@@ -303,7 +303,7 @@ export function AdvancedLoading({
 // Hook for sequential loading with timeout handling
 export function useSequentialLoading(
   steps: LoadingStep[], 
-  stepDuration: number = 2000,
+  stepDuration: number = 300,
   onTimeout?: () => void,
   timeoutMs: number = 15000
 ) {

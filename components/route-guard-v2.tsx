@@ -41,6 +41,18 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
   const [isLoading, setIsLoading] = useState(true)
   const [loadingStep, setLoadingStep] = useState<LoadingStep>('connecting')
 
+  // Force completion timeout to prevent infinite loading
+  useEffect(() => {
+    const forceCompletionTimer = setTimeout(() => {
+      if (isLoading && authState?.isAuthenticated && authState?.profile) {
+        console.log('⚠️ Force completing authentication - timeout reached')
+        setIsLoading(false)
+      }
+    }, 2000) // 2 second maximum loading time
+
+    return () => clearTimeout(forceCompletionTimer)
+  }, [isLoading, authState?.isAuthenticated, authState?.profile])
+
   // Initialize auth and handle state changes
   useEffect(() => {
     let mounted = true
@@ -141,6 +153,13 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
       return
     }
 
+    // Force clear loading if authenticated and profile is loaded (fallback)
+    if (authState.isAuthenticated && authState.profile && !authState.isLoading && isLoading) {
+      console.log('⚡ Route guard: Force clearing loading - auth complete with profile')
+      setIsLoading(false)
+      return
+    }
+
     if (authState.isLoading) {
       return // Still loading, don't make route decisions yet
     }
@@ -225,7 +244,7 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         currentStep={currentStep}
         steps={steps}
         customDescription={description}
-        timeoutMs={10000} // Add timeout to prevent infinite loading
+        timeoutMs={3000} // Reduced timeout to prevent infinite loading
         showProgress={true}
         onTimeout={() => {
           console.log('⚠️ Route guard loading timeout - forcing completion')
