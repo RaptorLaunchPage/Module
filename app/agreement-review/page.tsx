@@ -120,7 +120,7 @@ export default function AgreementReviewPage() {
         })
         setTimeout(() => {
           router.push('/dashboard')
-        }, 2000)
+        }, 500)
       } else {
         throw new Error('Failed to accept agreement')
       }

@@ -111,14 +111,14 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
                   console.log('⏳ Waiting for profile to load before redirect...')
                   // The useEffect watching authState will handle the redirect when ready
                   
-                  // Fallback timeout in case something goes wrong (increased to 5 seconds)
+                  // Fallback timeout in case something goes wrong
                   redirectTimeout.current = setTimeout(() => {
                     if (mounted.current && pendingRedirect.current) {
                       console.log('⚠️ Fallback timeout triggered, redirecting to:', pendingRedirect.current.redirectPath)
                       router.push(pendingRedirect.current.redirectPath)
                       pendingRedirect.current = null
                     }
-                  }, 5000)
+                  }, 2000) // Increased to 2 seconds to allow for login animation
                 }
               } else {
                 console.log('🔄 Already on target page, skipping redirect')
@@ -178,7 +178,11 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       // Don't redirect if already on the target page
       if (currentPath !== redirectPath) {
         console.log('⚡ Instant redirect to:', redirectPath)
-        router.push(redirectPath)
+        
+        // Small delay to coordinate with login animation
+        setTimeout(() => {
+          router.push(redirectPath)
+        }, 1600) // Slightly after login animation completes
       } else {
         console.log('🔄 Already on target page, skipping redirect')
       }
@@ -191,7 +195,6 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
   // Initialize auth flow on mount
   useEffect(() => {
     let initTimeout: NodeJS.Timeout | null = null
-    let fallbackTimeout: NodeJS.Timeout | null = null
     
     const initializeAuth = async () => {
       try {
@@ -255,37 +258,11 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       }
     }, 100)
     
-    // Fallback timeout to prevent infinite loading
-    fallbackTimeout = setTimeout(() => {
-      if (mounted.current) {
-        console.log('⚠️ Auth hook: Fallback timeout triggered - forcing completion')
-        const currentState = authFlowV2.getState()
-        if (currentState.isLoading) {
-          // Force the auth flow to complete
-          authFlowV2.forceCompleteLoading()
-          
-          // Redirect to login if on protected route
-          const currentPath = window.location.pathname
-          const isProtectedRoute = !['/','auth/login', '/auth/signup', '/auth/confirm', '/auth/forgot', '/auth/reset-password'].some(route => {
-            if (route === '/') return currentPath === '/'
-            return currentPath.startsWith(route)
-          })
-          
-          if (isProtectedRoute) {
-            router.push('/auth/login')
-          }
-        }
-      }
-    }, 12000) // 12 second fallback timeout
-    
     return () => {
       mounted.current = false
       clearTimeout(delayedInit)
       if (initTimeout) {
         clearTimeout(initTimeout)
-      }
-      if (fallbackTimeout) {
-        clearTimeout(fallbackTimeout)
       }
     }
   }, []) // Remove dependencies to prevent re-initialization

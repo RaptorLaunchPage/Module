@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { AdvancedLoading } from '@/components/ui/advanced-loading'
+import { ErrorBoundary } from 'react-error-boundary'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { VideoBackground } from '@/components/video-background'

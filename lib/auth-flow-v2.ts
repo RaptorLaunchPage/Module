@@ -65,30 +65,9 @@ class AuthFlowV2Manager {
     return { ...this.state }
   }
 
-  // Force complete loading state (emergency fallback)
-  forceCompleteLoading(): void {
-    console.log('🚨 Auth flow: Force completing loading state')
-    this.setState({
-      isInitialized: true,
-      isLoading: false,
-      error: 'Loading was forced to complete due to timeout'
-    })
-  }
-
   // Update state and notify listeners
   private setState(updates: Partial<AuthState>) {
-    const prevState = { ...this.state }
     this.state = { ...this.state, ...updates }
-    
-    // Log state changes for debugging
-    if (updates.isLoading !== undefined || updates.isAuthenticated !== undefined) {
-      console.log('🔄 Auth state change:', {
-        from: { isLoading: prevState.isLoading, isAuthenticated: prevState.isAuthenticated, hasProfile: !!prevState.profile },
-        to: { isLoading: this.state.isLoading, isAuthenticated: this.state.isAuthenticated, hasProfile: !!this.state.profile },
-        timestamp: new Date().toISOString()
-      })
-    }
-    
     this.listeners.forEach(listener => listener(this.state))
   }
 
@@ -132,20 +111,18 @@ class AuthFlowV2Manager {
       console.log('🚀 Starting streamlined auth initialization...')
       this.setState({ isLoading: true, error: null })
 
-      // Add timeout protection for the entire initialization process
-      const initializationPromise = this.doInitialization(isInitialLoad)
+      // Add a timeout to prevent hanging
+      const initPromise = this.doActualInitialization(isInitialLoad)
       const timeoutPromise = new Promise<AuthFlowResult>((_, reject) => {
         setTimeout(() => {
-          reject(new Error('Authentication initialization timed out after 10 seconds'))
-        }, 10000)
+          reject(new Error('Auth initialization timeout - taking too long'))
+        }, 8000) // 8 second timeout
       })
 
-      return await Promise.race([initializationPromise, timeoutPromise])
+      return await Promise.race([initPromise, timeoutPromise])
 
     } catch (error: any) {
       console.error('❌ Auth initialization failed:', error)
-      
-      // Ensure we always set loading to false
       this.setState({
         isInitialized: true,
         isLoading: false,
@@ -155,13 +132,14 @@ class AuthFlowV2Manager {
         agreementStatus: { requiresAgreement: false, isChecked: true },
         error: error.message || 'Authentication initialization failed'
       })
-      
       return { success: false, shouldRedirect: false, error: error.message }
     }
   }
 
-  // Separate the actual initialization logic
-  private async doInitialization(isInitialLoad: boolean): Promise<AuthFlowResult> {
+  // Separated actual initialization logic
+  private async doActualInitialization(isInitialLoad: boolean): Promise<AuthFlowResult> {
+    console.log('🔄 Performing actual auth initialization steps...')
+
     // Step 1: Check for existing session
     const existingSession = SessionStorage.getSession()
     const accessToken = SessionStorage.getAccessToken()
@@ -213,8 +191,7 @@ class AuthFlowV2Manager {
     })
 
     return { success: true, shouldRedirect: false }
-
-     }
+  }
 
   // Fast profile loading with proper error handling
   private async loadUserProfileFast(user: User): Promise<any> {

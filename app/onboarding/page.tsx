@@ -127,7 +127,7 @@ export default function OnboardingPage() {
       // Redirect to dashboard after a brief delay
       setTimeout(() => {
         router.push('/dashboard')
-      }, 2000)
+      }, 500)
 
     } catch (error: any) {
       console.error('Onboarding error:', error)
