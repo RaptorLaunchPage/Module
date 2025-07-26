@@ -41,6 +41,37 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
   const [isLoading, setIsLoading] = useState(true)
   const [loadingStep, setLoadingStep] = useState<LoadingStep>('connecting')
 
+  // Force completion timeout to prevent infinite loading
+  useEffect(() => {
+    const forceCompletionTimer = setTimeout(() => {
+      if (isLoading && authState?.isAuthenticated && authState?.profile) {
+        console.log('⚠️ Force completing authentication - timeout reached')
+        console.log('🔍 Timeout force details:', {
+          isAuthenticated: authState.isAuthenticated,
+          hasUser: !!authState.user,
+          hasProfile: !!authState.profile,
+          authLoading: authState.isLoading,
+          routeGuardLoading: isLoading,
+          pathname
+        })
+        setIsLoading(false)
+      }
+    }, 1500) // 1.5 second maximum loading time
+
+    return () => clearTimeout(forceCompletionTimer)
+  }, [isLoading, authState?.isAuthenticated, authState?.profile, pathname])
+
+  // Additional safety check - clear loading if we have complete auth data
+  useEffect(() => {
+    if (isLoading && authState && !authState.isLoading && 
+        authState.isAuthenticated && authState.user && authState.profile) {
+      console.log('🔧 Safety check: Auth data complete, clearing loading state')
+      setTimeout(() => {
+        setIsLoading(false)
+      }, 100)
+    }
+  }, [isLoading, authState])
+
   // Initialize auth and handle state changes
   useEffect(() => {
     let mounted = true
@@ -141,6 +172,28 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
       return
     }
 
+    // Force clear loading if authenticated and profile is loaded (fallback)
+    if (authState.isAuthenticated && authState.profile && !authState.isLoading && isLoading) {
+      console.log('⚡ Route guard: Force clearing loading - auth complete with profile')
+      console.log('🔍 Force clear details:', {
+        isAuthenticated: authState.isAuthenticated,
+        hasProfile: !!authState.profile,
+        authLoading: authState.isLoading,
+        routeGuardLoading: isLoading,
+        pathname
+      })
+      setIsLoading(false)
+      return
+    }
+
+    // Additional fallback - if we have everything needed for dashboard access
+    if (authState.isAuthenticated && authState.user && authState.profile && 
+        !authState.isLoading && isLoading && pathname === '/dashboard') {
+      console.log('🚀 Route guard: Dashboard access ready - clearing loading')
+      setIsLoading(false)
+      return
+    }
+
     if (authState.isLoading) {
       return // Still loading, don't make route decisions yet
     }
@@ -189,6 +242,14 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
 
     // All checks passed and auth is complete - clear loading
     console.log('✅ Route guard: All checks passed, access granted')
+    console.log('🔍 Auth state details:', {
+      isAuthenticated: authState.isAuthenticated,
+      hasUser: !!authState.user,
+      hasProfile: !!authState.profile,
+      isLoading: authState.isLoading,
+      routeGuardLoading: isLoading,
+      pathname
+    })
     setIsLoading(false)
 
   }, [authState, pathname, router, isLoading])
@@ -225,10 +286,22 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         currentStep={currentStep}
         steps={steps}
         customDescription={description}
-        timeoutMs={10000} // Add timeout to prevent infinite loading
+        timeoutMs={1000} // Further reduced timeout
         showProgress={true}
         onTimeout={() => {
           console.log('⚠️ Route guard loading timeout - forcing completion')
+          console.log('🔍 Timeout details:', {
+            isAuthenticated: authState?.isAuthenticated,
+            hasUser: !!authState?.user,
+            hasProfile: !!authState?.profile,
+            authLoading: authState?.isLoading,
+            pathname
+          })
+          // Force redirect to dashboard if we have auth data
+          if (authState?.isAuthenticated && authState?.profile) {
+            console.log('🚀 Forcing redirect to dashboard after timeout')
+            router.push('/dashboard')
+          }
           setIsLoading(false)
         }}
       />
