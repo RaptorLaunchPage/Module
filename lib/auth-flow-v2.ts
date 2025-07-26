@@ -111,67 +111,86 @@ class AuthFlowV2Manager {
       console.log('🚀 Starting streamlined auth initialization...')
       this.setState({ isLoading: true, error: null })
 
-      // Step 1: Check for existing session
-      const existingSession = SessionStorage.getSession()
-      const accessToken = SessionStorage.getAccessToken()
-
-      if (existingSession && accessToken && !SessionStorage.isTokenExpired()) {
-        console.log('✅ Valid session found in storage')
-        
-        // Try to restore user with cached profile if available
-        const cachedProfile = this.profileCache.get(existingSession.user.id)
-        if (cachedProfile) {
-          console.log('✅ Using cached profile data')
-          return await this.setAuthenticatedState(existingSession, cachedProfile, false) // Don't redirect on restore
-        }
-
-        // Validate session with Supabase
-        const { data: { user }, error } = await supabase.auth.getUser(accessToken)
-        
-        if (user && !error) {
-          // Load profile in parallel
-          const profile = await this.loadUserProfileFast(user)
-          if (profile) {
-            this.profileCache.set(user.id, profile)
-            return await this.setAuthenticatedState(existingSession, profile, false) // Don't redirect on restore
-          }
-        } else {
-          console.log('⚠️ Stored session invalid, clearing...')
-          SessionStorage.clearSession()
-          this.profileCache.clear()
-        }
-      }
-
-      // Step 2: Check for active Supabase session
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session?.user) {
-        console.log('🔄 Active Supabase session found, processing...')
-        return await this.handleSupabaseSession(session)
-      }
-
-      // Step 3: No active session
-      console.log('📝 No active session found')
-      this.setState({
-        isAuthenticated: false,
-        isInitialized: true,
-        isLoading: false,
-        user: null,
-        profile: null,
-        agreementStatus: { requiresAgreement: false, isChecked: true }
+      // Add a timeout to prevent hanging
+      const initPromise = this.doActualInitialization(isInitialLoad)
+      const timeoutPromise = new Promise<AuthFlowResult>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Auth initialization timeout - taking too long'))
+        }, 8000) // 8 second timeout
       })
 
-      return { success: true, shouldRedirect: false }
+      return await Promise.race([initPromise, timeoutPromise])
 
     } catch (error: any) {
       console.error('❌ Auth initialization failed:', error)
       this.setState({
         isInitialized: true,
         isLoading: false,
+        isAuthenticated: false,
+        user: null,
+        profile: null,
+        agreementStatus: { requiresAgreement: false, isChecked: true },
         error: error.message || 'Authentication initialization failed'
       })
       return { success: false, shouldRedirect: false, error: error.message }
     }
+  }
+
+  // Separated actual initialization logic
+  private async doActualInitialization(isInitialLoad: boolean): Promise<AuthFlowResult> {
+    console.log('🔄 Performing actual auth initialization steps...')
+
+    // Step 1: Check for existing session
+    const existingSession = SessionStorage.getSession()
+    const accessToken = SessionStorage.getAccessToken()
+
+    if (existingSession && accessToken && !SessionStorage.isTokenExpired()) {
+      console.log('✅ Valid session found in storage')
+      
+      // Try to restore user with cached profile if available
+      const cachedProfile = this.profileCache.get(existingSession.user.id)
+      if (cachedProfile) {
+        console.log('✅ Using cached profile data')
+        return await this.setAuthenticatedState(existingSession, cachedProfile, false) // Don't redirect on restore
+      }
+
+      // Validate session with Supabase
+      const { data: { user }, error } = await supabase.auth.getUser(accessToken)
+      
+      if (user && !error) {
+        // Load profile in parallel
+        const profile = await this.loadUserProfileFast(user)
+        if (profile) {
+          this.profileCache.set(user.id, profile)
+          return await this.setAuthenticatedState(existingSession, profile, false) // Don't redirect on restore
+        }
+      } else {
+        console.log('⚠️ Stored session invalid, clearing...')
+        SessionStorage.clearSession()
+        this.profileCache.clear()
+      }
+    }
+
+    // Step 2: Check for active Supabase session
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    if (session?.user) {
+      console.log('🔄 Active Supabase session found, processing...')
+      return await this.handleSupabaseSession(session)
+    }
+
+    // Step 3: No active session
+    console.log('📝 No active session found')
+    this.setState({
+      isAuthenticated: false,
+      isInitialized: true,
+      isLoading: false,
+      user: null,
+      profile: null,
+      agreementStatus: { requiresAgreement: false, isChecked: true }
+    })
+
+    return { success: true, shouldRedirect: false }
   }
 
   // Fast profile loading with proper error handling

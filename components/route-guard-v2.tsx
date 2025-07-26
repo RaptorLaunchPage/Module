@@ -41,6 +41,32 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
   const [isLoading, setIsLoading] = useState(true)
   const [loadingStep, setLoadingStep] = useState<LoadingStep>('connecting')
 
+  // TEMPORARY: Quick bypass for debugging (remove this in production)
+  useEffect(() => {
+    const quickBypass = setTimeout(() => {
+      console.log('🚀 TEMP: Quick bypass triggered for debugging')
+      setIsLoading(false)
+    }, 2000) // 2 second bypass for testing
+
+    return () => clearTimeout(quickBypass)
+  }, [])
+
+  // Ultimate fallback - force completion after 15 seconds no matter what
+  useEffect(() => {
+    const ultimateFallback = setTimeout(() => {
+      console.log('⚠️ Ultimate fallback triggered - forcing loading completion after 15 seconds')
+      setIsLoading(false)
+      
+      // If we're on a protected route and don't have auth, redirect to login
+      if (!isPublicRoute(pathname) && (!authState || !authState.isAuthenticated)) {
+        console.log('🔒 No auth after timeout, redirecting to login')
+        router.push('/auth/login')
+      }
+    }, 15000) // 15 second ultimate fallback
+
+    return () => clearTimeout(ultimateFallback)
+  }, [pathname, router, authState])
+
   // Force completion timeout to prevent infinite loading
   useEffect(() => {
     const forceCompletionTimer = setTimeout(() => {
@@ -75,10 +101,26 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
   // Initialize auth and handle state changes
   useEffect(() => {
     let mounted = true
+    let initTimeout: NodeJS.Timeout | null = null
+
+    // Early return for public routes - no auth needed
+    if (isPublicRoute(pathname)) {
+      console.log('🏠 Public route detected, skipping auth initialization:', pathname)
+      setIsLoading(false)
+      return
+    }
 
     const initializeAuth = async () => {
       try {
         console.log('🚀 Route guard: Starting auth initialization...')
+        
+        // Set a timeout to prevent infinite waiting
+        initTimeout = setTimeout(() => {
+          if (mounted) {
+            console.log('⚠️ Route guard: Auth initialization timeout - forcing completion')
+            setIsLoading(false)
+          }
+        }, 10000) // 10 second timeout for initialization
         
         // Dynamic import to avoid potential circular dependencies
         const { default: authFlowV2 } = await import('@/lib/auth-flow-v2')
@@ -110,6 +152,11 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
             }
           } else {
             setLoadingStep('redirecting')
+            // Clear the initialization timeout since we got a response
+            if (initTimeout) {
+              clearTimeout(initTimeout)
+              initTimeout = null
+            }
             setIsLoading(false)
           }
         })
@@ -119,6 +166,10 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         if (currentState.isInitialized && !currentState.isLoading) {
           console.log('✅ Route guard: Auth already initialized, using existing state')
           setAuthState(currentState)
+          if (initTimeout) {
+            clearTimeout(initTimeout)
+            initTimeout = null
+          }
           setIsLoading(false)
           return unsubscribe
         }
@@ -128,6 +179,19 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         const result = await authFlowV2.initialize(true) // This is the main initialization
         
         if (!mounted) return
+
+        console.log('✅ Route guard: Auth initialization completed:', {
+          success: result.success,
+          shouldRedirect: result.shouldRedirect,
+          redirectPath: result.redirectPath,
+          error: result.error
+        })
+
+        // Clear the initialization timeout since we got a response
+        if (initTimeout) {
+          clearTimeout(initTimeout)
+          initTimeout = null
+        }
 
         // Route guard focuses on protection, not redirection
         // Let the auth flow handle its own redirects through events
@@ -139,6 +203,11 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
       } catch (error: any) {
         console.error('❌ Route guard initialization error:', error)
         if (mounted) {
+          // Clear the initialization timeout
+          if (initTimeout) {
+            clearTimeout(initTimeout)
+            initTimeout = null
+          }
           setIsLoading(false)
         }
       }
@@ -149,6 +218,9 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         // Store cleanup function
         return () => {
           mounted = false
+          if (initTimeout) {
+            clearTimeout(initTimeout)
+          }
           unsubscribe()
         }
       }
@@ -156,6 +228,9 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
 
     return () => {
       mounted = false
+      if (initTimeout) {
+        clearTimeout(initTimeout)
+      }
     }
   }, [pathname]) // Only depend on pathname changes
 

@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
 import { RouteGuardV2 } from "@/components/route-guard-v2"
 import { LoadingErrorBoundary } from "@/components/loading-error-boundary"
+import { DebugAuthState } from "@/components/debug-auth-state"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -31,6 +32,7 @@ export default function RootLayout({
                 {children}
               </RouteGuardV2>
               <Toaster />
+              <DebugAuthState />
             </AuthProviderV2>
           </ThemeProvider>
         </LoadingErrorBoundary>
