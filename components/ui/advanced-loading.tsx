@@ -127,7 +127,6 @@ export function AdvancedLoading({
   const [progress, setProgress] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
   const [hasTimedOut, setHasTimedOut] = useState(false)
-  const [forceComplete, setForceComplete] = useState(false)
 
   const currentStepKey = steps[currentStepIndex] || currentStep
   const config = LOADING_STEPS[currentStepKey]
@@ -135,7 +134,7 @@ export function AdvancedLoading({
 
   // Auto-progress through steps
   useEffect(() => {
-    if (hasTimedOut || isComplete || forceComplete) return
+    if (hasTimedOut || isComplete) return
 
     const stepDuration = config.duration
     const progressInterval = stepDuration / 100
@@ -159,25 +158,15 @@ export function AdvancedLoading({
     }, progressInterval)
 
     return () => clearInterval(progressTimer)
-  }, [currentStepIndex, steps.length, config.duration, hasTimedOut, isComplete, forceComplete])
+  }, [currentStepIndex, steps.length, config.duration, hasTimedOut, isComplete])
 
-  // Timeout handler with force complete
+  // Timeout handler
   useEffect(() => {
     if (timeoutMs <= 0) return
 
     const timeoutTimer = setTimeout(() => {
-      console.log('⚠️ AdvancedLoading: Timeout reached, forcing completion')
       setHasTimedOut(true)
-      setForceComplete(true)
       onTimeout?.()
-      
-      // Force complete after additional 2 seconds if still loading
-      setTimeout(() => {
-        if (typeof window !== 'undefined') {
-          console.log('🔄 AdvancedLoading: Force refreshing page due to persistent loading')
-          window.location.reload()
-        }
-      }, 2000)
     }, timeoutMs)
 
     return () => clearTimeout(timeoutTimer)
@@ -185,19 +174,6 @@ export function AdvancedLoading({
 
   // Calculate overall progress
   const overallProgress = ((currentStepIndex + (progress / 100)) / steps.length) * 100
-
-  // Force complete if we've been loading too long
-  useEffect(() => {
-    const forceCompleteTimer = setTimeout(() => {
-      if (!isComplete && !hasTimedOut) {
-        console.log('🔄 AdvancedLoading: Force completing due to extended loading time')
-        setForceComplete(true)
-        setIsComplete(true)
-      }
-    }, Math.max(timeoutMs, 20000)) // Ensure we don't wait longer than 20 seconds
-
-    return () => clearTimeout(forceCompleteTimer)
-  }, [timeoutMs, isComplete, hasTimedOut])
 
   return (
     <VideoBackground>
@@ -306,25 +282,6 @@ export function AdvancedLoading({
                   <div className="flex items-center gap-2 text-yellow-200">
                     <Clock className="h-4 w-4" />
                     <span className="text-sm">Taking longer than expected...</span>
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    <button 
-                      onClick={() => window.location.reload()}
-                      className="text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-1 rounded transition-colors"
-                    >
-                      Refresh Page
-                    </button>
-                    <button 
-                      onClick={() => {
-                        if (typeof window !== 'undefined') {
-                          localStorage.clear()
-                          window.location.href = '/auth/login'
-                        }
-                      }}
-                      className="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition-colors"
-                    >
-                      Reset & Login
-                    </button>
                   </div>
                 </div>
               )}
