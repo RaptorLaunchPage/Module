@@ -137,6 +137,16 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     mobileOrder: 11
   },
   {
+    id: 'bot-management',
+    title: 'Bot Management',
+    description: 'Manage RaptorBot features and Discord integrations',
+    icon: 'Bot',
+    path: '/dashboard/bot-management',
+    allowedRoles: ['admin', 'manager', 'coach', 'analyst'],
+    showInNavigation: true,
+    mobileOrder: 9
+  },
+  {
     id: 'profile',
     title: 'Profile',
     description: 'Personal profile and settings',
