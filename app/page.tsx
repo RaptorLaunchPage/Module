@@ -7,16 +7,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
-import { FullPageLoader } from "@/components/ui/full-page-loader"
 
 export default function HomePage() {
-  const { user, isLoading, profile, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth() // Removed isLoading dependency
   const router = useRouter()
 
-  // Show loading while auth is loading
-  if (isLoading) {
-    return <FullPageLoader message="Loading..." />
-  }
+  // Homepage should always render - no loading state needed
+  // The auth state will be available when ready, but we don't wait for it
 
   // Show homepage for all users - let them choose their next action
   return (

@@ -38,18 +38,17 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
   const router = useRouter()
   const pathname = usePathname()
   const [authState, setAuthState] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(() => {
+    // Don't start in loading state for public routes
+    return !isPublicRoute(pathname)
+  })
   const [loadingStep, setLoadingStep] = useState<LoadingStep>('connecting')
 
-  // TEMPORARY: Quick bypass for debugging (remove this in production)
-  useEffect(() => {
-    const quickBypass = setTimeout(() => {
-      console.log('🚀 TEMP: Quick bypass triggered for debugging')
-      setIsLoading(false)
-    }, 2000) // 2 second bypass for testing
-
-    return () => clearTimeout(quickBypass)
-  }, [])
+  // For public routes, render immediately without any loading
+  if (isPublicRoute(pathname)) {
+    console.log('🏠 Public route - rendering immediately:', pathname)
+    return <>{children}</>
+  }
 
   // Ultimate fallback - force completion after 15 seconds no matter what
   useEffect(() => {
@@ -103,12 +102,8 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
     let mounted = true
     let initTimeout: NodeJS.Timeout | null = null
 
-    // Early return for public routes - no auth needed
-    if (isPublicRoute(pathname)) {
-      console.log('🏠 Public route detected, skipping auth initialization:', pathname)
-      setIsLoading(false)
-      return
-    }
+    // This effect only runs for protected routes now
+    console.log('🔒 Protected route detected, initializing auth:', pathname)
 
     const initializeAuth = async () => {
       try {
