@@ -43,9 +43,14 @@ export default function LoginPage() {
       const result = await signIn(email, password)
       
       if (result.success) {
-        console.log("✅ Login successful, starting animation sequence")
+        console.log("✅ Login successful, showing brief success animation")
         setShowLoginAnimation(true)
-        // The auth hook will handle the redirect after the animation
+        
+        // Short animation duration before letting auth hook handle redirect
+        setTimeout(() => {
+          console.log("🔄 Login animation complete, auth hook will handle redirect")
+          // Don't manually redirect - let the auth hook handle it
+        }, 1500) // Reduced from potentially longer duration
       } else {
         // Error case - make sure to reset submitting state
         setIsSubmitting(false)

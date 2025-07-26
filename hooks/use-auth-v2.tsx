@@ -111,14 +111,14 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
                   console.log('⏳ Waiting for profile to load before redirect...')
                   // The useEffect watching authState will handle the redirect when ready
                   
-                  // Fallback timeout in case something goes wrong (reduced to 1 second)
+                  // Fallback timeout in case something goes wrong
                   redirectTimeout.current = setTimeout(() => {
                     if (mounted.current && pendingRedirect.current) {
                       console.log('⚠️ Fallback timeout triggered, redirecting to:', pendingRedirect.current.redirectPath)
                       router.push(pendingRedirect.current.redirectPath)
                       pendingRedirect.current = null
                     }
-                  }, 1000)
+                  }, 2000) // Increased to 2 seconds to allow for login animation
                 }
               } else {
                 console.log('🔄 Already on target page, skipping redirect')
@@ -178,7 +178,11 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       // Don't redirect if already on the target page
       if (currentPath !== redirectPath) {
         console.log('⚡ Instant redirect to:', redirectPath)
-        router.push(redirectPath)
+        
+        // Small delay to coordinate with login animation
+        setTimeout(() => {
+          router.push(redirectPath)
+        }, 1600) // Slightly after login animation completes
       } else {
         console.log('🔄 Already on target page, skipping redirect')
       }

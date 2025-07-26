@@ -112,6 +112,7 @@ interface AdvancedLoadingProps {
   onTimeout?: () => void
   timeoutMs?: number
   showProgress?: boolean
+  autoProgress?: boolean // New prop to control auto-progression
 }
 
 export function AdvancedLoading({
@@ -121,20 +122,33 @@ export function AdvancedLoading({
   customDescription,
   onTimeout,
   timeoutMs = 15000,
-  showProgress = true
+  showProgress = true,
+  autoProgress = false // Default to false - wait for external control
 }: AdvancedLoadingProps) {
-  const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const [currentStepIndex, setCurrentStepIndex] = useState(() => {
+    // Find the index of the current step in the steps array
+    const index = steps.indexOf(currentStep)
+    return index >= 0 ? index : 0
+  })
   const [progress, setProgress] = useState(0)
-  const [isComplete, setIsComplete] = useState(false)
   const [hasTimedOut, setHasTimedOut] = useState(false)
+
+  // Update current step index when currentStep prop changes
+  useEffect(() => {
+    const index = steps.indexOf(currentStep)
+    if (index >= 0 && index !== currentStepIndex) {
+      setCurrentStepIndex(index)
+      setProgress(0) // Reset progress when step changes
+    }
+  }, [currentStep, steps, currentStepIndex])
 
   const currentStepKey = steps[currentStepIndex] || currentStep
   const config = LOADING_STEPS[currentStepKey]
   const Icon = config.icon
 
-  // Auto-progress through steps
+  // Auto-progress through steps (only if autoProgress is enabled)
   useEffect(() => {
-    if (hasTimedOut || isComplete) return
+    if (!autoProgress || hasTimedOut) return
 
     const stepDuration = config.duration
     const progressInterval = stepDuration / 100
@@ -151,14 +165,27 @@ export function AdvancedLoading({
         if (currentStepIndex < steps.length - 1) {
           setCurrentStepIndex(prev => prev + 1)
           setProgress(0)
-        } else {
-          setIsComplete(true)
         }
       }
     }, progressInterval)
 
     return () => clearInterval(progressTimer)
-  }, [currentStepIndex, steps.length, config.duration, hasTimedOut, isComplete])
+  }, [currentStepIndex, steps.length, config.duration, hasTimedOut, autoProgress])
+
+  // Show smooth progress animation for current step (even without auto-progress)
+  useEffect(() => {
+    if (hasTimedOut) return
+
+    // Animate progress bar smoothly for visual feedback
+    const progressTimer = setInterval(() => {
+      setProgress(prev => {
+        const newProgress = prev + 2
+        return newProgress >= 100 ? 100 : newProgress
+      })
+    }, 50)
+
+    return () => clearInterval(progressTimer)
+  }, [currentStepIndex, hasTimedOut])
 
   // Timeout handler
   useEffect(() => {
@@ -172,8 +199,8 @@ export function AdvancedLoading({
     return () => clearTimeout(timeoutTimer)
   }, [timeoutMs, onTimeout])
 
-  // Calculate overall progress
-  const overallProgress = ((currentStepIndex + (progress / 100)) / steps.length) * 100
+  // Calculate overall progress based on current step position
+  const overallProgress = Math.min(((currentStepIndex + (progress / 100)) / steps.length) * 100, 100)
 
   return (
     <VideoBackground>
