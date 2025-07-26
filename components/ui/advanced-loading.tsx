@@ -13,7 +13,6 @@ import {
   Database, 
   AlertCircle,
   Clock,
-  Zap,
   Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -44,7 +43,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Connecting to Raptor servers...",
     color: "text-blue-400",
     bgColor: "from-blue-500/20 to-cyan-500/20",
-    duration: 1500
+    duration: 300
   },
   authenticating: {
     icon: Shield,
@@ -52,7 +51,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Authenticating your credentials...",
     color: "text-green-400", 
     bgColor: "from-green-500/20 to-emerald-500/20",
-    duration: 2000
+    duration: 300
   },
   'checking-agreement': {
     icon: CheckCircle,
@@ -60,7 +59,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Reviewing user agreement status...",
     color: "text-amber-400",
     bgColor: "from-amber-500/20 to-yellow-500/20", 
-    duration: 1200
+    duration: 300
   },
   'loading-profile': {
     icon: User,
@@ -68,7 +67,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Retrieving your player data...",
     color: "text-purple-400",
     bgColor: "from-purple-500/20 to-violet-500/20",
-    duration: 1800
+    duration: 300
   },
   initializing: {
     icon: Settings,
@@ -76,7 +75,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Setting up your esports hub...",
     color: "text-cyan-400",
     bgColor: "from-cyan-500/20 to-blue-500/20",
-    duration: 1600
+    duration: 300
   },
   redirecting: {
     icon: Globe,
@@ -84,7 +83,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Taking you to your dashboard...",
     color: "text-indigo-400",
     bgColor: "from-indigo-500/20 to-purple-500/20",
-    duration: 800
+    duration: 300
   },
   processing: {
     icon: Database,
@@ -92,7 +91,7 @@ const LOADING_STEPS: Record<LoadingStep, LoadingStepConfig> = {
     description: "Processing your request...",
     color: "text-orange-400",
     bgColor: "from-orange-500/20 to-red-500/20",
-    duration: 2000
+    duration: 300
   },
   error: {
     icon: AlertCircle,
@@ -112,6 +111,7 @@ interface AdvancedLoadingProps {
   onTimeout?: () => void
   timeoutMs?: number
   showProgress?: boolean
+  autoProgress?: boolean // New prop to control auto-progression
 }
 
 export function AdvancedLoading({
@@ -121,20 +121,33 @@ export function AdvancedLoading({
   customDescription,
   onTimeout,
   timeoutMs = 15000,
-  showProgress = true
+  showProgress = true,
+  autoProgress = false // Default to false - wait for external control
 }: AdvancedLoadingProps) {
-  const [currentStepIndex, setCurrentStepIndex] = useState(0)
+  const [currentStepIndex, setCurrentStepIndex] = useState(() => {
+    // Find the index of the current step in the steps array
+    const index = steps.indexOf(currentStep)
+    return index >= 0 ? index : 0
+  })
   const [progress, setProgress] = useState(0)
-  const [isComplete, setIsComplete] = useState(false)
   const [hasTimedOut, setHasTimedOut] = useState(false)
+
+  // Update current step index when currentStep prop changes
+  useEffect(() => {
+    const index = steps.indexOf(currentStep)
+    if (index >= 0 && index !== currentStepIndex) {
+      setCurrentStepIndex(index)
+      setProgress(0) // Reset progress when step changes
+    }
+  }, [currentStep, steps, currentStepIndex])
 
   const currentStepKey = steps[currentStepIndex] || currentStep
   const config = LOADING_STEPS[currentStepKey]
   const Icon = config.icon
 
-  // Auto-progress through steps
+  // Auto-progress through steps (only if autoProgress is enabled)
   useEffect(() => {
-    if (hasTimedOut || isComplete) return
+    if (!autoProgress || hasTimedOut) return
 
     const stepDuration = config.duration
     const progressInterval = stepDuration / 100
@@ -151,14 +164,27 @@ export function AdvancedLoading({
         if (currentStepIndex < steps.length - 1) {
           setCurrentStepIndex(prev => prev + 1)
           setProgress(0)
-        } else {
-          setIsComplete(true)
         }
       }
     }, progressInterval)
 
     return () => clearInterval(progressTimer)
-  }, [currentStepIndex, steps.length, config.duration, hasTimedOut, isComplete])
+  }, [currentStepIndex, steps.length, config.duration, hasTimedOut, autoProgress])
+
+  // Show smooth progress animation for current step (even without auto-progress)
+  useEffect(() => {
+    if (hasTimedOut) return
+
+    // Animate progress bar smoothly for visual feedback
+    const progressTimer = setInterval(() => {
+      setProgress(prev => {
+        const newProgress = prev + 2
+        return newProgress >= 100 ? 100 : newProgress
+      })
+    }, 50)
+
+    return () => clearInterval(progressTimer)
+  }, [currentStepIndex, hasTimedOut])
 
   // Timeout handler
   useEffect(() => {
@@ -172,8 +198,8 @@ export function AdvancedLoading({
     return () => clearTimeout(timeoutTimer)
   }, [timeoutMs, onTimeout])
 
-  // Calculate overall progress
-  const overallProgress = ((currentStepIndex + (progress / 100)) / steps.length) * 100
+  // Calculate overall progress based on current step position
+  const overallProgress = Math.min(((currentStepIndex + (progress / 100)) / steps.length) * 100, 100)
 
   return (
     <VideoBackground>
@@ -303,7 +329,7 @@ export function AdvancedLoading({
 // Hook for sequential loading with timeout handling
 export function useSequentialLoading(
   steps: LoadingStep[], 
-  stepDuration: number = 2000,
+  stepDuration: number = 300,
   onTimeout?: () => void,
   timeoutMs: number = 15000
 ) {

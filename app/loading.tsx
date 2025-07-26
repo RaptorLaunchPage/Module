@@ -1,6 +1,6 @@
 "use client"
 
-import { AdvancedLoading, useSequentialLoading, LoadingStep } from "@/components/ui/advanced-loading"
+import { AdvancedLoading, LoadingStep } from "@/components/ui/advanced-loading"
 
 export default function Loading() {
   // Sequential loading states for better UX
