@@ -48,7 +48,7 @@ interface PerformanceRecord {
   users?: {
     name: string
     display_name: string
-  }
+  }[]
 }
 
 interface PerformanceSettings {
@@ -199,7 +199,7 @@ export default function PerformanceManager() {
         const playerId = record.player_id
         if (!acc[playerId]) {
           acc[playerId] = {
-            name: record.users?.display_name || record.users?.name || 'Unknown',
+            name: record.users?.[0]?.display_name || record.users?.[0]?.name || 'Unknown',
             totalKills: 0,
             totalDamage: 0,
             matches: 0

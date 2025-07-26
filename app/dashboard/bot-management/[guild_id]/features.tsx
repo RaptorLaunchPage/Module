@@ -46,7 +46,7 @@ interface GuildFeatures {
     id: string
     name: string
     tier: string
-  }
+  }[]
 }
 
 interface FeatureDefinition {
@@ -462,10 +462,10 @@ export default function FeatureToggles() {
             <div>
               <h3 className="font-semibold">{guildFeatures.guild_name}</h3>
               <p className="text-sm text-muted-foreground">
-                Connected Team: {guildFeatures.teams?.name || 'None'}
-                {guildFeatures.teams?.tier && (
+                Connected Team: {guildFeatures.teams?.[0]?.name || 'None'}
+                {guildFeatures.teams?.[0]?.tier && (
                   <Badge variant="outline" className="ml-2 text-xs">
-                    {guildFeatures.teams.tier}
+                    {guildFeatures.teams[0].tier}
                   </Badge>
                 )}
               </p>
