@@ -338,7 +338,7 @@ export default function TeamPerformancePage() {
                 Refresh
               </Button>
               <SendToDiscordButton
-                messageType="team_performance_summary"
+                messageType="performance_summary"
                 data={performanceData}
                 variant="outline"
                 size="sm"

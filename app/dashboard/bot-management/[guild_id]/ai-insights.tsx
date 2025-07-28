@@ -545,7 +545,7 @@ export default function AIInsightsPage() {
                           </div>
                         </div>
                         <SendToDiscordButton
-                          messageType="ai_insight"
+                          messageType="performance_summary"
                           data={insight}
                           variant="outline"
                           size="sm"
