@@ -17,7 +17,9 @@ import {
   Calendar,
   ToggleLeft,
   ArrowLeft,
-  Shield
+  Shield,
+  Brain,
+  Terminal
 } from 'lucide-react'
 import { DashboardPermissions } from '@/lib/dashboard-permissions'
 import { useAuth } from '@/hooks/useAuth'
@@ -69,6 +71,34 @@ export default function BotManagementLayout({ children }: BotManagementLayoutPro
       description: 'General bot settings and controls'
     },
     {
+      id: 'digest',
+      label: 'Digest',
+      icon: Calendar,
+      path: '/digest',
+      description: 'Daily/weekly digest configuration'
+    },
+    {
+      id: 'tournaments',
+      label: 'Tournaments',
+      icon: Trophy,
+      path: '/tournaments',
+      description: 'Tournament management with brackets'
+    },
+    {
+      id: 'team-performance',
+      label: 'Team Performance',
+      icon: BarChart3,
+      path: '/team-performance',
+      description: 'AI-powered team performance reviews'
+    },
+    {
+      id: 'ai-insights',
+      label: 'AI Insights',
+      icon: Brain,
+      path: '/ai-insights',
+      description: 'AI analysis & recommendations'
+    },
+    {
       id: 'scrims',
       label: 'Scrims',
       icon: Trophy,
@@ -76,18 +106,25 @@ export default function BotManagementLayout({ children }: BotManagementLayoutPro
       description: 'Manage scrim tournaments'
     },
     {
-      id: 'tournaments',
-      label: 'Tournaments',
-      icon: Trophy,
-      path: '/tournaments',
-      description: 'Tournament management'
+      id: 'commands',
+      label: 'Commands',
+      icon: Terminal,
+      path: '/commands',
+      description: 'Test bot commands'
     },
     {
-      id: 'tryouts',
-      label: 'Tryouts',
+      id: 'users',
+      label: 'Users',
       icon: Users,
-      path: '/tryouts',
-      description: 'Player recruitment system'
+      path: '/users',
+      description: 'Discord role management'
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics',
+      icon: BarChart3,
+      path: '/analytics',
+      description: 'Server analytics dashboard'
     },
     {
       id: 'webhooks',
@@ -170,7 +207,7 @@ export default function BotManagementLayout({ children }: BotManagementLayoutPro
       {currentGuildId && (
         <Card>
           <CardContent className="p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
               {filteredNavItems.map((item) => {
                 const isActive = pathname.endsWith(item.path) || 
                   (item.path === '' && pathname === `/dashboard/bot-management/${currentGuildId}`)
