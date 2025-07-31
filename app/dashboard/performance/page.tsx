@@ -798,7 +798,7 @@ export default function PerformancePage() {
                         time_period: selectedTimePeriod !== 'all'
                       }
                     }}
-                    teamId={selectedTeam !== 'all' ? selectedTeam : profile?.team_id}
+                    teamId={selectedTeam !== 'all' ? selectedTeam : (profile?.team_id || undefined)}
                     variant="outline"
                   />
                 </CardTitle>

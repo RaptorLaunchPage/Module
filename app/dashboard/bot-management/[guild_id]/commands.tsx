@@ -174,7 +174,7 @@ export default function CommandsPage() {
 
   // Filter commands based on user permissions
   const availableCommands = AVAILABLE_COMMANDS.filter(cmd => 
-    cmd.permissions.some(perm => userPermissions.includes(perm) || userPermissions.includes('admin'))
+    cmd.permissions.some(perm => userPermissions.includes(perm as any) || userPermissions.includes('admin' as any))
   )
 
   const executeCommand = async () => {

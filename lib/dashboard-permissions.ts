@@ -3,7 +3,7 @@
  * Handles all role-based access control for dashboard modules
  */
 
-export type UserRole = 'admin' | 'manager' | 'coach' | 'player' | 'analyst' | 'pending_player' | 'awaiting_approval'
+export type UserRole = 'admin' | 'manager' | 'coach' | 'player' | 'analyst' | 'pending_player' | 'awaiting_approval' | 'tryout'
 
 export interface DashboardModule {
   id: string
