@@ -34,23 +34,41 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("personal")
 
   // Profile to display - either target user or current user
-  const displayProfile = targetProfile || currentProfile
+  const displayProfileRaw = targetProfile || currentProfile
+  // For UI components, patch full_name and display_name to undefined if null
+  const displayProfilePatched = displayProfileRaw ? {
+    ...displayProfileRaw,
+    full_name: displayProfileRaw.full_name === null ? undefined : displayProfileRaw.full_name,
+    display_name: displayProfileRaw.display_name === null ? undefined : displayProfileRaw.display_name,
+  } : undefined
+  // Patch all string | null fields to undefined for type compatibility
+  const stringNullFields = [
+    'name', 'avatar_url', 'provider', 'contact_number', 'in_game_role', 'device_info', 'device_model', 'ram', 'fps', 'storage', 'status', 'instagram_handle', 'discord_id', 'bio', 'favorite_game', 'gaming_experience', 'display_name', 'full_name', 'experience', 'preferred_role', 'favorite_games', 'last_login', 'bgmi_id', 'hud_layout_code', 'emergency_contact_name', 'emergency_contact_number', 'date_of_birth', 'address', 'preferred_language', 'timezone'
+  ]
+  let displayProfile = displayProfileRaw ? { ...displayProfileRaw } : undefined
+  if (displayProfile) {
+    for (const field of stringNullFields) {
+      if (field in displayProfile && displayProfile[field as keyof typeof displayProfile] === null) {
+        (displayProfile as any)[field] = undefined
+      }
+    }
+  }
   const isOwnProfile = !targetUserId || targetUserId === currentProfile?.id
 
   // Permissions
-  const canView = displayProfile && currentProfile ? canViewProfile(
+  const canView = displayProfileRaw && currentProfile ? canViewProfile(
     currentProfile.role as any,
     currentProfile.team_id,
-    displayProfile.id,
-    displayProfile.team_id,
-    displayProfile.profile_visibility as any,
+    displayProfileRaw.id,
+    displayProfileRaw.team_id,
+    displayProfileRaw.profile_visibility as any,
     currentProfile.id
   ) : false
-  const canEdit = displayProfile && currentProfile ? canEditProfile(
+  const canEdit = displayProfileRaw && currentProfile ? canEditProfile(
     currentProfile.role as any,
     currentProfile.team_id,
-    displayProfile.id,
-    displayProfile.team_id,
+    displayProfileRaw.id,
+    displayProfileRaw.team_id,
     currentProfile.id
   ) : false
   const canSearchAll = ['admin', 'manager'].includes(currentProfile?.role || '')
@@ -210,7 +228,7 @@ export default function ProfilePage() {
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Profile Header */}
       <ProfileHeader 
-        profile={displayProfile} 
+        profile={displayProfileRaw!} 
         viewerProfile={currentProfile}
         onEdit={() => setActiveTab('personal')}
         isEditing={false}
@@ -258,7 +276,7 @@ export default function ProfilePage() {
         {/* Personal Information Section */}
         <TabsContent value="personal" className="space-y-6">
           <PersonalInformationSection
-            profile={displayProfile}
+            profile={displayProfilePatched as any}
             canEdit={canEdit}
             onUpdate={handleProfileUpdate}
           />
@@ -267,7 +285,7 @@ export default function ProfilePage() {
         {/* Gaming Information Section */}
         <TabsContent value="gaming" className="space-y-6">
           <GamingInformationSection
-            profile={displayProfile}
+            profile={displayProfilePatched as any}
             canEdit={canEdit}
             onUpdate={handleProfileUpdate}
           />
@@ -276,7 +294,7 @@ export default function ProfilePage() {
         {/* Device Information Section */}
         <TabsContent value="device" className="space-y-6">
           <DeviceInformationSection
-            profile={displayProfile}
+            profile={displayProfilePatched as any}
             canEdit={canEdit}
             onUpdate={handleProfileUpdate}
           />
@@ -285,7 +303,7 @@ export default function ProfilePage() {
         {/* BGMI Gaming Section */}
         <TabsContent value="bgmi" className="space-y-6">
           <BGMIGamingSection 
-            profile={displayProfile}
+            profile={displayProfilePatched as any}
             isEditing={false}
             canEdit={canEdit}
             onUpdate={handleProfileUpdate}
