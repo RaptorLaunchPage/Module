@@ -2,8 +2,8 @@
 
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { supabase } from "@/lib/supabase"
-import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
+import { supabase } from "@/lib/supabase-client"
+import { useAuthFixed as useAuth } from "@/hooks/use-auth-fixed"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,61 +22,83 @@ function AuthConfirmContent() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    // If user is already authenticated (OAuth or email), redirect via route guard
-    if (user && profile && !isLoading) {
-      // Let the route guard handle redirect to prevent conflicts
+    // If user is already authenticated, redirect to dashboard
+    if (isAuthenticated && user && profile) {
+      console.log('✅ User already authenticated, redirecting to dashboard')
+      router.push('/dashboard')
       return
     }
 
-    // Otherwise, handle email confirmation as before
+    // Handle email confirmation
     const handleAuthConfirmation = async () => {
       try {
+        console.log('🔄 Processing email confirmation...')
+        
         // Get the token hash from URL
         const tokenHash = searchParams.get('token_hash')
         const type = searchParams.get('type')
+        const code = searchParams.get('code')
         
-        if (!tokenHash || type !== 'signup') {
-          throw new Error('Invalid confirmation link')
+        console.log('🔍 Confirmation params:', { hasTokenHash: !!tokenHash, type, hasCode: !!code })
+
+        // Handle code-based confirmation (newer flow)
+        if (code) {
+          console.log('🔄 Using code-based confirmation flow')
+          // Let the auth callback handle this
+          router.push(`/auth/callback?code=${code}`)
+          return
         }
 
-        // Verify the token with Supabase
-        const { data, error } = await supabase.auth.verifyOtp({
-          token_hash: tokenHash,
-          type: 'signup'
-        })
-
-        if (error) {
-          throw error
-        }
-
-        if (data.user) {
-          setStatus('success')
-          setMessage('Email confirmed successfully! You can now login.')
-          toast({
-            title: 'Verification complete',
-            description: 'You can login now.',
-            variant: 'default',
+        // Handle token_hash-based confirmation (legacy flow)
+        if (tokenHash && type === 'signup') {
+          console.log('🔄 Using token_hash confirmation flow')
+          
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type: 'signup'
           })
-          // Redirect to home after 3 seconds
-          setTimeout(() => {
-            router.push('/')
-          }, 3000)
+
+          if (error) {
+            throw error
+          }
+
+          if (data.user && data.session) {
+            console.log('✅ Email confirmed, user session established')
+            setStatus('success')
+            setMessage('Email confirmed successfully! Redirecting to dashboard...')
+            toast({
+              title: 'Email Confirmed',
+              description: 'Your account has been verified successfully!',
+            })
+            
+            // Redirect to dashboard after short delay
+            setTimeout(() => {
+              router.push('/dashboard')
+            }, 2000)
+          } else {
+            throw new Error('Failed to establish session after confirmation')
+          }
         } else {
-          throw new Error('No user data returned')
+          throw new Error('Invalid confirmation link - missing required parameters')
         }
 
       } catch (error: any) {
-        console.error('Email confirmation error:', error)
+        console.error('❌ Email confirmation error:', error)
         setStatus('error')
         setMessage(error.message || 'Failed to confirm email. The link may be expired or invalid.')
+        toast({
+          title: 'Confirmation Failed',
+          description: error.message || 'The confirmation link is invalid or expired',
+          variant: 'destructive'
+        })
       }
     }
 
-    // Only handle confirmation if not already authenticated
-    if (!user || !profile) {
+    // Only handle confirmation if not already authenticated and not loading
+    if (!isAuthenticated && !isLoading) {
       handleAuthConfirmation()
     }
-  }, [searchParams, router, toast, user, profile, isLoading])
+  }, [searchParams, router, toast, isAuthenticated, user, profile, isLoading])
 
   if (isLoading || (user && !profile)) {
     return <FullPageLoader message="Loading your account..." />

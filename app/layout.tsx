@@ -2,7 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { AuthProviderV2 } from "@/hooks/use-auth-v2"
+import { AuthProvider } from "@/hooks/use-auth-fixed"
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
 import { RouteGuardV2 } from "@/components/route-guard-v2"
@@ -27,13 +27,10 @@ export default function RootLayout({
       <body className={`${inter.className} bg-transparent`}>
         <LoadingErrorBoundary>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-            <AuthProviderV2>
-              <RouteGuardV2>
-                {children}
-              </RouteGuardV2>
+            <AuthProvider>
+              {children}
               <Toaster />
-              <DebugAuthState />
-            </AuthProviderV2>
+            </AuthProvider>
           </ThemeProvider>
         </LoadingErrorBoundary>
       </body>

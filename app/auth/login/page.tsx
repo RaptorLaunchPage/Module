@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState } from "react"
-import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
+import { useAuthFixed as useAuth } from "@/hooks/use-auth-fixed"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,7 +19,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showLoginAnimation, setShowLoginAnimation] = useState(false)
-  const { signIn, signInWithDiscord, isAuthenticated, error } = useAuth()
+  const { signIn, signInWithDiscord, isAuthenticated, isLoading, error } = useAuth()
 
   // If already authenticated, the route guard will handle redirect
 
