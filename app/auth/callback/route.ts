@@ -1,7 +1,5 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
-import type { Database } from '@/lib/database.types'
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
@@ -19,8 +17,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore })
+    const supabase = createSupabaseRouteHandlerClient()
     
     try {
       console.log('🔄 Exchanging code for session...')

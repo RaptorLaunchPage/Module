@@ -1,12 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClientComponentClient, createServerComponentClient, createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from './database.types'
 
 // Environment variables validation
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error(
@@ -33,48 +31,6 @@ export const createSupabaseClient = () => {
   }
   
   return createClientComponentClient<Database>()
-}
-
-// Server-side Supabase client (for use in Server Components)
-export const createSupabaseServerClient = () => {
-  if (!validatedUrl || !supabaseAnonKey) {
-    throw new Error('Missing or invalid Supabase configuration')
-  }
-  
-  const cookieStore = cookies()
-  return createServerComponentClient<Database>({
-    cookies: () => cookieStore,
-  })
-}
-
-// Route handler client (for use in API routes)
-export const createSupabaseRouteHandlerClient = () => {
-  if (!validatedUrl || !supabaseAnonKey) {
-    throw new Error('Missing or invalid Supabase configuration')
-  }
-  
-  const cookieStore = cookies()
-  return createRouteHandlerClient<Database>({
-    cookies: () => cookieStore,
-  })
-}
-
-// Admin client with service role key (for server-side admin operations)
-export const createSupabaseAdminClient = () => {
-  if (!validatedUrl) {
-    throw new Error('Missing or invalid Supabase URL')
-  }
-  
-  if (!supabaseServiceRoleKey) {
-    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable')
-  }
-  
-  return createClient<Database>(validatedUrl, supabaseServiceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
 }
 
 // Legacy client for backward compatibility (updated with better error handling)
@@ -109,7 +65,7 @@ export const supabase = (() => {
 export const SUPABASE_CONFIG = {
   url: validatedUrl || 'not-configured',
   hasAnonKey: !!supabaseAnonKey,
-  hasServiceRoleKey: !!supabaseServiceRoleKey,
+  hasServiceRoleKey: false, // Not available in client config
   environment: process.env.NODE_ENV || 'development',
   isConfigured: !!(validatedUrl && supabaseAnonKey),
 } as const

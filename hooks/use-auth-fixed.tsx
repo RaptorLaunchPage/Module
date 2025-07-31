@@ -6,6 +6,7 @@ import { createSupabaseClient } from '@/lib/supabase-client'
 import { useToast } from '@/hooks/use-toast'
 import type { User, Session } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
+import { isAgreementRole, getRequiredAgreementVersion } from '@/lib/agreement-versions'
 
 type UserProfile = Database['public']['Tables']['users']['Row']
 
@@ -16,6 +17,13 @@ interface AuthState {
   isAuthenticated: boolean
   isInitialized: boolean
   error: string | null
+  agreementStatus: {
+    requiresAgreement: boolean
+    isChecked: boolean
+    status?: 'missing' | 'outdated' | 'declined' | 'pending' | 'current' | 'bypassed' | 'error'
+    current_version?: number
+    required_version?: number
+  }
 }
 
 interface AuthContextType extends AuthState {
@@ -30,9 +38,13 @@ interface AuthContextType extends AuthState {
   refreshProfile: () => Promise<void>
   updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: any | null }>
   
+  // Agreement actions
+  acceptAgreement: () => Promise<boolean>
+  
   // Utility
   clearError: () => void
   getAccessToken: () => Promise<string | null>
+  getToken: () => Promise<string | null> // Alias for getAccessToken for compatibility
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -44,7 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading: true,
     isAuthenticated: false,
     isInitialized: false,
-    error: null
+    error: null,
+    agreementStatus: {
+      requiresAgreement: false,
+      isChecked: false
+    }
   })
   
   const router = useRouter()
@@ -88,6 +104,94 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [supabase])
 
+  // Check agreement status for user
+  const checkAgreementStatus = useCallback(async (profile: UserProfile) => {
+    try {
+      if (!isAgreementRole(profile.role)) {
+        return {
+          requiresAgreement: false,
+          isChecked: true,
+          status: 'bypassed' as const
+        }
+      }
+
+      const requiredVersion = getRequiredAgreementVersion(profile.role)
+      
+      const { data: agreement, error } = await supabase
+        .from('user_agreements')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('role', profile.role)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Error checking agreement status:', error)
+        return {
+          requiresAgreement: true,
+          isChecked: true,
+          status: 'error' as const,
+          required_version: requiredVersion
+        }
+      }
+
+      if (!agreement) {
+        return {
+          requiresAgreement: true,
+          isChecked: true,
+          status: 'missing' as const,
+          required_version: requiredVersion
+        }
+      }
+
+      if (agreement.version < requiredVersion) {
+        return {
+          requiresAgreement: true,
+          isChecked: true,
+          status: 'outdated' as const,
+          current_version: agreement.version,
+          required_version: requiredVersion
+        }
+      }
+
+      if (agreement.status === 'declined') {
+        return {
+          requiresAgreement: true,
+          isChecked: true,
+          status: 'declined' as const,
+          current_version: agreement.version,
+          required_version: requiredVersion
+        }
+      }
+
+      if (agreement.status === 'pending') {
+        return {
+          requiresAgreement: true,
+          isChecked: true,
+          status: 'pending' as const,
+          current_version: agreement.version,
+          required_version: requiredVersion
+        }
+      }
+
+      return {
+        requiresAgreement: false,
+        isChecked: true,
+        status: 'current' as const,
+        current_version: agreement.version,
+        required_version: requiredVersion
+      }
+    } catch (error: any) {
+      console.error('❌ Agreement status check error:', error)
+      return {
+        requiresAgreement: true,
+        isChecked: true,
+        status: 'error' as const
+      }
+    }
+  }, [supabase])
+
   // Update auth state safely
   const updateAuthState = useCallback((updates: Partial<AuthState>) => {
     if (mountedRef.current) {
@@ -110,10 +214,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             updateAuthState({ isLoading: true, error: null })
             
             const profile = await loadUserProfile(session.user.id)
+            let agreementStatus = {
+              requiresAgreement: false,
+              isChecked: false
+            }
+
+            if (profile) {
+              agreementStatus = await checkAgreementStatus(profile)
+            }
             
             updateAuthState({
               user: session.user,
               profile,
+              agreementStatus,
               isLoading: false,
               isAuthenticated: true,
               isInitialized: true,
@@ -123,8 +236,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Only redirect on actual sign in, not token refresh
             if (event === 'SIGNED_IN') {
               const currentPath = window.location.pathname
-              // Don't redirect if already on a protected route or callback
-              if (!currentPath.startsWith('/dashboard') && !currentPath.includes('/callback')) {
+              
+              // Check if user needs agreement review
+              if (agreementStatus.requiresAgreement && currentPath !== '/agreement-review') {
+                setTimeout(() => {
+                  router.push('/agreement-review')
+                }, 100)
+              } else if (!currentPath.startsWith('/dashboard') && !currentPath.includes('/callback') && !agreementStatus.requiresAgreement) {
                 setTimeout(() => {
                   router.push('/dashboard')
                 }, 100)
@@ -155,7 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error: error.message || 'Authentication error occurred'
       })
     }
-  }, [loadUserProfile, updateAuthState, router])
+  }, [loadUserProfile, checkAgreementStatus, updateAuthState, router])
 
   // Initialize auth
   const initializeAuth = useCallback(async () => {
@@ -177,10 +295,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user && mountedRef.current) {
           console.log('✅ Existing session found, loading profile...')
           const profile = await loadUserProfile(session.user.id)
+          let agreementStatus = {
+            requiresAgreement: false,
+            isChecked: false
+          }
+
+          if (profile) {
+            agreementStatus = await checkAgreementStatus(profile)
+          }
           
           updateAuthState({
             user: session.user,
             profile,
+            agreementStatus,
             isLoading: false,
             isAuthenticated: true,
             isInitialized: true,
@@ -213,7 +340,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })()
 
     return initializationRef.current
-  }, [supabase, loadUserProfile, updateAuthState])
+  }, [supabase, loadUserProfile, checkAgreementStatus, updateAuthState])
 
   // Initialize on mount and set up auth listener
   useEffect(() => {
@@ -483,6 +610,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [supabase])
 
+  // Alias for getAccessToken for compatibility
+  const getToken = getAccessToken
+
+  // Accept agreement
+  const acceptAgreement = useCallback(async (): Promise<boolean> => {
+    if (!authState.user || !authState.profile) {
+      console.error('❌ No user or profile available for agreement acceptance')
+      return false
+    }
+
+    try {
+      console.log('📋 Accepting agreement for user:', authState.user.id)
+      
+      const requiredVersion = getRequiredAgreementVersion(authState.profile.role)
+      
+      const { error } = await supabase
+        .from('user_agreements')
+        .insert({
+          user_id: authState.user.id,
+          role: authState.profile.role,
+          version: requiredVersion,
+          status: 'accepted',
+          accepted_at: new Date().toISOString()
+        })
+
+      if (error) {
+        console.error('❌ Error accepting agreement:', error)
+        toast({
+          title: 'Agreement Error',
+          description: 'Failed to accept agreement. Please try again.',
+          variant: 'destructive'
+        })
+        return false
+      }
+
+      // Update agreement status
+      const newAgreementStatus = {
+        requiresAgreement: false,
+        isChecked: true,
+        status: 'current' as const,
+        current_version: requiredVersion,
+        required_version: requiredVersion
+      }
+
+      updateAuthState({ agreementStatus: newAgreementStatus })
+
+      console.log('✅ Agreement accepted successfully')
+      toast({
+        title: 'Agreement Accepted',
+        description: 'You can now access the full application.'
+      })
+
+      return true
+    } catch (error: any) {
+      console.error('❌ Agreement acceptance error:', error)
+      toast({
+        title: 'Agreement Error',
+        description: error.message || 'Failed to accept agreement',
+        variant: 'destructive'
+      })
+      return false
+    }
+  }, [authState.user, authState.profile, supabase, updateAuthState, toast])
+
   const contextValue: AuthContextType = {
     // State
     ...authState,
@@ -498,9 +689,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshProfile,
     updateProfile,
     
+    // Agreement actions
+    acceptAgreement,
+    
     // Utility
     clearError,
-    getAccessToken
+    getAccessToken,
+    getToken
   }
 
   return (

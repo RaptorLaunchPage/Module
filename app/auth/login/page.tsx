@@ -42,7 +42,7 @@ export default function LoginPage() {
     try {
       const result = await signIn(email, password)
       
-      if (result.success) {
+      if (!result.error) {
         console.log("✅ Login successful, showing brief success animation")
         setShowLoginAnimation(true)
         

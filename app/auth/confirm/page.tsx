@@ -16,7 +16,7 @@ import { VideoBackground } from "@/components/video-background"
 function AuthConfirmContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, profile, isLoading } = useAuth()
+  const { user, profile, isLoading, isAuthenticated } = useAuth()
   const { toast } = useToast()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')

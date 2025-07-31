@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useAuthV2 as useAuth } from '@/hooks/use-auth-v2'
+import { useAuthFixed as useAuth } from '@/hooks/use-auth-fixed'
 import { AdvancedLoading, LoadingStep } from '@/components/ui/advanced-loading'
 
 interface RouteGuardProps {
