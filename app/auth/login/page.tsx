@@ -5,33 +5,22 @@ import { useState } from "react"
 import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
-import { Eye, EyeOff, LogIn, RefreshCw, Home, Shield } from "lucide-react"
+import { Home, Shield } from "lucide-react"
 import { COMPONENT_STYLES } from "@/lib/global-theme"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showLoginAnimation, setShowLoginAnimation] = useState(false)
-  const { signIn, signInWithDiscord, isAuthenticated, error } = useAuth()
+  const { signInWithDiscord, isAuthenticated, error } = useAuth()
 
   // If already authenticated, the route guard will handle redirect
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleDiscordLogin = async () => {
+    console.log("🔐 Discord login attempt")
     
-    console.log("🔐 Login form submission started")
-    
-    if (!email.trim() || !password.trim()) {
-      return
-    }
-
     if (isSubmitting) {
       console.log("❌ Already submitting, ignoring")
       return
@@ -40,61 +29,31 @@ export default function LoginPage() {
     setIsSubmitting(true)
     
     try {
-      const result = await signIn(email, password)
-      
-      if (result.success) {
-        console.log("✅ Login successful, showing brief success animation")
-        setShowLoginAnimation(true)
-        
-        // Short animation duration before letting auth hook handle redirect
-        setTimeout(() => {
-          console.log("🔄 Login animation complete, auth hook will handle redirect")
-          // Don't manually redirect - let the auth hook handle it
-        }, 1500) // Reduced from potentially longer duration
-      } else {
-        // Error case - make sure to reset submitting state
-        setIsSubmitting(false)
-      }
-      // Navigation and error handling done by auth flow
-    } catch (err: any) {
-      console.error("❌ Login form exception:", err)
-      setIsSubmitting(false)
-    }
-  }
-
-  const handleDiscordLogin = async () => {
-    if (isSubmitting) return
-    
-    setIsSubmitting(true)
-    
-    try {
+      setShowLoginAnimation(true)
       await signInWithDiscord()
-      // Discord OAuth will redirect externally, so we don't need to handle success here
-      // The redirect will happen automatically
+      // Discord OAuth will handle the redirect to /auth/confirm
     } catch (err: any) {
       console.error("Discord login error:", err)
       setIsSubmitting(false)
+      setShowLoginAnimation(false)
     }
   }
 
-  // If already authenticated, route guard will handle redirect
-
-  // Show loading animation during successful login
+  // Show loading animation during Discord OAuth flow
   if (showLoginAnimation) {
     return (
       <VideoBackground>
         <div className="min-h-screen flex items-center justify-center p-4">
           <Card className={`w-full max-w-md ${COMPONENT_STYLES.authCard}`}>
-            <CardContent className="text-center py-12">
-              <div className="space-y-6">
-                <div className="flex items-center justify-center">
-                  <Shield className="h-16 w-16 text-white animate-pulse" />
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <div className="mb-4">
+                  <Shield className="h-12 w-12 text-white mx-auto animate-pulse" />
                 </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl font-semibold text-white">Welcome Back!</h3>
-                  <p className="text-slate-200">Taking you to your dashboard...</p>
-                </div>
-                <div className="flex justify-center space-x-1">
+                <h2 className="text-xl font-semibold text-white mb-2">Redirecting to Discord...</h2>
+                <p className="text-slate-300 text-sm mb-4">You'll be redirected back after authentication</p>
+                <div className="flex justify-center items-center space-x-1">
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce"></div>
                   <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                   <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
@@ -126,10 +85,10 @@ export default function LoginPage() {
               <Shield className="h-12 w-12 text-white" />
             </div>
             <CardTitle className="text-2xl font-semibold text-white">
-              Welcome Back
+              Welcome to Raptor Esports
             </CardTitle>
             <CardDescription className="text-slate-200">
-              Sign in to your Raptor Esports account
+              Sign in with your Discord account to get started
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -137,117 +96,41 @@ export default function LoginPage() {
               <Alert variant="destructive" className="bg-red-900/50 border-red-700/50 backdrop-blur-sm">
                 <AlertDescription className="text-sm text-red-100">
                   {error}
-                  {error.includes("invalid") && (
-                    <div className="mt-2 text-xs">
-                      <p>• Check your email and password spelling</p>
-                      <p>• Make sure Caps Lock is off</p>
-                      <p>• Try resetting your password if needed</p>
-                    </div>
-                  )}
                 </AlertDescription>
               </Alert>
             )}
             
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-white">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isSubmitting}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-white">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isSubmitting}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:border-white/40 pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                    disabled={isSubmitting}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-slate-400" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-slate-400" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <Link 
-                  href="/auth/forgot" 
-                  className="text-sm text-slate-300 hover:text-white underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              
-              <Button 
-                type="submit" 
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium" 
+            <div className="space-y-4">
+              <Button
+                onClick={handleDiscordLogin}
                 disabled={isSubmitting}
+                className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
               >
-                {isSubmitting ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Signing In...
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="mr-2 h-4 w-4" />
-                    Sign In
-                  </>
-                )}
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419-.0190 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9460 2.4189-2.1568 2.4189Z"/>
+                </svg>
+                <span>Continue with Discord</span>
               </Button>
-            </form>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-white/20" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-black/60 px-2 text-slate-400">Or continue with</span>
+              
+              <div className="text-center">
+                <p className="text-sm text-slate-300">
+                  New to Discord?{" "}
+                  <a 
+                    href="https://discord.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-white hover:underline"
+                  >
+                    Create an account
+                  </a>
+                </p>
               </div>
             </div>
             
-            <Button 
-              onClick={handleDiscordLogin}
-              variant="outline" 
-              className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white border-[#5865F2] font-medium"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-                </svg>
-              )}
-              Continue with Discord
-            </Button>
-            
-            <div className="text-center text-sm text-slate-400">
-              Don't have an account?{" "}
-              <Link href="/auth/signup" className="text-white hover:underline font-medium">
-                Sign up
-              </Link>
+            <div className="mt-6 pt-4 border-t border-white/10">
+              <p className="text-xs text-slate-400 text-center">
+                By signing in, you agree to our Terms of Service and Privacy Policy
+              </p>
             </div>
           </CardContent>
         </Card>

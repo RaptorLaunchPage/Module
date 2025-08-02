@@ -135,7 +135,7 @@ function AuthConfirmContent() {
                 </Alert>
                 <div className="grid grid-cols-1 gap-2">
                   <Button asChild variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
-                    <Link href="/auth/signup">Try Signup Again</Link>
+                    <Link href="/auth/login">Try Login Again</Link>
                   </Button>
                   <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
                     <Link href="/auth/login">Go to Login</Link>

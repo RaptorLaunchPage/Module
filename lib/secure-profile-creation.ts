@@ -4,9 +4,9 @@ import { RoleAccess, ROLES, type UserRole } from "./role-system"
 export class SecureProfileCreation {
   /**
    * Create a new user profile with proper default role
-   * Updated to handle foreign key constraints properly
+   * Updated to handle Discord OAuth and store Discord metadata
    */
-  static async createProfile(userId: string, email: string, name?: string, provider?: string): Promise<{
+  static async createProfile(userId: string, email: string, name?: string, provider?: string, userMetadata?: any): Promise<{
     success: boolean
     profile?: any
     error?: string
@@ -35,6 +35,71 @@ export class SecureProfileCreation {
       
       if (existingProfile) {
         console.log(`✅ Profile already exists for ${email}`)
+        
+        // Update Discord metadata if this is a Discord login and we have new metadata
+        if (provider === 'discord' && userMetadata) {
+          console.log('🔄 Updating existing profile with latest Discord metadata')
+          
+          const updates: any = {}
+          let hasUpdates = false
+          
+          // Update Discord ID if different
+          if (userMetadata.provider_id && userMetadata.provider_id !== existingProfile.discord_id) {
+            updates.discord_id = userMetadata.provider_id
+            hasUpdates = true
+          }
+          
+          // Update Discord username as display name
+          if (userMetadata.user_name && userMetadata.user_name !== existingProfile.display_name) {
+            updates.display_name = userMetadata.user_name
+            hasUpdates = true
+          }
+          
+          // Update avatar URL if different
+          if (userMetadata.avatar_url && userMetadata.avatar_url !== existingProfile.avatar_url) {
+            updates.avatar_url = userMetadata.avatar_url
+            hasUpdates = true
+          }
+          
+          // Update name if Discord full_name is available and different
+          if (userMetadata.full_name && userMetadata.full_name !== existingProfile.name) {
+            updates.name = userMetadata.full_name
+            hasUpdates = true
+          } else if (userMetadata.user_name && !existingProfile.name && userMetadata.user_name !== existingProfile.name) {
+            updates.name = userMetadata.user_name
+            hasUpdates = true
+          }
+          
+          if (hasUpdates) {
+            console.log('📝 Applying Discord metadata updates:', updates)
+            
+            const { data: updatedProfile, error: updateError } = await supabase
+              .from('users')
+              .update({
+                ...updates,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', userId)
+              .select()
+              .single()
+            
+            if (updateError) {
+              console.error('⚠️ Failed to update Discord metadata:', updateError)
+              // Return existing profile even if update failed
+              return {
+                success: true,
+                profile: existingProfile
+              }
+            }
+            
+            console.log('✅ Discord metadata updated successfully')
+            return {
+              success: true,
+              profile: updatedProfile
+            }
+          }
+        }
+        
         return {
           success: true,
           profile: existingProfile
@@ -58,6 +123,39 @@ export class SecureProfileCreation {
       
       if (provider) {
         profileData.provider = provider
+      }
+
+      // Handle Discord OAuth metadata
+      if (provider === 'discord' && userMetadata) {
+        console.log('🔧 Processing Discord metadata:', userMetadata)
+        
+        // Extract Discord profile information
+        if (userMetadata.provider_id) {
+          profileData.discord_id = userMetadata.provider_id
+        }
+        
+        if (userMetadata.user_name) {
+          // Use Discord username as display name, keep original name from full_name
+          profileData.display_name = userMetadata.user_name
+        }
+        
+        if (userMetadata.avatar_url) {
+          profileData.avatar_url = userMetadata.avatar_url
+        }
+        
+        // Override name with Discord full_name if available
+        if (userMetadata.full_name) {
+          profileData.name = userMetadata.full_name
+        } else if (userMetadata.user_name) {
+          profileData.name = userMetadata.user_name
+        }
+        
+        console.log('✅ Discord metadata processed:', {
+          discord_id: profileData.discord_id,
+          display_name: profileData.display_name,
+          avatar_url: profileData.avatar_url,
+          name: profileData.name
+        })
       }
       
       console.log(`📝 Creating profile with role: ${defaultRole} for authenticated user`)

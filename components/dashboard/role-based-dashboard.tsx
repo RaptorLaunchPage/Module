@@ -363,7 +363,7 @@ export function RoleBasedDashboard({ userRole, profile, stats }: RoleDashboardPr
         <div className="space-y-2">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold text-white">
-              Welcome back, {profile?.display_name || profile?.full_name || 'User'}!
+                              Welcome back, {profile?.display_name || profile?.full_name || profile?.name || 'User'}!
             </h1>
             <Badge 
               variant="outline" 
