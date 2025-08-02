@@ -13,10 +13,7 @@ interface RouteGuardProps {
 const PUBLIC_ROUTES = [
   '/',
   '/auth/login',
-  '/auth/signup',
-  '/auth/confirm',
-  '/auth/forgot',
-  '/auth/reset-password'
+  '/auth/confirm'
 ]
 
 // API routes and static assets

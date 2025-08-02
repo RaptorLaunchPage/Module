@@ -236,7 +236,8 @@ class AuthFlowV2Manager {
         user.id,
         user.email || '',
         userName,
-        provider
+        provider,
+        user.user_metadata // Pass Discord metadata
       )
 
       if (profileResult.success && profileResult.profile) {
@@ -295,7 +296,7 @@ class AuthFlowV2Manager {
         let redirectPath = '/dashboard'
         if (typeof window !== 'undefined') {
           const intendedRoute = localStorage.getItem('raptor-intended-route')
-          if (intendedRoute && intendedRoute !== '/auth/login' && intendedRoute !== '/auth/signup') {
+          if (intendedRoute && intendedRoute !== '/auth/login') {
             redirectPath = intendedRoute
             localStorage.removeItem('raptor-intended-route')
           }

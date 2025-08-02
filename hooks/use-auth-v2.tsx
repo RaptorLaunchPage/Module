@@ -11,11 +11,8 @@ import { TokenRefresher } from '@/components/session/token-refresher'
 
 interface AuthContextType extends AuthState {
   // Auth actions
-  signIn: (email: string, password: string) => Promise<AuthFlowResult>
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any | null }>
   signOut: () => Promise<void>
   signInWithDiscord: () => Promise<void>
-  resetPassword: (email: string) => Promise<{ error: any | null }>
   
   // Agreement actions
   acceptAgreement: () => Promise<boolean>
@@ -203,7 +200,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         // Don't initialize if route guard is handling it
         // Route guard will initialize for protected routes
         const currentPath = window.location.pathname
-        const isPublicRoute = ['/', '/auth/login', '/auth/signup', '/auth/confirm', '/auth/forgot', '/auth/reset-password'].some(route => {
+        const isPublicRoute = ['/', '/auth/login', '/auth/confirm'].some(route => {
           if (route === '/') return currentPath === '/'
           return currentPath.startsWith(route)
         })
@@ -267,82 +264,9 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
     }
   }, []) // Remove dependencies to prevent re-initialization
 
-  // Sign in function
-  const signIn = useCallback(async (email: string, password: string): Promise<AuthFlowResult> => {
-    try {
-      const result = await authFlowV2.signIn(email, password)
-      
-      if (result.success) {
-        toast({
-          title: 'Welcome back!',
-          description: 'You have been signed in successfully.'
-        })
-        
-        // Allow more time for the login animation to complete before redirecting
-        // The auth state listener will handle the actual redirect with proper timing
-        console.log('🔄 Sign in successful, animation sequence will complete before redirect')
-      } else if (result.error) {
-        toast({
-          title: 'Sign In Failed',
-          description: result.error,
-          variant: 'destructive'
-        })
-      }
-      
-      return result
-    } catch (error: any) {
-      const errorMessage = error.message || 'Sign in failed'
-      toast({
-        title: 'Sign In Error',
-        description: errorMessage,
-        variant: 'destructive'
-      })
-      return { success: false, shouldRedirect: false, error: errorMessage }
-    }
-  }, [router, toast])
+  // Email/password sign in removed - Discord OAuth only
 
-  // Sign up function
-  const signUp = useCallback(async (email: string, password: string, name: string): Promise<{ error: any | null }> => {
-    try {
-      console.log('🔐 Sign up attempt:', email)
-
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name },
-          emailRedirectTo: `${getSiteUrl()}/auth/confirm`
-        }
-      })
-
-      if (signUpError) {
-        console.error('❌ Sign up failed:', signUpError.message)
-        toast({
-          title: 'Sign Up Failed',
-          description: signUpError.message,
-          variant: 'destructive'
-        })
-        return { error: signUpError }
-      }
-
-      console.log('✅ Sign up successful - check email')
-      toast({
-        title: 'Check Your Email',
-        description: 'We\'ve sent you a confirmation link to complete your registration.'
-      })
-      
-      return { error: null }
-
-    } catch (err: any) {
-      console.error('❌ Sign up exception:', err)
-      toast({
-        title: 'Sign Up Error',
-        description: err.message || 'Sign up failed',
-        variant: 'destructive'
-      })
-      return { error: err }
-    }
-  }, [toast])
+  // Email/password sign up removed - Discord OAuth only
 
   // Sign out function
   const signOut = useCallback(async () => {
@@ -404,36 +328,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
     }
   }, [toast])
 
-  // Reset password
-  const resetPassword = useCallback(async (email: string): Promise<{ error: any | null }> => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${getSiteUrl()}/auth/reset-password`
-      })
-
-      if (error) {
-        toast({
-          title: 'Reset Failed',
-          description: error.message,
-          variant: 'destructive'
-        })
-      } else {
-        toast({
-          title: 'Check Your Email',
-          description: 'We\'ve sent you a password reset link.'
-        })
-      }
-
-      return { error }
-    } catch (err: any) {
-      toast({
-        title: 'Reset Error',
-        description: err.message || 'Password reset failed',
-        variant: 'destructive'
-      })
-      return { error: err }
-    }
-  }, [toast])
+  // Password reset removed - Discord OAuth only
 
   // Accept agreement
   const acceptAgreement = useCallback(async (): Promise<boolean> => {
@@ -519,11 +414,8 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
     ...authState,
     
     // Auth actions
-    signIn,
-    signUp,
     signOut,
     signInWithDiscord,
-    resetPassword,
     
     // Agreement actions
     acceptAgreement,

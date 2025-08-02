@@ -46,6 +46,14 @@ export default function OnboardingPage() {
     if (!authLoading && profile) {
       if (profile.role !== "pending_player") {
         router.push("/dashboard")
+      } else {
+        // Pre-populate form with existing Discord data if available
+        setFormData(prev => ({
+          ...prev,
+          fullName: profile.full_name || profile.name || "",
+          displayName: profile.display_name || "",
+          // Keep other fields empty for user input
+        }))
       }
     } else if (!authLoading && !profile) {
       router.push("/auth/login")

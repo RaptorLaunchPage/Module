@@ -169,12 +169,12 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
                                               <Avatar className="h-10 w-10 border-2 border-white/30">
                           <AvatarImage src={profile.avatar_url || undefined} />
                           <AvatarFallback className="bg-white/20 text-white font-semibold">
-                            {profile.name?.charAt(0) || profile.email?.charAt(0) || 'U'}
+                            {(profile.display_name || profile.name || profile.email)?.charAt(0) || 'U'}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-medium truncate">
-                            {profile.name || profile.email}
+                            {profile.display_name || profile.name || profile.email}
                           </p>
                                                     <Badge 
                             variant="secondary" 
@@ -223,7 +223,7 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
             <Avatar className="h-8 w-8 border-2 border-white/30">
               <AvatarImage src={profile.avatar_url || undefined} />
               <AvatarFallback className="text-xs bg-white/20 text-white">
-                {profile.name?.charAt(0) || profile.email?.charAt(0) || 'U'}
+                {(profile.display_name || profile.name || profile.email)?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
           </div>
@@ -283,11 +283,11 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
                       <Avatar className="h-5 w-5 border border-white/30">
                         <AvatarImage src={profile.avatar_url || undefined} />
                         <AvatarFallback className="text-xs bg-white/20 text-white">
-                          {profile.name?.charAt(0) || 'U'}
+                          {(profile.display_name || profile.name)?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <span className="flex-1 text-left truncate">
-                        {profile.name || 'Profile'}
+                        {profile.display_name || profile.name || 'Profile'}
                       </span>
                       <ChevronDown className="h-4 w-4" />
                     </button>
