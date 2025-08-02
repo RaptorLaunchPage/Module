@@ -77,16 +77,31 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
 
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && supabaseSession?.user) {
           console.log(`✅ Processing Supabase ${event}`)
+          console.log('🔍 Discord OAuth flow - current path:', window.location.pathname)
           const result = await authFlowV2.handleSupabaseSession(supabaseSession)
           
           // Only redirect on actual sign in from login page or homepage, not on app initialization or navigation
           if (event === 'SIGNED_IN' && result.success && result.shouldRedirect && result.redirectPath) {
             const currentPath = window.location.pathname
             
+            console.log('🎯 Discord OAuth redirect check:', {
+              currentPath,
+              redirectPath: result.redirectPath,
+              shouldRedirect: result.shouldRedirect,
+              success: result.success
+            })
+            
             // Redirect if we're coming from an auth page, homepage (Discord OAuth), or if it's required (agreement/onboarding)
             const isFromAuthPage = currentPath.startsWith('/auth/')
             const isFromHomepage = currentPath === '/'
             const isRequiredRedirect = result.redirectPath === '/agreement-review' || result.redirectPath === '/onboarding'
+            
+            console.log('🔍 Redirect conditions:', {
+              isFromAuthPage,
+              isFromHomepage,
+              isRequiredRedirect,
+              willRedirect: isFromAuthPage || isFromHomepage || isRequiredRedirect
+            })
             
             if (isFromAuthPage || isFromHomepage || isRequiredRedirect) {
               // Don't redirect if already on the target page
