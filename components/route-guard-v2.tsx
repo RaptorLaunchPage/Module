@@ -11,7 +11,6 @@ interface RouteGuardV2Props {
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
   '/',
-  '/auth/login',
   '/auth/confirm'
 ]
 
@@ -49,10 +48,10 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
       console.log('⚠️ Ultimate fallback triggered - forcing loading completion after 15 seconds')
       setIsLoading(false)
       
-      // If we're on a protected route and don't have auth, redirect to login
+      // If we're on a protected route and don't have auth, redirect to home
       if (!isPublicRoute(pathname) && (!authState || !authState.isAuthenticated)) {
-        console.log('🔒 No auth after timeout, redirecting to login')
-        router.push('/auth/login')
+        console.log('🔒 No auth after timeout, redirecting to home')
+        router.push('/')
       }
     }, 15000) // 15 second ultimate fallback
 
@@ -274,13 +273,13 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
       console.log('🔒 Route guard: Not authenticated, redirecting to login')
       
       // Store intended route
-      if (pathname !== '/auth/login' && typeof window !== 'undefined') {
+      if (pathname !== '/' && typeof window !== 'undefined') {
         localStorage.setItem('raptor-intended-route', pathname)
       }
       
       // Add slight delay to prevent jarring transitions
       setTimeout(() => {
-        router.push('/auth/login')
+        router.push('/')
       }, 100)
       return
     }

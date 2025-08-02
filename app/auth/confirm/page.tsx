@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
+import { useAuthV2 } from "@/hooks/use-auth-v2"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,7 @@ import { VideoBackground } from "@/components/video-background"
 function AuthConfirmContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, profile, isLoading } = useAuth()
+  const { user, profile, isLoading } = useAuthV2()
   const { toast } = useToast()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
@@ -135,10 +135,10 @@ function AuthConfirmContent() {
                 </Alert>
                 <div className="grid grid-cols-1 gap-2">
                   <Button asChild variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
-                    <Link href="/auth/login">Try Login Again</Link>
+                    <Link href="/">Try Again</Link>
                   </Button>
                   <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
-                    <Link href="/auth/login">Go to Login</Link>
+                    <Link href="/">Go to Home</Link>
                   </Button>
                 </div>
               </div>

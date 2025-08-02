@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from 'react'
-import { useAuthV2 as useAuth } from '@/hooks/use-auth-v2'
+import { useAuthV2 } from '@/hooks/use-auth-v2'
 import { dataService } from '@/lib/optimized-data-service'
 import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions'
 
@@ -92,7 +92,7 @@ interface QuickAction {
 }
 
 export default function OptimizedDashboardPage() {
-  const { profile, user } = useAuth()
+  const { profile, user } = useAuthV2()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [topPerformers, setTopPerformers] = useState<{
     topTeam: TeamPerformance | null

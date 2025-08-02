@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useAuthV2 as useAuth } from '@/hooks/use-auth-v2'
+import { useAuthV2 } from '@/hooks/use-auth-v2'
 import { AdvancedLoading, LoadingStep } from '@/components/ui/advanced-loading'
 
 interface RouteGuardProps {
@@ -12,7 +12,6 @@ interface RouteGuardProps {
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
   '/',
-  '/auth/login',
   '/auth/confirm'
 ]
 
@@ -33,7 +32,7 @@ const isPublicRoute = (pathname: string): boolean => {
 }
 
 export function RouteGuard({ children }: RouteGuardProps) {
-  const { isAuthenticated, isLoading, agreementStatus, user, profile, isInitialized } = useAuth()
+  const { isAuthenticated, isLoading, agreementStatus, user, profile, isInitialized } = useAuthV2()
   const router = useRouter()
   const pathname = usePathname()
   const [shouldRender, setShouldRender] = useState(false)
@@ -112,12 +111,12 @@ export function RouteGuard({ children }: RouteGuardProps) {
       console.log('🔒 Route guard: Not authenticated, redirecting to login')
       
       // Store intended route
-      if (pathname !== '/auth/login' && typeof window !== 'undefined') {
+      if (pathname !== '/' && typeof window !== 'undefined') {
         localStorage.setItem('raptor-intended-route', pathname)
       }
       
       setLoadingStep('redirecting')
-      router.push('/auth/login')
+      router.push('/')
       setShouldRender(false)
       return
     }

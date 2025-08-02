@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useAuthV2 as useAuth } from '@/hooks/use-auth-v2'
+import { useAuthV2 } from '@/hooks/use-auth-v2'
 import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -49,7 +49,7 @@ interface NewDashboardLayoutProps {
 }
 
 export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
-  const { profile, isLoading, signOut } = useAuth()
+  const { profile, isLoading, signOut } = useAuthV2()
   const pathname = usePathname()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -84,10 +84,10 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
             <h2 className="text-2xl font-bold text-white">Profile Required</h2>
             <p className="text-white/80">Please complete your profile setup to access the dashboard.</p>
             <Button 
-              onClick={() => router.push('/auth/login')}
+              onClick={() => router.push('/')}
               className="bg-primary hover:bg-primary/90 text-white"
             >
-              Return to Login
+              Return to Home
             </Button>
           </div>
         </div>

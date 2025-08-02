@@ -88,7 +88,7 @@ export default function NotFound() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Link href="/auth/login">
+                <Link href="/">
                   <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-medium">
                     <Gamepad2 className="w-4 h-4 mr-2" />
                     Sign Up

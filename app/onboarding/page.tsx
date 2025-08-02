@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
+import { useAuthV2 } from "@/hooks/use-auth-v2"
 import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -26,7 +26,7 @@ interface OnboardingForm {
 }
 
 export default function OnboardingPage() {
-  const { profile, isLoading: authLoading, refreshProfile } = useAuth()
+  const { profile, isLoading: authLoading, refreshProfile } = useAuthV2()
   const router = useRouter()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
@@ -56,7 +56,7 @@ export default function OnboardingPage() {
         }))
       }
     } else if (!authLoading && !profile) {
-      router.push("/auth/login")
+              router.push("/")
     }
   }, [profile, authLoading, router])
 
