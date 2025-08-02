@@ -3,7 +3,7 @@
  * Handles all role-based access control for dashboard modules
  */
 
-export type UserRole = 'admin' | 'manager' | 'coach' | 'player' | 'analyst' | 'pending_player' | 'awaiting_approval'
+export type UserRole = 'admin' | 'manager' | 'coach' | 'player' | 'analyst' | 'pending_player' | 'awaiting_approval' | 'tryout'
 
 export interface DashboardModule {
   id: string
@@ -284,7 +284,8 @@ export class DashboardPermissions {
       analyst: { label: 'Analyst', color: 'indigo', level: 60 },
       player: { label: 'Player', color: 'orange', level: 50 },
       pending_player: { label: 'Pending Approval', color: 'yellow', level: 10 },
-      awaiting_approval: { label: 'Awaiting Approval', color: 'yellow', level: 10 }
+      awaiting_approval: { label: 'Awaiting Approval', color: 'yellow', level: 10 },
+      tryout: { label: 'Tryout', color: 'gray', level: 5 }
     }
 
     return roleMap[role || 'pending_player'] || roleMap.pending_player

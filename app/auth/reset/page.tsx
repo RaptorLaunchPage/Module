@@ -1,367 +1,72 @@
 "use client"
 
-import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useToast } from '@/hooks/use-toast'
-import { VideoBackground } from '@/components/video-background'
-import { Eye, EyeOff, Lock, CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import Link from 'next/link'
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { VideoBackground } from "@/components/video-background"
+import { Home, Shield, ArrowLeft } from "lucide-react"
 
-function ResetPasswordContent() {
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [isValidSession, setIsValidSession] = useState<boolean | null>(null)
-  const [sessionError, setSessionError] = useState<string | null>(null)
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const { toast } = useToast()
-
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        console.log('🔄 Checking reset session validity...')
-        
-        // First check if we already have a session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        
-        if (sessionError) {
-          console.error('❌ Session error:', sessionError)
-          setSessionError('Invalid reset session')
-          setIsValidSession(false)
-          return
-        }
-
-        if (session) {
-          console.log('✅ Valid reset session found')
-          setIsValidSession(true)
-          return
-        }
-
-        // Check for tokens in URL (from email link)
-        const accessToken = searchParams.get('access_token')
-        const refreshToken = searchParams.get('refresh_token')
-        const tokenHash = searchParams.get('token_hash')
-        const type = searchParams.get('type')
-        
-        console.log('🔍 URL params:', { 
-          hasAccessToken: !!accessToken, 
-          hasRefreshToken: !!refreshToken,
-          hasTokenHash: !!tokenHash,
-          type 
-        })
-
-        if (tokenHash && type === 'recovery') {
-          // Handle new token_hash format
-          console.log('🔄 Verifying recovery token...')
-          const { data, error } = await supabase.auth.verifyOtp({
-            token_hash: tokenHash,
-            type: 'recovery'
-          })
-
-          if (error) {
-            console.error('❌ Token verification error:', error)
-            setSessionError(error.message)
-            setIsValidSession(false)
-            return
-          }
-
-          if (data.session) {
-            console.log('✅ Recovery token verified, session established')
-            setIsValidSession(true)
-            return
-          }
-        } else if (accessToken && refreshToken) {
-          // Handle legacy token format
-          console.log('🔄 Setting session from tokens...')
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          })
-          
-          if (error) {
-            console.error('❌ Set session error:', error)
-            setSessionError(error.message)
-            setIsValidSession(false)
-            return
-          }
-
-          if (data.session) {
-            console.log('✅ Session established from tokens')
-            setIsValidSession(true)
-            return
-          }
-        }
-
-        // No valid tokens found
-        console.log('❌ No valid reset tokens found')
-        setSessionError('Invalid or expired reset link')
-        setIsValidSession(false)
-        
-      } catch (error: any) {
-        console.error('❌ Session check error:', error)
-        setSessionError('Failed to validate reset session')
-        setIsValidSession(false)
-      }
-    }
-    
-    checkSession()
-  }, [searchParams])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (password !== confirmPassword) {
-      toast({
-        title: 'Error',
-        description: 'Passwords do not match',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    if (password.length < 6) {
-      toast({
-        title: 'Error',
-        description: 'Password must be at least 6 characters',
-        variant: 'destructive'
-      })
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      console.log('🔄 Updating password...')
-      const { data, error } = await supabase.auth.updateUser({
-        password: password
-      })
-
-      if (error) {
-        throw error
-      }
-
-      console.log('✅ Password updated successfully')
-      toast({
-        title: 'Success',
-        description: 'Password updated successfully! Redirecting to login...'
-      })
-
-      // Sign out to clear the reset session
-      await supabase.auth.signOut()
-
-      // Redirect to login after a short delay
-      setTimeout(() => {
-        router.push('/auth/login?message=password_updated')
-      }, 2000)
-
-    } catch (error: any) {
-      console.error('❌ Password update error:', error)
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to update password',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Show loading state while checking session
-  if (isValidSession === null) {
-    return (
-      <VideoBackground>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl">
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2 text-white">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Verifying Reset Link
-              </CardTitle>
-              <CardDescription className="text-slate-200">
-                Please wait while we verify your password reset link...
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </VideoBackground>
-    )
-  }
-
-  // Show error state for invalid session
-  if (!isValidSession) {
-    return (
-      <VideoBackground>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl">
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2 text-white">
-                <XCircle className="h-5 w-5 text-red-400" />
-                Invalid Reset Link
-              </CardTitle>
-              <CardDescription className="text-slate-200">
-                This password reset link is invalid or has expired
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert className="bg-red-500/10 border-red-500/20 text-red-100">
-                <XCircle className="h-4 w-4" />
-                <AlertDescription>
-                  {sessionError || 'The reset link is no longer valid. Please request a new one.'}
-                </AlertDescription>
-              </Alert>
-              <div className="grid grid-cols-1 gap-2">
-                <Button asChild variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
-                  <Link href="/auth/forgot">Request New Reset Link</Link>
-                </Button>
-                <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
-                  <Link href="/auth/login">Back to Login</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </VideoBackground>
-    )
-  }
-
-  // Show password reset form
+export default function ResetPasswordPage() {
   return (
     <VideoBackground>
       <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl">
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2 text-white text-2xl font-semibold">
-              <Lock className="h-5 w-5" />
-              Reset Your Password
+        <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
+          <CardHeader className="text-center relative">
+            <Link href="/" className="absolute left-4 top-4">
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
+                <Home className="h-4 w-4 mr-2" />
+                Home
+              </Button>
+            </Link>
+            <div className="flex items-center justify-center mb-4">
+              <Shield className="h-12 w-12 text-white" />
+            </div>
+            <CardTitle className="text-2xl text-white font-semibold">
+              Password Reset Not Available
             </CardTitle>
             <CardDescription className="text-slate-200">
-              Enter your new password below
+              We now use Discord for all authentication
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-white">New Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter new password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-slate-400 hover:text-white"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
+          <CardContent className="space-y-6 text-center">
+            <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded-lg">
+              <div className="space-y-3">
+                <div className="flex items-center justify-center">
+                  <svg className="h-8 w-8 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                  </svg>
                 </div>
+                <h3 className="text-lg font-semibold text-blue-100">Discord Authentication Only</h3>
+                <p className="text-blue-200 text-sm">
+                  Raptor Esports now uses Discord for secure, passwordless authentication. 
+                  No need to reset passwords - just sign in with Discord!
+                </p>
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-white">Confirm New Password</Label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirm new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-slate-400 hover:text-white"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
+            </div>
 
-              {password && confirmPassword && password !== confirmPassword && (
-                <Alert className="bg-red-500/10 border-red-500/20 text-red-100">
-                  <XCircle className="h-4 w-4" />
-                  <AlertDescription>Passwords do not match</AlertDescription>
-                </Alert>
-              )}
-
-              <Button 
-                type="submit" 
-                className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
-                disabled={loading || !password || !confirmPassword || password !== confirmPassword}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating Password...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Update Password
-                  </>
-                )}
-              </Button>
-
-              <div className="text-center">
-                <Button asChild variant="ghost" className="text-slate-300 hover:text-white">
-                  <Link href="/auth/login">Back to Login</Link>
+            <div className="space-y-4">
+              <Link href="/auth/login">
+                <Button className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Sign in with Discord
                 </Button>
+              </Link>
+              
+              <div className="text-sm text-slate-400">
+                Don't have a Discord account?{" "}
+                <a 
+                  href="https://discord.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:text-blue-300 underline"
+                >
+                  Create one for free
+                </a>
               </div>
-            </form>
+            </div>
           </CardContent>
         </Card>
       </div>
     </VideoBackground>
-  )
-}
-
-export default function ResetPasswordPage() {
-  return (
-    <Suspense fallback={
-      <VideoBackground>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl">
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2 text-white">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Loading...
-              </CardTitle>
-            </CardHeader>
-          </Card>
-        </div>
-      </VideoBackground>
-    }>
-      <ResetPasswordContent />
-    </Suspense>
   )
 }

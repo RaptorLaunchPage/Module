@@ -28,11 +28,8 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   // Auth actions
-  signIn: (email: string, password: string) => Promise<{ error: any | null }>
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any | null }>
   signOut: () => Promise<void>
   signInWithDiscord: () => Promise<void>
-  resetPassword: (email: string) => Promise<{ error: any | null }>
   
   // Profile actions
   refreshProfile: () => Promise<void>
@@ -360,93 +357,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase, initializeAuth, handleAuthStateChange])
 
   // Auth actions
-  const signIn = useCallback(async (email: string, password: string) => {
-    try {
-      console.log('🔐 Attempting sign in for:', email)
-      updateAuthState({ isLoading: true, error: null })
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-
-      if (error) {
-        updateAuthState({ isLoading: false })
-        toast({
-          title: 'Sign In Failed',
-          description: error.message,
-          variant: 'destructive'
-        })
-        return { error }
-      }
-
-      // Auth state change will be handled by the listener
-      toast({
-        title: 'Welcome back!',
-        description: 'You have been signed in successfully.'
-      })
-
-      return { error: null }
-    } catch (err: any) {
-      updateAuthState({ isLoading: false })
-      toast({
-        title: 'Sign In Error',
-        description: err.message || 'An unexpected error occurred',
-        variant: 'destructive'
-      })
-      return { error: err }
-    }
-  }, [supabase, updateAuthState, toast])
-
-  const signUp = useCallback(async (email: string, password: string, name: string) => {
-    try {
-      console.log('📝 Attempting sign up for:', email)
-      updateAuthState({ isLoading: true, error: null })
-
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name },
-          emailRedirectTo: `${getSiteUrl()}/auth/callback`
-        }
-      })
-
-      updateAuthState({ isLoading: false })
-
-      if (error) {
-        toast({
-          title: 'Sign Up Failed',
-          description: error.message,
-          variant: 'destructive'
-        })
-        return { error }
-      }
-
-      if (data.user && !data.session) {
-        toast({
-          title: 'Check Your Email',
-          description: 'We\'ve sent you a confirmation link to complete your registration.'
-        })
-      } else if (data.session) {
-        // Auto-confirmed, will be handled by auth listener
-        toast({
-          title: 'Account Created',
-          description: 'Your account has been created successfully!'
-        })
-      }
-
-      return { error: null }
-    } catch (err: any) {
-      updateAuthState({ isLoading: false })
-      toast({
-        title: 'Sign Up Error',
-        description: err.message || 'An unexpected error occurred',
-        variant: 'destructive'
-      })
-      return { error: err }
-    }
-  }, [supabase, getSiteUrl, updateAuthState, toast])
 
   const signOut = useCallback(async () => {
     try {
@@ -503,38 +413,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [supabase, getSiteUrl, toast])
 
-  const resetPassword = useCallback(async (email: string) => {
-    try {
-      console.log('🔑 Sending password reset for:', email)
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${getSiteUrl()}/auth/reset`
-      })
 
-      if (error) {
-        toast({
-          title: 'Reset Failed',
-          description: error.message,
-          variant: 'destructive'
-        })
-        return { error }
-      }
-
-      toast({
-        title: 'Check Your Email',
-        description: 'We\'ve sent you a password reset link.'
-      })
-
-      return { error: null }
-    } catch (err: any) {
-      toast({
-        title: 'Reset Error',
-        description: err.message || 'Failed to send reset email',
-        variant: 'destructive'
-      })
-      return { error: err }
-    }
-  }, [supabase, getSiteUrl, toast])
 
   // Profile actions
   const refreshProfile = useCallback(async () => {
@@ -679,11 +558,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ...authState,
     
     // Auth actions
-    signIn,
-    signUp,
     signOut,
     signInWithDiscord,
-    resetPassword,
     
     // Profile actions
     refreshProfile,

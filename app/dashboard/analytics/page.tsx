@@ -302,7 +302,7 @@ export default function AnalyticsPage() {
       const options: DashboardDataOptions = {
         role: userRole,
         userId: profile.id,
-        teamId: profile.team_id,
+        teamId: profile.team_id || undefined,
         timeframe: selectedTimeframe
       }
 

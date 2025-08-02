@@ -35,6 +35,19 @@ export default function ProfilePage() {
 
   // Profile to display - either target user or current user
   const displayProfile = targetProfile || currentProfile
+  
+  // Transform null values to undefined for compatibility with component props
+  const transformedProfile = displayProfile ? {
+    ...displayProfile,
+    full_name: displayProfile.full_name ?? undefined,
+    contact_number: displayProfile.contact_number ?? undefined,
+    emergency_contact_name: displayProfile.emergency_contact_name ?? undefined,
+    emergency_contact_number: displayProfile.emergency_contact_number ?? undefined,
+    date_of_birth: displayProfile.date_of_birth ?? undefined,
+    address: displayProfile.address ?? undefined,
+    preferred_language: displayProfile.preferred_language ?? undefined,
+    timezone: displayProfile.timezone ?? undefined,
+  } as const : null
   const isOwnProfile = !targetUserId || targetUserId === currentProfile?.id
 
   // Permissions
@@ -169,7 +182,7 @@ export default function ProfilePage() {
     )
   }
 
-  if (loading && !displayProfile) {
+  if (loading && !transformedProfile) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center space-y-4">
@@ -193,7 +206,7 @@ export default function ProfilePage() {
     )
   }
 
-  if (!displayProfile || !canView) {
+  if (!transformedProfile || !canView) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert className="bg-yellow-900/40 backdrop-blur-lg border border-yellow-400/60 shadow-xl text-white rounded-lg">
@@ -210,7 +223,7 @@ export default function ProfilePage() {
     <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Profile Header */}
       <ProfileHeader 
-        profile={displayProfile} 
+        profile={transformedProfile} 
         viewerProfile={currentProfile}
         onEdit={() => setActiveTab('personal')}
         isEditing={false}
@@ -258,7 +271,7 @@ export default function ProfilePage() {
         {/* Personal Information Section */}
         <TabsContent value="personal" className="space-y-6">
           <PersonalInformationSection
-            profile={displayProfile}
+            profile={transformedProfile}
             canEdit={canEdit}
             onUpdate={handleProfileUpdate}
           />
@@ -267,7 +280,7 @@ export default function ProfilePage() {
         {/* Gaming Information Section */}
         <TabsContent value="gaming" className="space-y-6">
           <GamingInformationSection
-            profile={displayProfile}
+            profile={transformedProfile}
             canEdit={canEdit}
             onUpdate={handleProfileUpdate}
           />
@@ -276,7 +289,7 @@ export default function ProfilePage() {
         {/* Device Information Section */}
         <TabsContent value="device" className="space-y-6">
           <DeviceInformationSection
-            profile={displayProfile}
+            profile={transformedProfile}
             canEdit={canEdit}
             onUpdate={handleProfileUpdate}
           />
@@ -285,7 +298,7 @@ export default function ProfilePage() {
         {/* BGMI Gaming Section */}
         <TabsContent value="bgmi" className="space-y-6">
           <BGMIGamingSection 
-            profile={displayProfile}
+            profile={transformedProfile}
             isEditing={false}
             canEdit={canEdit}
             onUpdate={handleProfileUpdate}
