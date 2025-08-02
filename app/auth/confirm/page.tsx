@@ -12,6 +12,7 @@ import { CheckCircle, XCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import { VideoBackground } from "@/components/video-background"
+import { AutoRedirector } from "@/components/auth/auto-redirector"
 
 function AuthConfirmContent() {
   const router = useRouter()
@@ -164,6 +165,9 @@ export default function AuthConfirmPage() {
             </CardHeader>
           </Card>
         </div>
+        
+        {/* Auto-redirector for post-OAuth flow */}
+        <AutoRedirector debug={false} redirectDelay={500} />
       </VideoBackground>
     }>
       <AuthConfirmContent />

@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { SecureProfileCreation } from '@/lib/secure-profile-creation'
 import SessionStorage, { SessionData, TokenInfo } from '@/lib/session-storage'
 import { isAgreementRole, getRequiredAgreementVersion } from '@/lib/agreement-versions'
+import { getRoleBasedDashboardPath } from '@/lib/role-redirect'
 import type { Session, User } from '@supabase/supabase-js'
 
 export interface AuthState {
@@ -292,8 +293,9 @@ class AuthFlowV2Manager {
 
       // Priority 3: Only redirect on explicit request (login, signup confirmation)
       if (shouldRedirect) {
-        // Check for intended route
-        let redirectPath = '/dashboard'
+        // Check for intended route first
+        let redirectPath = getRoleBasedDashboardPath(profile)
+        
         if (typeof window !== 'undefined') {
           const intendedRoute = localStorage.getItem('raptor-intended-route')
           if (intendedRoute && intendedRoute !== '/auth/login') {
@@ -301,6 +303,8 @@ class AuthFlowV2Manager {
             localStorage.removeItem('raptor-intended-route')
           }
         }
+
+        console.log(`🎯 Role-based redirect: ${profile.role} → ${redirectPath}`)
 
         return {
           success: true,

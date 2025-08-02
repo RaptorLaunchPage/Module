@@ -6,13 +6,45 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
+import { AutoRedirector, useAutoRedirect } from "@/components/auth/auto-redirector"
+import { getRoleBasedDashboardPath } from "@/lib/role-redirect"
+import { Loader2 } from "lucide-react"
 
 export default function HomePage() {
   const { user, profile, signOut } = useAuth() // Removed isLoading dependency
   const router = useRouter()
+  
+  // Use auto-redirect hook to detect if user should be redirected
+  const { willRedirect, targetPath } = useAutoRedirect({ debug: false })
 
   // Homepage should always render - no loading state needed
   // The auth state will be available when ready, but we don't wait for it
+
+  // Show redirecting state if user will be auto-redirected
+  if (willRedirect && user && profile) {
+    return (
+      <VideoBackground>
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 max-w-md mx-auto">
+            <CardContent className="pt-6">
+              <div className="text-center">
+                <div className="mb-4">
+                  <Loader2 className="h-12 w-12 text-white mx-auto animate-spin" />
+                </div>
+                <h2 className="text-xl font-semibold text-white mb-2">Welcome back!</h2>
+                <p className="text-slate-300 text-sm mb-4">
+                  Taking you to your {profile.role} dashboard...
+                </p>
+                <div className="text-xs text-slate-400">
+                  Redirecting to {targetPath}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </VideoBackground>
+    )
+  }
 
   // Show homepage for all users - let them choose their next action
   return (
@@ -43,11 +75,8 @@ export default function HomePage() {
               <CardContent className="space-y-3">
                 <Button 
                   onClick={() => {
-                    if (profile.role === "pending_player" && !profile.onboarding_completed) {
-                      router.push("/onboarding")
-                    } else {
-                      router.push("/dashboard")
-                    }
+                    const targetPath = getRoleBasedDashboardPath(profile)
+                    router.push(targetPath)
                   }}
                   className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
                 >
@@ -128,6 +157,9 @@ export default function HomePage() {
           </Card>
         </div>
       </div>
+      
+      {/* Auto-redirector for post-login flow */}
+      <AutoRedirector debug={false} redirectDelay={1500} />
     </VideoBackground>
   )
 }
