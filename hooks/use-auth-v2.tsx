@@ -108,12 +108,27 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
               if (currentPath !== result.redirectPath) {
                 console.log('🎬 Sign in detected, preparing for redirect to:', result.redirectPath)
                 
-                // Store redirect information for instant redirect when auth completes
-                pendingRedirect.current = {
-                  redirectPath: result.redirectPath,
-                  isFromAuthPage: isFromAuthPage || isFromHomepage,
-                  isRequiredRedirect
-                }
+                  // Store redirect information for instant redirect when auth completes
+  pendingRedirect.current = {
+    redirectPath: result.redirectPath,
+    isFromAuthPage: isFromAuthPage || isFromHomepage,
+    isRequiredRedirect
+  }
+  
+  // Send debug info to global state for debug page
+  if (typeof window !== 'undefined') {
+    (window as any).discordOAuthDebug = {
+      currentPath,
+      redirectPath: result.redirectPath,
+      shouldRedirect: result.shouldRedirect,
+      success: result.success,
+      isFromAuthPage,
+      isFromHomepage,
+      isRequiredRedirect,
+      willRedirect: isFromAuthPage || isFromHomepage || isRequiredRedirect,
+      timestamp: new Date().toISOString()
+    }
+  }
                 
                 // If authentication is already complete (profile loaded), redirect immediately
                 if (authState.isAuthenticated && !authState.isLoading && authState.profile) {
