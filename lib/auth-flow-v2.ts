@@ -296,7 +296,7 @@ class AuthFlowV2Manager {
         let redirectPath = '/dashboard'
         if (typeof window !== 'undefined') {
           const intendedRoute = localStorage.getItem('raptor-intended-route')
-          if (intendedRoute && intendedRoute !== '/auth/login') {
+          if (intendedRoute && intendedRoute !== '/') {
             redirectPath = intendedRoute
             localStorage.removeItem('raptor-intended-route')
           }
@@ -463,41 +463,7 @@ class AuthFlowV2Manager {
   }
 
   // Sign in
-  async signIn(email: string, password: string): Promise<AuthFlowResult> {
-    try {
-      console.log('🔐 Signing in user:', email)
-      this.setState({ isLoading: true, error: null })
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-
-      if (error) {
-        console.error('❌ Sign in failed:', error.message)
-        this.setState({
-          isLoading: false,
-          error: error.message
-        })
-        return { success: false, shouldRedirect: false, error: error.message }
-      }
-
-      if (data.session?.user) {
-        console.log('✅ Sign in successful')
-        return await this.handleSupabaseSession(data.session)
-      }
-
-      throw new Error('No session returned from sign in')
-
-    } catch (error: any) {
-      console.error('❌ Sign in error:', error)
-      this.setState({
-        isLoading: false,
-        error: error.message || 'Sign in failed'
-      })
-      return { success: false, shouldRedirect: false, error: error.message }
-    }
-  }
 
   // Sign out
   async signOut(): Promise<void> {

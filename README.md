@@ -124,8 +124,8 @@ NEXT_PUBLIC_DISCORD_CLIENT_ID=your_discord_client_id
 ## 📱 Key Pages
 
 - `/` - Landing page with authentication
-- `/auth/login` - Sign in page
-- `/auth/signup` - Registration page
+- `/` - Home page with Discord authentication
+
 - `/onboarding` - New user profile setup
 - `/dashboard` - Role-based main dashboard
 - `/dashboard/performance` - Performance tracking

@@ -29,14 +29,14 @@ export const forceLogout = async () => {
       console.log('⚠️ Supabase signOut failed:', e)
     }
     
-    // 5. Force redirect to login
-    console.log('🔄 Redirecting to login...')
-    window.location.replace('/auth/login')
+    // 5. Force redirect to home
+    console.log('🔄 Redirecting to home...')
+    window.location.replace('/')
     
   } catch (error) {
     console.error('❌ Force logout error:', error)
     // Last resort - just redirect
-    window.location.replace('/auth/login')
+    window.location.replace('/')
   }
 }
 

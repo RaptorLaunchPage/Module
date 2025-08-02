@@ -286,7 +286,7 @@ class AuthFlowManager {
       let redirectPath = '/dashboard'
       if (typeof window !== 'undefined') {
         const intendedRoute = localStorage.getItem('raptor-intended-route')
-        if (intendedRoute && intendedRoute !== '/auth/login') {
+        if (intendedRoute && intendedRoute !== '/') {
           redirectPath = intendedRoute
           localStorage.removeItem('raptor-intended-route')
         }

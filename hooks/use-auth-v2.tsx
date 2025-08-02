@@ -200,7 +200,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         // Don't initialize if route guard is handling it
         // Route guard will initialize for protected routes
         const currentPath = window.location.pathname
-        const isPublicRoute = ['/', '/auth/login', '/auth/confirm'].some(route => {
+        const isPublicRoute = ['/', '/auth/confirm'].some(route => {
           if (route === '/') return currentPath === '/'
           return currentPath.startsWith(route)
         })
