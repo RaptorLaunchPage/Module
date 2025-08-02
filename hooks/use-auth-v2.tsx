@@ -79,15 +79,16 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           console.log(`✅ Processing Supabase ${event}`)
           const result = await authFlowV2.handleSupabaseSession(supabaseSession)
           
-          // Only redirect on actual sign in from login page, not on app initialization or navigation
+          // Only redirect on actual sign in from login page or homepage, not on app initialization or navigation
           if (event === 'SIGNED_IN' && result.success && result.shouldRedirect && result.redirectPath) {
             const currentPath = window.location.pathname
             
-            // Only redirect if we're coming from an auth page (actual login) or if it's required (agreement/onboarding)
+            // Redirect if we're coming from an auth page, homepage (Discord OAuth), or if it's required (agreement/onboarding)
             const isFromAuthPage = currentPath.startsWith('/auth/')
+            const isFromHomepage = currentPath === '/'
             const isRequiredRedirect = result.redirectPath === '/agreement-review' || result.redirectPath === '/onboarding'
             
-            if (isFromAuthPage || isRequiredRedirect) {
+            if (isFromAuthPage || isFromHomepage || isRequiredRedirect) {
               // Don't redirect if already on the target page
               if (currentPath !== result.redirectPath) {
                 console.log('🎬 Sign in detected, preparing for redirect to:', result.redirectPath)
@@ -95,7 +96,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
                 // Store redirect information for instant redirect when auth completes
                 pendingRedirect.current = {
                   redirectPath: result.redirectPath,
-                  isFromAuthPage,
+                  isFromAuthPage: isFromAuthPage || isFromHomepage,
                   isRequiredRedirect
                 }
                 
