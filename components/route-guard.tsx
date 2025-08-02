@@ -12,7 +12,8 @@ interface RouteGuardProps {
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
   '/',
-  '/auth/confirm'
+  '/auth/confirm',
+  '/debug'
 ]
 
 // API routes and static assets

@@ -11,7 +11,8 @@ interface RouteGuardV2Props {
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
   '/',
-  '/auth/confirm'
+  '/auth/confirm',
+  '/debug'
 ]
 
 // API routes and static assets
@@ -271,6 +272,12 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
     // If not authenticated, redirect to login
     if (!authState.isAuthenticated || !authState.user) {
       console.log('🔒 Route guard: Not authenticated, redirecting to login')
+      
+      // Don't redirect if auth is still loading (might be processing OAuth)
+      if (authState.isLoading) {
+        console.log('⏳ Auth is loading, waiting for completion...')
+        return
+      }
       
       // Store intended route
       if (pathname !== '/' && typeof window !== 'undefined') {
