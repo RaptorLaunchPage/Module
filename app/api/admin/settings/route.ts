@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 // GET /api/admin/settings - Get system settings
 export async function GET(request: NextRequest) {
   try {
-    const user = await getUser(request)
+    const { user } = await getUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/settings - Update system settings
 export async function POST(request: NextRequest) {
   try {
-    const user = await getUser(request)
+    const { user } = await getUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

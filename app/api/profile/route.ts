@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserWithProfile } from '@/lib/auth-utils'
+import { getUser } from '@/lib/auth-utils'
 import { supabase } from '@/lib/supabase'
 import { canViewProfile, canEditProfile } from '@/lib/profile-utils'
 
 // GET /api/profile - Get current user's profile or specific user profile
 export async function GET(request: NextRequest) {
   try {
-    const { user, profile } = await getUserWithProfile(request)
+    const { user, profile } = await getUser(request)
     
     if (!user || !profile) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 // PUT /api/profile - Update profile
 export async function PUT(request: NextRequest) {
   try {
-    const { user, profile } = await getUserWithProfile(request)
+    const { user, profile } = await getUser(request)
     
     if (!user || !profile) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

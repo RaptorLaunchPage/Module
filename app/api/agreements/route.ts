@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 // GET /api/agreements - Get user's agreement status
 export async function GET(request: NextRequest) {
   try {
-    const user = await getUser(request)
+    const { user } = await getUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 // POST /api/agreements - Accept agreement
 export async function POST(request: NextRequest) {
   try {
-    const user = await getUser(request)
+    const { user } = await getUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

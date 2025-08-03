@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import authFlowV2, { AuthState, AuthFlowResult } from '@/lib/auth-flow-v2'
 import { useSession } from '@/hooks/use-session'
 import { useToast } from '@/hooks/use-toast'
-import { useSafeRedirect } from '@/lib/auth-utils'
+import { useSafeRedirect } from '@/lib/client-utils'
 import { IdleTimer } from '@/components/session/idle-timer'
 import { TokenRefresher } from '@/components/session/token-refresher'
 

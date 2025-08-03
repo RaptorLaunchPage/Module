@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { AdvancedLoading, LoadingStep } from '@/components/ui/advanced-loading'
-import { useSafeRedirect } from '@/lib/auth-utils'
+import { useSafeRedirect } from '@/lib/client-utils'
 
 interface RouteGuardV2Props {
   children: React.ReactNode
