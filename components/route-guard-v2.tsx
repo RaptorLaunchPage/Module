@@ -289,11 +289,9 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
             authLoading: authState?.isLoading,
             pathname
           })
-          // Force redirect to dashboard if we have auth data
-          if (authState?.isAuthenticated && authState?.profile) {
-            console.log('🚀 Forcing redirect to dashboard after timeout')
-            router.push('/dashboard')
-          }
+          // Don't force redirect - let the auth flow handle it
+          // Just clear the loading state to prevent infinite loading
+          console.log('🚀 Clearing loading state after timeout - auth flow will handle redirect')
           setIsLoading(false)
         }}
       />

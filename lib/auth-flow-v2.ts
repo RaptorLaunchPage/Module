@@ -381,6 +381,9 @@ class AuthFlowV2Manager {
       console.log('🔐 Processing Supabase session...')
       
       const user = session.user
+      const provider = user.app_metadata?.provider || 'email'
+      
+      console.log(`🔐 Processing ${provider} session for user:`, user.email)
       
       // Load user profile
       const profile = await this.loadUserProfileFast(user)
@@ -415,6 +418,7 @@ class AuthFlowV2Manager {
       // Store session
       SessionStorage.setSession(sessionData)
 
+      console.log(`✅ ${provider} session processed successfully, redirecting to dashboard`)
       return await this.setAuthenticatedState(sessionData, profile, true) // Redirect on login
 
     } catch (error: any) {

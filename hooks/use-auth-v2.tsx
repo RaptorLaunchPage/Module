@@ -124,6 +124,17 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
               pendingRedirect.current = null
             }
           }, 500)
+        } else {
+          // Check if we're on homepage but should be on dashboard
+          const currentPath = window.location.pathname
+          if (currentPath === '/' && newState.isAuthenticated && newState.profile) {
+            console.log('🏠 User authenticated on homepage, redirecting to dashboard')
+            setTimeout(() => {
+              if (mounted.current) {
+                safeRedirect('/dashboard', { delay: 500 })
+              }
+            }, 500)
+          }
         }
       }
       
@@ -214,9 +225,9 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
             
             initTimeout = setTimeout(() => {
               if (mounted.current) {
-                router.push(result.redirectPath!)
+                safeRedirect(result.redirectPath!, { delay: 1000 })
               }
-            }, 200)
+            }, 1000)
           }
         }
       } catch (error: any) {
