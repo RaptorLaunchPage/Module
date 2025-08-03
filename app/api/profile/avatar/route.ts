@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserWithProfile } from '@/lib/auth-utils'
+import { getUser } from '@/lib/auth-utils'
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
 
@@ -23,7 +23,7 @@ function getSupabaseAdmin() {
 // POST /api/profile/avatar - Upload avatar image
 export async function POST(request: NextRequest) {
   try {
-    const { user, profile } = await getUserWithProfile(request)
+    const { user, profile } = await getUser(request)
     
     if (!user || !profile) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
 // DELETE /api/profile/avatar - Remove avatar
 export async function DELETE(request: NextRequest) {
   try {
-    const { user, profile } = await getUserWithProfile(request)
+    const { user, profile } = await getUser(request)
     
     if (!user || !profile) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

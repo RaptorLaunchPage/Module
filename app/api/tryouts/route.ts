@@ -4,7 +4,7 @@ import { getUser } from '@/lib/auth-utils'
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getUser(request)
+    const { user } = await getUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getUser(request)
+    const { user } = await getUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import authFlowV2, { AuthState, AuthFlowResult } from '@/lib/auth-flow-v2'
 import { useSession } from '@/hooks/use-session'
 import { useToast } from '@/hooks/use-toast'
+import { useSafeRedirect } from '@/lib/client-utils'
 import { IdleTimer } from '@/components/session/idle-timer'
 import { TokenRefresher } from '@/components/session/token-refresher'
 
@@ -39,6 +40,7 @@ const getSiteUrl = () => {
 export function AuthProviderV2({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { toast } = useToast()
+  const { safeRedirect } = useSafeRedirect()
   const session = useSession()
   
   // Auth flow state
@@ -48,6 +50,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
   const pendingRedirect = useRef<{ redirectPath: string; isFromAuthPage: boolean; isRequiredRedirect: boolean } | null>(null)
   const mounted = useRef(true)
   const redirectTimeout = useRef<NodeJS.Timeout | null>(null)
+  const redirectInProgress = useRef(false) // Add this to prevent multiple redirects
   
   // Track Supabase auth events
   useEffect(() => {
@@ -69,6 +72,8 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
             clearTimeout(redirectTimeout.current)
             redirectTimeout.current = null
           }
+          redirectInProgress.current = false
+          pendingRedirect.current = null
           
           // Clear all auth state immediately
           await authFlowV2.signOut()
@@ -105,7 +110,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
                 // If authentication is already complete (profile loaded), redirect immediately
                 if (authState.isAuthenticated && !authState.isLoading && authState.profile) {
                   console.log('⚡ Profile already ready, redirecting immediately to:', result.redirectPath)
-                  router.push(result.redirectPath)
+                  safeRedirect(result.redirectPath)
                   pendingRedirect.current = null
                 } else {
                   console.log('⏳ Waiting for profile to load before redirect...')
@@ -115,10 +120,10 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
                   redirectTimeout.current = setTimeout(() => {
                     if (mounted.current && pendingRedirect.current) {
                       console.log('⚠️ Fallback timeout triggered, redirecting to:', pendingRedirect.current.redirectPath)
-                      router.push(pendingRedirect.current.redirectPath)
+                      safeRedirect(pendingRedirect.current.redirectPath)
                       pendingRedirect.current = null
                     }
-                  }, 2000) // Increased to 2 seconds to allow for login animation
+                  }, 3000) // Increased to 3 seconds to allow for login animation
                 }
               } else {
                 console.log('🔄 Already on target page, skipping redirect')
@@ -145,6 +150,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       if (redirectTimeout.current) {
         clearTimeout(redirectTimeout.current)
       }
+      redirectInProgress.current = false
       subscription.unsubscribe()
     }
   }, [router, toast])
@@ -163,7 +169,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
     if (!mounted.current) return
 
     // Check if we should trigger an instant redirect after authentication completes
-    if (authState.isAuthenticated && !authState.isLoading && authState.profile && pendingRedirect.current) {
+    if (authState.isAuthenticated && !authState.isLoading && authState.profile && pendingRedirect.current && !redirectInProgress.current) {
       const { redirectPath, isFromAuthPage, isRequiredRedirect } = pendingRedirect.current
       const currentPath = window.location.pathname
 
@@ -181,7 +187,9 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         
         // Small delay to coordinate with login animation
         setTimeout(() => {
-          router.push(redirectPath)
+          if (mounted.current) {
+            safeRedirect(redirectPath)
+          }
         }, 1600) // Slightly after login animation completes
       } else {
         console.log('🔄 Already on target page, skipping redirect')

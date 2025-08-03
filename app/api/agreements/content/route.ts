@@ -53,7 +53,7 @@ By accepting this agreement, you acknowledge that you have read, understood, and
 // GET /api/agreements/content?role=player - Get agreement content for a role
 export async function GET(request: NextRequest) {
   try {
-    const user = await getUser(request)
+    const { user } = await getUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

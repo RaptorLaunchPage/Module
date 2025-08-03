@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
 import { supabase } from "@/lib/supabase"
+import { useSafeRedirect } from '@/lib/client-utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +30,7 @@ export default function OnboardingPage() {
   const { profile, isLoading: authLoading, refreshProfile } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
+  const { safeRedirect } = useSafeRedirect()
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState<OnboardingForm>({
@@ -40,17 +42,29 @@ export default function OnboardingPage() {
     favoriteGames: "",
     bio: ""
   })
+  
+  // Add refs to prevent multiple redirects
+  const mounted = useRef(true)
 
   useEffect(() => {
     // Redirect if user is already onboarded or not authenticated
     if (!authLoading && profile) {
       if (profile.role !== "pending_player") {
-        router.push("/dashboard")
+        console.log('🔄 User already onboarded, redirecting to dashboard')
+        safeRedirect("/dashboard")
       }
     } else if (!authLoading && !profile) {
-      router.push("/auth/login")
+      console.log('🔄 No profile found, redirecting to login')
+      safeRedirect("/auth/login")
     }
-  }, [profile, authLoading, router])
+  }, [profile, authLoading, safeRedirect])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mounted.current = false
+    }
+  }, [])
 
   // Show loading while checking auth
   if (authLoading || !profile) {
@@ -86,6 +100,11 @@ export default function OnboardingPage() {
         description: "Please complete all required fields.",
         variant: "destructive"
       })
+      return
+    }
+
+    // Prevent multiple submissions
+    if (loading) {
       return
     }
 
@@ -126,8 +145,10 @@ export default function OnboardingPage() {
 
       // Redirect to dashboard after a brief delay
       setTimeout(() => {
-        router.push('/dashboard')
-      }, 500)
+        if (mounted.current) {
+          safeRedirect('/dashboard', { delay: 1000 })
+        }
+      }, 1000) // Increased delay to ensure state updates are complete
 
     } catch (error: any) {
       console.error('Onboarding error:', error)

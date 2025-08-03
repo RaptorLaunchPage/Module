@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 // GET /api/admin/agreements - Get all agreement content for editing
 export async function GET(request: NextRequest) {
   try {
-    const user = await getUser(request)
+    const { user } = await getUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/agreements - Update agreement content
 export async function POST(request: NextRequest) {
   try {
-    const user = await getUser(request)
+    const { user } = await getUser(request)
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

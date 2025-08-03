@@ -44,6 +44,7 @@ class AuthFlowV2Manager {
   private listeners: Set<(state: AuthState) => void> = new Set()
   private profileCache: Map<string, any> = new Map()
   private initPromise: Promise<AuthFlowResult> | null = null
+  private stateUpdateTimeout: NodeJS.Timeout | null = null // Add debounce timeout
 
   static getInstance(): AuthFlowV2Manager {
     if (!AuthFlowV2Manager.instance) {
@@ -65,10 +66,18 @@ class AuthFlowV2Manager {
     return { ...this.state }
   }
 
-  // Update state and notify listeners
+  // Update state and notify listeners with debouncing
   private setState(updates: Partial<AuthState>) {
-    this.state = { ...this.state, ...updates }
-    this.listeners.forEach(listener => listener(this.state))
+    // Clear any existing timeout
+    if (this.stateUpdateTimeout) {
+      clearTimeout(this.stateUpdateTimeout)
+    }
+    
+    // Debounce state updates to prevent rapid changes
+    this.stateUpdateTimeout = setTimeout(() => {
+      this.state = { ...this.state, ...updates }
+      this.listeners.forEach(listener => listener(this.state))
+    }, 50) // 50ms debounce
   }
 
   // Initialize authentication - always fast and reliable
@@ -483,6 +492,12 @@ class AuthFlowV2Manager {
   async signOut(): Promise<void> {
     try {
       console.log('🚪 Signing out user...')
+
+      // Clear any pending state updates
+      if (this.stateUpdateTimeout) {
+        clearTimeout(this.stateUpdateTimeout)
+        this.stateUpdateTimeout = null
+      }
 
       // Clear local state first to prevent any race conditions
       SessionStorage.clearSession()

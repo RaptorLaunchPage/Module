@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUserWithProfile } from '@/lib/auth-utils'
+import { getUser } from '@/lib/auth-utils'
 import { supabase } from '@/lib/supabase'
 
 // GET /api/profile/search - Search profiles for admin/manager
 export async function GET(request: NextRequest) {
   try {
-    const { user, profile } = await getUserWithProfile(request)
+    const { user, profile } = await getUser(request)
     
     if (!user || !profile) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
