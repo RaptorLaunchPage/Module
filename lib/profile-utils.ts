@@ -3,6 +3,27 @@ import { Database } from '@/lib/supabase'
 export type UserProfile = Database['public']['Tables']['users']['Row']
 export type UserProfileUpdate = Database['public']['Tables']['users']['Update']
 
+// A helper type to convert all nullable fields to be optional (undefined)
+type NullAsUndefined<T> = {
+  [P in keyof T]: null extends T[P] ? T[P] | undefined : T[P];
+};
+
+// This type is for use in components that may not handle null values gracefully
+export type ComponentUserProfile = NullAsUndefined<UserProfile>;
+
+export function transformProfileForClient(profile: UserProfile): ComponentUserProfile {
+  const transformed = {} as ComponentUserProfile;
+  for (const key in profile) {
+    const typedKey = key as keyof UserProfile;
+    if (profile[typedKey] === null) {
+      transformed[typedKey as keyof ComponentUserProfile] = undefined as any;
+    } else {
+      transformed[typedKey as keyof ComponentUserProfile] = profile[typedKey] as any;
+    }
+  }
+  return transformed;
+}
+
 // BGMI Tier Rankings (ordered by skill level)
 export const BGMI_TIERS = [
   'Bronze',
@@ -140,9 +161,9 @@ export function canViewProfile(
 // Check if user can edit a profile
 export function canEditProfile(
   editorRole: UserRole,
-  editorTeamId: string | null,
+  editorTeamId: string | null | undefined,
   targetUserId: string,
-  targetTeamId: string | null,
+  targetTeamId: string | null | undefined,
   editorUserId: string
 ): boolean {
   const permissions = PROFILE_PERMISSIONS[editorRole]
@@ -243,7 +264,7 @@ export function formatBGMITier(tier: BGMITier | null): string {
 }
 
 // Calculate profile completion percentage
-export function calculateProfileCompletion(profile: UserProfile): number {
+export function calculateProfileCompletion(profile: UserProfile | ComponentUserProfile): number {
   const requiredFields = [
     'full_name',
     'display_name', 
@@ -275,14 +296,14 @@ export function calculateProfileCompletion(profile: UserProfile): number {
   
   // Check required fields (weighted more heavily)
   requiredFields.forEach(field => {
-    if (profile[field as keyof UserProfile]) {
+    if (profile[field as keyof (UserProfile | ComponentUserProfile)]) {
       completed += 2 // Required fields count double
     }
   })
   
   // Check optional fields
   optionalFields.forEach(field => {
-    if (profile[field as keyof UserProfile]) {
+    if (profile[field as keyof (UserProfile | ComponentUserProfile)]) {
       completed += 1
     }
   })
@@ -294,7 +315,7 @@ export function calculateProfileCompletion(profile: UserProfile): number {
 }
 
 // Get profile status based on completion and role
-export function getProfileStatus(profile: UserProfile): {
+export function getProfileStatus(profile: UserProfile | ComponentUserProfile): {
   status: 'complete' | 'incomplete' | 'pending' | 'needs_attention'
   message: string
   color: 'green' | 'yellow' | 'red' | 'blue'

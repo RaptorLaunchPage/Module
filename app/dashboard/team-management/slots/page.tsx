@@ -74,7 +74,7 @@ export default function SlotsPage() {
       let query = supabase.from("teams").select("*").order("name")
 
       // Filter teams based on role permissions
-      if (!shouldSeeAllData) {
+      if (!shouldSeeAllData && profile) {
         if (userRole === "coach") {
           query = query.eq("coach_id", profile.id)
         } else if (userRole === "player") {
@@ -111,7 +111,7 @@ export default function SlotsPage() {
       let query = supabase.from("slots").select("*, team:team_id(name, tier)").order("date", { ascending: false })
 
       // Filter slots based on role permissions  
-      if (!shouldSeeAllData) {
+      if (!shouldSeeAllData && profile) {
         if (userRole === "coach" || userRole === "player") {
           query = query.eq("team_id", profile.team_id!)
         }

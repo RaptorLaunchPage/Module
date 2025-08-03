@@ -22,30 +22,7 @@ import {
   CheckCircle
 } from 'lucide-react'
 
-interface UserProfile {
-  id: string
-  full_name?: string
-  display_name?: string
-  bio?: string
-  contact_number?: string
-  emergency_contact_name?: string
-  emergency_contact_number?: string
-  date_of_birth?: string
-  address?: string
-  instagram_handle?: string
-  discord_id?: string
-  profile_visibility?: 'public' | 'team' | 'private'
-  device_info?: string
-  device_model?: string
-  ram?: string
-  fps?: string
-  storage?: string
-  gyroscope_enabled?: boolean
-  bgmi_tier?: string
-  favorite_weapons?: string[]
-  gaming_achievements?: string[]
-  [key: string]: any
-}
+import { ComponentUserProfile as UserProfile } from "@/lib/profile-utils";
 
 interface ProfileSectionProps {
   profile: UserProfile

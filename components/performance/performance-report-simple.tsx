@@ -250,7 +250,7 @@ export function PerformanceReportSimple() {
                   <div className="text-center py-8">
                     <div className="text-muted-foreground">No performance data found</div>
                     <div className="text-sm text-muted-foreground mt-2">
-                      {profile.role === 'player' 
+                      {profile && profile.role === 'player'
                         ? 'Submit your first performance to see data here' 
                         : 'Performances will appear here as they are submitted'
                       }

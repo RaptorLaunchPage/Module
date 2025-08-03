@@ -34,7 +34,7 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
 
   // Move useEffect before conditional returns
   useEffect(() => {
-    if (!profile?.team_id) return
+    if (!profile || !profile.team_id) return
     const fetchTeamAndSlots = async () => {
       setSlotsLoading(true)
       setTeam(null)
@@ -48,7 +48,7 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
       setSlotsLoading(false)
     }
     fetchTeamAndSlots()
-  }, [profile.team_id])
+  }, [profile])
 
   // Defensive: Only allow players with valid profile
   if (!profile || profile.role !== "player") return null

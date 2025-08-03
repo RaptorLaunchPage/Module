@@ -9,7 +9,7 @@ import { ProfileHeader } from "@/components/profile/profile-header"
 import { BGMIGamingSection } from "@/components/profile/bgmi-gaming-section"
 import { ProfileSearch } from "@/components/profile/profile-search"
 import { PersonalInformationSection, GamingInformationSection, DeviceInformationSection } from "@/components/profile/profile-sections"
-import { UserProfile, canViewProfile, canEditProfile } from "@/lib/profile-utils"
+import { UserProfile, ComponentUserProfile, transformProfileForClient, canViewProfile, canEditProfile } from "@/lib/profile-utils"
 import { useToast } from "@/hooks/use-toast"
 import { 
   User, 
@@ -36,19 +36,10 @@ export default function ProfilePage() {
   // Profile to display - either target user or current user
   const displayProfile = targetProfile || currentProfile
   
-  // Transform null values to undefined for compatibility with component props
-  const transformedProfile = displayProfile ? {
-    ...displayProfile,
-    full_name: displayProfile.full_name ?? undefined,
-    contact_number: displayProfile.contact_number ?? undefined,
-    emergency_contact_name: displayProfile.emergency_contact_name ?? undefined,
-    emergency_contact_number: displayProfile.emergency_contact_number ?? undefined,
-    date_of_birth: displayProfile.date_of_birth ?? undefined,
-    address: displayProfile.address ?? undefined,
-    preferred_language: displayProfile.preferred_language ?? undefined,
-    timezone: displayProfile.timezone ?? undefined,
-  } as const : null
-  const isOwnProfile = !targetUserId || targetUserId === currentProfile?.id
+  const transformedProfile: ComponentUserProfile | null = displayProfile ? transformProfileForClient(displayProfile) : null;
+  const transformedCurrentProfile: ComponentUserProfile | null = currentProfile ? transformProfileForClient(currentProfile) : null;
+
+  const isOwnProfile = !targetUserId || targetUserId === currentProfile?.id;
 
   // Permissions
   const canView = displayProfile && currentProfile ? canViewProfile(
@@ -58,14 +49,14 @@ export default function ProfilePage() {
     displayProfile.team_id,
     displayProfile.profile_visibility as any,
     currentProfile.id
-  ) : false
+  ) : false;
   const canEdit = displayProfile && currentProfile ? canEditProfile(
     currentProfile.role as any,
     currentProfile.team_id,
     displayProfile.id,
     displayProfile.team_id,
     currentProfile.id
-  ) : false
+  ) : false;
   const canSearchAll = ['admin', 'manager'].includes(currentProfile?.role || '')
 
   // Load target profile if specified
@@ -206,7 +197,7 @@ export default function ProfilePage() {
     )
   }
 
-  if (!transformedProfile || !canView) {
+  if (!transformedProfile || !transformedCurrentProfile || !canView) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert className="bg-yellow-900/40 backdrop-blur-lg border border-yellow-400/60 shadow-xl text-white rounded-lg">
@@ -224,7 +215,7 @@ export default function ProfilePage() {
       {/* Profile Header */}
       <ProfileHeader 
         profile={transformedProfile} 
-        viewerProfile={currentProfile}
+        viewerProfile={transformedCurrentProfile}
         onEdit={() => setActiveTab('personal')}
         isEditing={false}
         showAvatarUpload={isOwnProfile && canEdit}

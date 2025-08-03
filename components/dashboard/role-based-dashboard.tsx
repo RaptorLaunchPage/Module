@@ -340,7 +340,8 @@ const QUICK_ACTIONS: Record<UserRole, Array<{
       icon: Users,
       description: 'Finish profile setup'
     }
-  ]
+  ],
+  tryout: []
 }
 
 export function RoleBasedDashboard({ userRole, profile, stats }: RoleDashboardProps) {

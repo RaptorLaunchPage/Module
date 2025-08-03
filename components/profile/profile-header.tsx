@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { AvatarUpload } from '@/components/profile/avatar-upload'
 import { 
-  UserProfile, 
+  ComponentUserProfile as UserProfile,
   formatBGMITier, 
   calculateProfileCompletion, 
   getProfileStatus,
@@ -52,7 +52,7 @@ export function ProfileHeader({ profile, viewerProfile, onEdit, isEditing, showA
   
   const isOwnProfile = viewerProfile.id === profile.id
   
-  const getInitials = (name: string | null) => {
+  const getInitials = (name: string | null | undefined) => {
     if (!name) return '??'
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
@@ -79,7 +79,7 @@ export function ProfileHeader({ profile, viewerProfile, onEdit, isEditing, showA
     }
   }
   
-  const getVisibilityIcon = (visibility: string | null) => {
+  const getVisibilityIcon = (visibility: string | null | undefined) => {
     switch (visibility) {
       case 'public': return <Globe className="h-4 w-4" />
       case 'team': return <Users className="h-4 w-4" />
