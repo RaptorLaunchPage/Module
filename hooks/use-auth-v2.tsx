@@ -302,7 +302,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         password,
         options: {
           data: { name },
-          emailRedirectTo: `${getSiteUrl()}/auth/confirm`
+          emailRedirectTo: `${getSiteUrl()}/dashboard`
         }
       })
 
@@ -386,7 +386,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: `${getSiteUrl()}/auth/confirm`
+          redirectTo: `${getSiteUrl()}/dashboard`
         }
       })
 
