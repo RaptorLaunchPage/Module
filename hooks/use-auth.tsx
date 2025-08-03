@@ -245,7 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: `${getSiteUrl()}/auth/confirm`
+          redirectTo: `${getSiteUrl()}/auth/callback`
         }
       })
 

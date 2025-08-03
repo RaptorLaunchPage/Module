@@ -31,11 +31,11 @@ export async function GET(request: NextRequest) {
       if (data.user && data.session) {
         console.log('✅ Session established for user:', data.user.email)
         
-        // Create or update user profile
-        await createOrUpdateUserProfile(supabase, data.user, data.session)
+        // Create or update user profile and get it
+        const profile = await createOrUpdateUserProfile(supabase, data.user, data.session)
         
-        // Determine redirect destination
-        const redirectTo = determineRedirectPath(data.user)
+        // Determine redirect destination based on profile
+        const redirectTo = determineRedirectPath(profile)
         console.log('🎯 Redirecting to:', redirectTo)
         
         return NextResponse.redirect(`${requestUrl.origin}${redirectTo}`)
@@ -51,26 +51,23 @@ export async function GET(request: NextRequest) {
   return NextResponse.redirect(`${requestUrl.origin}/auth/login`)
 }
 
-async function createOrUpdateUserProfile(supabase: any, user: any, session: any) {
+async function createOrUpdateUserProfile(supabase: any, user: any, session: any): Promise<any> {
   try {
-    console.log('🔄 Creating/updating user profile for:', user.email)
-    
-    // Check if user profile exists
+    console.log('🔄 Creating/updating user profile for:', user.email);
+
     const { data: existingUser, error: fetchError } = await supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
-      .single()
+      .single();
 
     if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error('❌ Error checking existing user:', fetchError)
-      return
+      console.error('❌ Error checking existing user:', fetchError);
+      throw new Error('Failed to check for existing user.');
     }
 
     if (!existingUser) {
-      console.log('📝 Creating new user profile...')
-      
-      // Extract user data from different providers
+      console.log('📝 Creating new user profile...');
       const userData = {
         id: user.id,
         email: user.email,
@@ -78,56 +75,62 @@ async function createOrUpdateUserProfile(supabase: any, user: any, session: any)
         avatar_url: user.user_metadata?.avatar_url || null,
         provider: user.app_metadata?.provider || 'email',
         discord_id: user.app_metadata?.provider === 'discord' ? user.user_metadata?.provider_id : null,
-        role: 'pending_player',
+        role: 'pending_player', // New users start with a pending role
         created_at: new Date().toISOString(),
         last_login: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      }
+      };
 
-      const { error: insertError } = await supabase
+      const { data: newUser, error: insertError } = await supabase
         .from('users')
-        .insert([userData])
+        .insert(userData)
+        .select()
+        .single();
 
       if (insertError) {
-        console.error('❌ Error creating user profile:', insertError)
-      } else {
-        console.log('✅ User profile created successfully')
+        console.error('❌ Error creating user profile:', insertError);
+        throw new Error('Failed to create user profile.');
       }
-    } else {
-      console.log('🔄 Updating existing user login time...')
       
-      // Update last login and any missing fields
+      console.log('✅ User profile created successfully');
+      return newUser;
+    } else {
+      console.log('🔄 Updating existing user login time...');
       const updateData: any = {
         last_login: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      }
+      };
 
-      // Update avatar if missing and available
       if (!existingUser.avatar_url && user.user_metadata?.avatar_url) {
-        updateData.avatar_url = user.user_metadata.avatar_url
+        updateData.avatar_url = user.user_metadata.avatar_url;
       }
-
-      // Update name if missing and available
       if (!existingUser.name) {
-        const extractedName = extractUserName(user)
+        const extractedName = extractUserName(user);
         if (extractedName) {
-          updateData.name = extractedName
+          updateData.name = extractedName;
         }
       }
 
-      const { error: updateError } = await supabase
+      const { data: updatedUser, error: updateError } = await supabase
         .from('users')
         .update(updateData)
         .eq('id', user.id)
+        .select()
+        .single();
 
       if (updateError) {
-        console.error('❌ Error updating user profile:', updateError)
+        console.error('❌ Error updating user profile:', updateError);
+        // Continue with existing user data even if update fails
       } else {
-        console.log('✅ User profile updated successfully')
+        console.log('✅ User profile updated successfully');
+        return updatedUser;
       }
+      return existingUser;
     }
-  } catch (error: any) {
-    console.error('❌ Profile creation/update error:', error)
+  } catch (error) {
+    console.error('❌ Profile creation/update error:', error);
+    // Re-throw the error to be caught by the main handler
+    throw error;
   }
 }
 
@@ -142,12 +145,20 @@ function extractUserName(user: any): string | null {
   )
 }
 
-function determineRedirectPath(user: any): string {
-  // Default redirect path
-  let redirectPath = '/dashboard'
-  
-  // Check if user needs onboarding (you can customize this logic)
-  // For now, redirect all new users to dashboard
-  
-  return redirectPath
+function determineRedirectPath(profile: any): string {
+  // If there's no profile, something went wrong. Redirect to login.
+  if (!profile) {
+    return '/auth/login?error=profile_not_found';
+  }
+
+  // New users who need to complete onboarding
+  // We can identify new users by the default 'pending_player' role.
+  if (profile.role === 'pending_player') {
+    console.log('👤 New user detected, redirecting to onboarding.');
+    return '/onboarding';
+  }
+
+  // Returning users are sent to their dashboard
+  console.log(`✅ Returning user (${profile.role}) detected, redirecting to dashboard.`);
+  return '/dashboard';
 }
