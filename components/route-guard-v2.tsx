@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { AdvancedLoading, LoadingStep } from '@/components/ui/advanced-loading'
+import { useSafeRedirect } from '@/lib/auth-utils'
 
 interface RouteGuardV2Props {
   children: React.ReactNode
@@ -37,6 +38,7 @@ const isPublicRoute = (pathname: string): boolean => {
 export function RouteGuardV2({ children }: RouteGuardV2Props) {
   const router = useRouter()
   const pathname = usePathname()
+  const { safeRedirect } = useSafeRedirect()
   const [authState, setAuthState] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [loadingStep, setLoadingStep] = useState<LoadingStep>('connecting')
@@ -198,61 +200,17 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
       return // Still loading, don't make route decisions yet
     }
 
-    // Allow public routes immediately
-    if (isPublicRoute(pathname)) {
-      setIsLoading(false)
+    // Don't interfere with auth flow redirects - let the auth hook handle them
+    // Only handle basic route protection for unauthenticated users
+    if (!authState.isAuthenticated && !isPublicRoute(pathname)) {
+      console.log('🚫 Route guard: Unauthenticated user accessing protected route, redirecting to login')
+      safeRedirect('/auth/login')
       return
     }
 
-    // If not authenticated, redirect to login
-    if (!authState.isAuthenticated || !authState.user) {
-      console.log('🔒 Route guard: Not authenticated, redirecting to login')
-      
-      // Store intended route
-      if (pathname !== '/auth/login' && typeof window !== 'undefined') {
-        localStorage.setItem('raptor-intended-route', pathname)
-      }
-      
-      // Add slight delay to prevent jarring transitions
-      setTimeout(() => {
-        router.push('/auth/login')
-      }, 100)
-      return
-    }
-
-    // Check agreement requirements
-    if (authState.agreementStatus?.requiresAgreement && pathname !== '/agreement-review') {
-      console.log('📋 Route guard: Agreement required, redirecting to review')
-      setTimeout(() => {
-        router.push('/agreement-review')
-      }, 100)
-      return
-    }
-
-    // Check onboarding requirements for pending players
-    if (authState.profile?.role === 'pending_player' && 
-        !authState.profile?.onboarding_completed && 
-        pathname !== '/onboarding') {
-      console.log('🎯 Route guard: Onboarding required, redirecting to onboarding')
-      setTimeout(() => {
-        router.push('/onboarding')
-      }, 100)
-      return
-    }
-
-    // All checks passed and auth is complete - clear loading
-    console.log('✅ Route guard: All checks passed, access granted')
-    console.log('🔍 Auth state details:', {
-      isAuthenticated: authState.isAuthenticated,
-      hasUser: !!authState.user,
-      hasProfile: !!authState.profile,
-      isLoading: authState.isLoading,
-      routeGuardLoading: isLoading,
-      pathname
-    })
-    setIsLoading(false)
-
-  }, [authState, pathname, router, isLoading])
+    // For authenticated users, let the auth flow handle redirects
+    // Don't make routing decisions here to avoid conflicts
+  }, [authState, isLoading, pathname, safeRedirect])
 
   // Show loading screen while initializing or making route decisions
   if (isLoading || (authState?.isLoading)) {
