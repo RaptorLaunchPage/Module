@@ -12,6 +12,7 @@ interface RouteGuardV2Props {
 const PUBLIC_ROUTES = [
   '/',
   '/auth/confirm',
+  '/auth/callback',
   '/debug'
 ]
 
