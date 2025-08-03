@@ -122,7 +122,6 @@ export default function OnboardingPage() {
           preferred_role: formData.preferredRole,
           favorite_games: formData.favoriteGames,
           bio: formData.bio,
-          role: 'player', // Update role from pending_player to player
           onboarding_completed: true,
           auto_sync_tryout_data: true, // Enable auto-sync by default
           last_profile_update: new Date().toISOString(),
@@ -137,7 +136,7 @@ export default function OnboardingPage() {
 
       toast({
         title: "Profile Complete!",
-        description: "Welcome to Raptor Esports Hub. Redirecting to your dashboard...",
+        description: "Your profile has been submitted. An admin will review and approve your account. You'll be notified when your account is activated.",
       })
 
       // Refresh the auth state to pick up the profile changes

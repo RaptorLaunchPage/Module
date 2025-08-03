@@ -56,8 +56,6 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     console.log('🔗 Setting up Supabase auth listener...')
     
-
-    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, supabaseSession) => {
       if (!mounted.current) return
       
@@ -65,104 +63,78 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       
       try {
         if (event === 'SIGNED_OUT') {
-          console.log('🚪 Supabase signed out - cleaning up completely')
-          
-          // Clear any pending redirects
-          if (redirectTimeout.current) {
-            clearTimeout(redirectTimeout.current)
-            redirectTimeout.current = null
-          }
-          redirectInProgress.current = false
-          pendingRedirect.current = null
-          
-          // Clear all auth state immediately
-          await authFlowV2.signOut()
-          
-          // Don't restart auth flow - stay in signed out state
-          console.log('✅ Sign out complete - staying in signed out state')
+          console.log('🚪 Supabase signed out event')
+          // Don't redirect here - let the signOut function handle it
           return
         }
-
-        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && supabaseSession?.user) {
-          console.log(`✅ Processing Supabase ${event}`)
+        
+        if (event === 'SIGNED_IN' && supabaseSession) {
+          console.log('✅ Supabase signed in event')
+          
+          // Handle the session through auth flow
           const result = await authFlowV2.handleSupabaseSession(supabaseSession)
           
-          // Only redirect on actual sign in from login page, not on app initialization or navigation
-          if (event === 'SIGNED_IN' && result.success && result.shouldRedirect && result.redirectPath) {
-            const currentPath = window.location.pathname
+          if (!mounted.current) return
+          
+          if (result.success && result.shouldRedirect && result.redirectPath) {
+            console.log('🔄 Auth event: Redirecting to:', result.redirectPath)
             
-            // Only redirect if we're coming from an auth page (actual login) or if it's required (agreement/onboarding)
-            const isFromAuthPage = currentPath.startsWith('/auth/')
-            const isRequiredRedirect = result.redirectPath === '/agreement-review' || result.redirectPath === '/onboarding'
-            
-            if (isFromAuthPage || isRequiredRedirect) {
-              // Don't redirect if already on the target page
-              if (currentPath !== result.redirectPath) {
-                console.log('🎬 Sign in detected, preparing for redirect to:', result.redirectPath)
-                
-                // Store redirect information for instant redirect when auth completes
-                pendingRedirect.current = {
-                  redirectPath: result.redirectPath,
-                  isFromAuthPage,
-                  isRequiredRedirect
-                }
-                
-                // If authentication is already complete (profile loaded), redirect immediately
-                if (authState.isAuthenticated && !authState.isLoading && authState.profile) {
-                  console.log('⚡ Profile already ready, redirecting immediately to:', result.redirectPath)
-                  safeRedirect(result.redirectPath)
-                  pendingRedirect.current = null
-                } else {
-                  console.log('⏳ Waiting for profile to load before redirect...')
-                  // The useEffect watching authState will handle the redirect when ready
-                  
-                  // Fallback timeout in case something goes wrong
-                  redirectTimeout.current = setTimeout(() => {
-                    if (mounted.current && pendingRedirect.current) {
-                      console.log('⚠️ Fallback timeout triggered, redirecting to:', pendingRedirect.current.redirectPath)
-                      safeRedirect(pendingRedirect.current.redirectPath)
-                      pendingRedirect.current = null
-                    }
-                  }, 3000) // Increased to 3 seconds to allow for login animation
-                }
-              } else {
-                console.log('🔄 Already on target page, skipping redirect')
-              }
-            } else {
-              console.log('🔄 Sign in detected but not from auth page, skipping redirect')
-            }
-          } else if (event === 'TOKEN_REFRESHED') {
-            console.log('🔄 Token refreshed - maintaining current page')
+            // Use safe redirect to prevent loops
+            safeRedirect(result.redirectPath, { delay: 1000 })
           }
         }
       } catch (error: any) {
-        console.error('❌ Supabase auth event error:', error)
-        toast({
-          title: 'Authentication Error',
-          description: error.message || 'An authentication error occurred',
-          variant: 'destructive'
-        })
+        console.error('❌ Auth event error:', error)
       }
     })
 
     return () => {
-      mounted.current = false
-      if (redirectTimeout.current) {
-        clearTimeout(redirectTimeout.current)
-      }
-      redirectInProgress.current = false
       subscription.unsubscribe()
     }
-  }, [router, toast])
+  }, [safeRedirect])
 
   // Subscribe to auth flow state changes
   useEffect(() => {
+    if (!mounted.current) return
+    
     const unsubscribe = authFlowV2.subscribe((newState) => {
+      if (!mounted.current) return
+      
+      console.log('🔄 Auth hook: State update received:', {
+        isAuthenticated: newState.isAuthenticated,
+        isInitialized: newState.isInitialized,
+        isLoading: newState.isLoading,
+        hasProfile: !!newState.profile,
+        error: newState.error
+      })
+      
       setAuthState(newState)
+      
+      // Handle redirects when auth state changes
+      if (newState.isAuthenticated && !newState.isLoading && newState.profile) {
+        // User is fully authenticated and profile is loaded
+        if (pendingRedirect.current && pendingRedirect.current.redirectPath) {
+          const { redirectPath } = pendingRedirect.current
+          console.log('⚡ Auth complete, redirecting to:', redirectPath)
+          
+          // Small delay to ensure UI updates are complete
+          setTimeout(() => {
+            if (mounted.current) {
+              safeRedirect(redirectPath, { delay: 500 })
+              pendingRedirect.current = null
+            }
+          }, 500)
+        }
+      }
+      
+      // Clear loading state if auth is complete
+      if (!newState.isLoading && newState.isInitialized) {
+        console.log('✅ Auth initialization complete')
+      }
     })
-
+    
     return unsubscribe
-  }, [])
+  }, [safeRedirect])
 
   // Handle instant redirect when authentication is complete
   useEffect(() => {
@@ -278,6 +250,17 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
   // Sign in function
   const signIn = useCallback(async (email: string, password: string): Promise<AuthFlowResult> => {
     try {
+      console.log('🔐 Sign in attempt:', email)
+      
+      // Clear any pending redirects to prevent conflicts
+      if (pendingRedirect.current) {
+        pendingRedirect.current = null
+      }
+      if (redirectTimeout.current) {
+        clearTimeout(redirectTimeout.current)
+        redirectTimeout.current = null
+      }
+      
       const result = await authFlowV2.signIn(email, password)
       
       if (result.success) {
@@ -286,9 +269,9 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           description: 'You have been signed in successfully.'
         })
         
-        // Allow more time for the login animation to complete before redirecting
-        // The auth state listener will handle the actual redirect with proper timing
-        console.log('🔄 Sign in successful, animation sequence will complete before redirect')
+        // Don't redirect immediately - let the auth state listener handle it
+        // This prevents the brief redirect to login page
+        console.log('🔄 Sign in successful, auth state listener will handle redirect')
       } else if (result.error) {
         toast({
           title: 'Sign In Failed',
@@ -307,7 +290,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       })
       return { success: false, shouldRedirect: false, error: errorMessage }
     }
-  }, [router, toast])
+  }, [toast])
 
   // Sign up function
   const signUp = useCallback(async (email: string, password: string, name: string): Promise<{ error: any | null }> => {
@@ -357,6 +340,15 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
     try {
       console.log('🚪 Starting sign out process...')
       
+      // Clear any pending redirects
+      if (pendingRedirect.current) {
+        pendingRedirect.current = null
+      }
+      if (redirectTimeout.current) {
+        clearTimeout(redirectTimeout.current)
+        redirectTimeout.current = null
+      }
+      
       // Clear auth state first to prevent any race conditions
       await authFlowV2.signOut()
       
@@ -365,11 +357,11 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         description: 'You have been signed out successfully.'
       })
       
-      // Small delay to ensure state is properly cleared before navigation
+      // Redirect to homepage (not login page) after a brief delay
       setTimeout(() => {
-        console.log('🏠 Redirecting to home after sign out')
-        router.push('/')
-      }, 100)
+        console.log('🏠 Redirecting to homepage after sign out')
+        safeRedirect('/', { delay: 500 })
+      }, 500)
       
     } catch (error: any) {
       console.error('❌ Sign out error:', error)
@@ -379,12 +371,12 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         variant: 'destructive'
       })
       
-      // Still try to redirect to home even if there was an error
+      // Still try to redirect to homepage even if there was an error
       setTimeout(() => {
-        router.push('/')
-      }, 100)
+        safeRedirect('/', { delay: 500 })
+      }, 500)
     }
-  }, [router, toast])
+  }, [safeRedirect, toast])
 
   // Discord sign in
   const signInWithDiscord = useCallback(async () => {
