@@ -454,8 +454,18 @@ class AuthFlowV2Manager {
   // Sign in
   async signIn(email: string, password: string): Promise<AuthFlowResult> {
     try {
-      console.log('🔐 Signing in user:', email)
-      this.setState({ isLoading: true, error: null })
+      console.log('🔐 Auth flow: Sign in attempt')
+      
+      // Clear any pending state updates
+      if (this.stateUpdateTimeout) {
+        clearTimeout(this.stateUpdateTimeout)
+        this.stateUpdateTimeout = null
+      }
+      
+      this.setState({
+        isLoading: true,
+        error: null
+      })
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -463,21 +473,34 @@ class AuthFlowV2Manager {
       })
 
       if (error) {
-        console.error('❌ Sign in failed:', error.message)
+        console.error('❌ Sign in error:', error)
         this.setState({
           isLoading: false,
-          error: error.message
+          error: error.message || 'Sign in failed'
         })
         return { success: false, shouldRedirect: false, error: error.message }
       }
 
-      if (data.session?.user) {
-        console.log('✅ Sign in successful')
-        return await this.handleSupabaseSession(data.session)
+      if (!data.session) {
+        console.error('❌ No session returned from sign in')
+        this.setState({
+          isLoading: false,
+          error: 'Sign in failed - no session returned'
+        })
+        return { success: false, shouldRedirect: false, error: 'Sign in failed' }
       }
 
-      throw new Error('No session returned from sign in')
-
+      console.log('✅ Sign in successful, processing session...')
+      
+      // Process the session through the auth flow
+      const result = await this.handleSupabaseSession(data.session)
+      
+      // Clear loading state after processing
+      this.setState({
+        isLoading: false
+      })
+      
+      return result
     } catch (error: any) {
       console.error('❌ Sign in error:', error)
       this.setState({

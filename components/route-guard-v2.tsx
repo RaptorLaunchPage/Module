@@ -188,18 +188,6 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
       return
     }
 
-    // Additional fallback - if we have everything needed for dashboard access
-    if (authState.isAuthenticated && authState.user && authState.profile && 
-        !authState.isLoading && isLoading && pathname === '/dashboard') {
-      console.log('🚀 Route guard: Dashboard access ready - clearing loading')
-      setIsLoading(false)
-      return
-    }
-
-    if (authState.isLoading) {
-      return // Still loading, don't make route decisions yet
-    }
-
     // Don't interfere with auth flow redirects - let the auth hook handle them
     // Only handle basic route protection for unauthenticated users
     if (!authState.isAuthenticated && !isPublicRoute(pathname)) {
