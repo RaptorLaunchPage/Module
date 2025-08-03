@@ -46,19 +46,19 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
   // Force completion timeout to prevent infinite loading
   useEffect(() => {
     const forceCompletionTimer = setTimeout(() => {
-      if (isLoading && authState?.isAuthenticated && authState?.profile) {
+      if (isLoading) {
         console.log('⚠️ Force completing authentication - timeout reached')
         console.log('🔍 Timeout force details:', {
-          isAuthenticated: authState.isAuthenticated,
-          hasUser: !!authState.user,
-          hasProfile: !!authState.profile,
-          authLoading: authState.isLoading,
+          isAuthenticated: authState?.isAuthenticated,
+          hasUser: !!authState?.user,
+          hasProfile: !!authState?.profile,
+          authLoading: authState?.isLoading,
           routeGuardLoading: isLoading,
           pathname
         })
         setIsLoading(false)
       }
-    }, 3000) // Increased to 3 seconds for better UX
+    }, 8000) // Increased to 8 seconds for better UX
 
     return () => clearTimeout(forceCompletionTimer)
   }, [isLoading, authState?.isAuthenticated, authState?.profile, pathname])
@@ -74,9 +74,22 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
     }
   }, [isLoading, authState])
 
+  // Emergency fallback - if loading for more than 10 seconds, force completion
+  useEffect(() => {
+    const emergencyTimer = setTimeout(() => {
+      if (isLoading) {
+        console.log('🚨 Emergency fallback: Force completing after 10 seconds')
+        setIsLoading(false)
+      }
+    }, 10000)
+
+    return () => clearTimeout(emergencyTimer)
+  }, [isLoading])
+
   // Initialize auth and handle state changes
   useEffect(() => {
     let mounted = true
+    let initTimeout: NodeJS.Timeout | null = null
 
     const initializeAuth = async () => {
       try {
@@ -125,11 +138,25 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
           return unsubscribe
         }
 
+        // Set a timeout for the initialization
+        initTimeout = setTimeout(() => {
+          if (mounted && isLoading) {
+            console.log('⚠️ Auth initialization timeout - forcing completion')
+            setIsLoading(false)
+          }
+        }, 5000) // 5 second timeout
+
         // Initialize auth flow - this should be the primary initialization point
         console.log('🚀 Route guard: Performing fresh auth initialization...')
         const result = await authFlowV2.initialize(true) // This is the main initialization
         
         if (!mounted) return
+
+        // Clear the timeout since we got a result
+        if (initTimeout) {
+          clearTimeout(initTimeout)
+          initTimeout = null
+        }
 
         // Route guard focuses on protection, not redirection
         // Let the auth flow handle its own redirects through events
@@ -142,6 +169,11 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
         console.error('❌ Route guard initialization error:', error)
         if (mounted) {
           setIsLoading(false)
+        }
+        // Clear timeout on error
+        if (initTimeout) {
+          clearTimeout(initTimeout)
+          initTimeout = null
         }
       }
     }
@@ -158,8 +190,11 @@ export function RouteGuardV2({ children }: RouteGuardV2Props) {
 
     return () => {
       mounted = false
+      if (initTimeout) {
+        clearTimeout(initTimeout)
+      }
     }
-  }, [pathname]) // Only depend on pathname changes
+  }, [isLoading, pathname])
 
   // Handle route protection logic
   useEffect(() => {

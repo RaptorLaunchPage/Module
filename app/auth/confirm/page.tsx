@@ -24,17 +24,25 @@ function AuthConfirmContent() {
   useEffect(() => {
     // If user is already authenticated (OAuth or email), redirect via route guard
     if (user && profile && !isLoading) {
-      // Let the route guard handle redirect to prevent conflicts
+      console.log('✅ User already authenticated, letting route guard handle redirect')
       return
     }
 
-    // Otherwise, handle email confirmation as before
+    // Check if this is an OAuth flow (no token_hash parameter)
+    const tokenHash = searchParams.get('token_hash')
+    const type = searchParams.get('type')
+    const isOAuthFlow = !tokenHash && !type
+
+    if (isOAuthFlow) {
+      console.log('🔐 OAuth flow detected, waiting for auth state to complete...')
+      // For OAuth flows, we just wait for the auth state to be processed
+      // The auth flow will handle the redirect automatically
+      return
+    }
+
+    // Handle email confirmation flow
     const handleAuthConfirmation = async () => {
       try {
-        // Get the token hash from URL
-        const tokenHash = searchParams.get('token_hash')
-        const type = searchParams.get('type')
-        
         if (!tokenHash || type !== 'signup') {
           throw new Error('Invalid confirmation link')
         }
@@ -72,14 +80,48 @@ function AuthConfirmContent() {
       }
     }
 
-    // Only handle confirmation if not already authenticated
+    // Only handle email confirmation if not already authenticated and not OAuth flow
     if (!user || !profile) {
       handleAuthConfirmation()
     }
   }, [searchParams, router, toast, user, profile, isLoading])
 
+  // For OAuth flows, show a different message
+  const tokenHash = searchParams.get('token_hash')
+  const type = searchParams.get('type')
+  const isOAuthFlow = !tokenHash && !type
+
   if (isLoading || (user && !profile)) {
-    return <FullPageLoader message="Loading your account..." />
+    return <FullPageLoader message={isOAuthFlow ? "Completing authentication..." : "Loading your account..."} />
+  }
+
+  // For OAuth flows, show a simpler loading state
+  if (isOAuthFlow) {
+    return (
+      <VideoBackground>
+        <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+        <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+        
+        <div className="min-h-screen flex items-center justify-center p-4">
+          <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
+            <CardHeader className="text-center">
+              <CardTitle className="flex items-center justify-center gap-2 esports-heading text-2xl text-white font-semibold">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Authentication
+              </CardTitle>
+              <CardDescription className="text-slate-200">
+                Completing authentication...
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <p className="text-slate-300">Please wait while we complete your authentication.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </VideoBackground>
+    )
   }
 
   return (

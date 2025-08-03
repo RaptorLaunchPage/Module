@@ -104,7 +104,7 @@ class AuthFlowV2Manager {
     }
 
     console.log(`🚀 Auth flow: Starting initialization (isInitialLoad: ${isInitialLoad})`)
-    this.initPromise = this.performInitialize(isInitialLoad)
+    this.initPromise = this.performInitializeWithRetry(isInitialLoad)
     
     try {
       const result = await this.initPromise
@@ -114,11 +114,50 @@ class AuthFlowV2Manager {
     }
   }
 
+  // Retry mechanism for initialization
+  private async performInitializeWithRetry(isInitialLoad: boolean, retryCount: number = 0): Promise<AuthFlowResult> {
+    const maxRetries = 2
+    
+    try {
+      return await this.performInitialize(isInitialLoad)
+    } catch (error: any) {
+      console.warn(`⚠️ Auth initialization attempt ${retryCount + 1} failed:`, error.message)
+      
+      if (retryCount < maxRetries) {
+        console.log(`🔄 Retrying auth initialization (${retryCount + 1}/${maxRetries})...`)
+        // Wait a bit before retrying
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)))
+        return this.performInitializeWithRetry(isInitialLoad, retryCount + 1)
+      } else {
+        console.error('❌ Auth initialization failed after all retries')
+        // Return a safe fallback state
+        this.setState({
+          isInitialized: true,
+          isLoading: false,
+          isAuthenticated: false,
+          user: null,
+          profile: null,
+          agreementStatus: { requiresAgreement: false, isChecked: true },
+          error: 'Authentication initialization failed after retries'
+        })
+        return { success: false, shouldRedirect: false, error: 'Authentication failed after retries' }
+      }
+    }
+  }
+
   // Actual initialization logic - streamlined and fast
   private async performInitialize(isInitialLoad: boolean): Promise<AuthFlowResult> {
     try {
       console.log('🚀 Starting streamlined auth initialization...')
       this.setState({ isLoading: true, error: null })
+
+      // Add timeout wrapper for all async operations
+      const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number = 3000): Promise<T> => {
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
+        })
+        return Promise.race([promise, timeoutPromise])
+      }
 
       // Step 1: Check for existing session
       const existingSession = SessionStorage.getSession()
@@ -134,29 +173,48 @@ class AuthFlowV2Manager {
           return await this.setAuthenticatedState(existingSession, cachedProfile, false) // Don't redirect on restore
         }
 
-        // Validate session with Supabase
-        const { data: { user }, error } = await supabase.auth.getUser(accessToken)
-        
-        if (user && !error) {
-          // Load profile in parallel
-          const profile = await this.loadUserProfileFast(user)
-          if (profile) {
-            this.profileCache.set(user.id, profile)
-            return await this.setAuthenticatedState(existingSession, profile, false) // Don't redirect on restore
+        try {
+          // Validate session with Supabase with timeout
+          const { data: { user }, error } = await withTimeout(
+            supabase.auth.getUser(accessToken),
+            3000
+          )
+          
+          if (user && !error) {
+            // Load profile in parallel with timeout
+            const profile = await withTimeout(
+              this.loadUserProfileFast(user),
+              3000
+            )
+            if (profile) {
+              this.profileCache.set(user.id, profile)
+              return await this.setAuthenticatedState(existingSession, profile, false) // Don't redirect on restore
+            }
+          } else {
+            console.log('⚠️ Stored session invalid, clearing...')
+            SessionStorage.clearSession()
+            this.profileCache.clear()
           }
-        } else {
-          console.log('⚠️ Stored session invalid, clearing...')
+        } catch (timeoutError) {
+          console.warn('⚠️ Session validation timed out, clearing session')
           SessionStorage.clearSession()
           this.profileCache.clear()
         }
       }
 
-      // Step 2: Check for active Supabase session
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (session?.user) {
-        console.log('🔄 Active Supabase session found, processing...')
-        return await this.handleSupabaseSession(session)
+      // Step 2: Check for active Supabase session with timeout
+      try {
+        const { data: { session } } = await withTimeout(
+          supabase.auth.getSession(),
+          3000
+        )
+        
+        if (session?.user) {
+          console.log('🔄 Active Supabase session found, processing...')
+          return await this.handleSupabaseSession(session)
+        }
+      } catch (timeoutError) {
+        console.warn('⚠️ Supabase session check timed out')
       }
 
       // Step 3: No active session
