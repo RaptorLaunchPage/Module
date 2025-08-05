@@ -1,19 +1,21 @@
 "use client"
 
-import { useEffect } from "react"
+// Removed useEffect - not needed for current implementation
 import { useRouter } from "next/navigation"
 import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
 import { usePostAuthRedirect, useManualRedirect } from "@/hooks/use-post-auth-redirect"
 import { useOAuthSessionDetector } from "@/hooks/use-oauth-session-detector"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import Link from "next/link"
+// Removed Link import - using router.push instead
 import { VideoBackground } from "@/components/video-background"
-import { usePageLoading } from "@/lib/global-loading-manager"
+// Removed usePageLoading - temporarily disabled for homepage
 
 export default function HomePage() {
   const { user, isLoading, profile, signOut } = useAuth()
   const router = useRouter()
+  
+  // Homepage state management
   
   // Detect OAuth sessions immediately (especially Discord)
   useOAuthSessionDetector()
@@ -27,15 +29,16 @@ export default function HomePage() {
   // Manual redirect hook for fallback button
   const { triggerRedirect, targetPath, canRedirect } = useManualRedirect()
 
-  const { startPageLoad, completePageLoad } = usePageLoading()
+  // Temporarily disabled page loading to debug button issue
+  // const { startPageLoad, completePageLoad } = usePageLoading()
   
-  useEffect(() => {
-    if (isLoading || isRedirecting) {
-      startPageLoad('home')
-    } else {
-      completePageLoad('home')
-    }
-  }, [isLoading, isRedirecting, startPageLoad, completePageLoad])
+  // useEffect(() => {
+  //   if (isLoading || isRedirecting) {
+  //     startPageLoad('home')
+  //   } else {
+  //     completePageLoad('home')
+  //   }
+  // }, [isLoading, isRedirecting, startPageLoad, completePageLoad])
 
   // Show loading while auth is loading or redirecting
   if (isLoading) {
@@ -102,11 +105,12 @@ export default function HomePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Link href="/auth/login">
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
-                    Sign In
-                  </Button>
-                </Link>
+                <Button 
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
+                  onClick={() => router.push('/auth/login')}
+                >
+                  Sign In
+                </Button>
               </CardContent>
             </Card>
 
@@ -118,11 +122,12 @@ export default function HomePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Link href="/auth/signup">
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
-                    Get Started
-                  </Button>
-                </Link>
+                <Button 
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
+                  onClick={() => router.push('/auth/signup')}
+                >
+                  Get Started
+                </Button>
               </CardContent>
             </Card>
           </div>
