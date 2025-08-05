@@ -22,18 +22,9 @@ function AuthConfirmContent() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    // If user is already authenticated (OAuth or email), redirect to dashboard
+    // UNIFIED AUTH CONFIRMATION: Let the auth hook handle all redirects
     if (user && profile && !isLoading) {
-      console.log('✅ User already authenticated, redirecting to dashboard')
-      
-      // Check if user needs onboarding
-      if (profile.role === 'pending_player' && !profile.onboarding_completed) {
-        console.log('🔄 Redirecting to onboarding for new user')
-        router.push('/onboarding')
-      } else {
-        console.log('🔄 Redirecting to dashboard')
-        router.push('/dashboard')
-      }
+      console.log('✅ Auth confirmation: User authenticated, auth hook will handle redirect')
       return
     }
 
@@ -44,8 +35,8 @@ function AuthConfirmContent() {
 
     if (isOAuthFlow) {
       console.log('🔐 OAuth flow detected, waiting for auth state to complete...')
-      // For OAuth flows, we wait for the auth state to be processed
-      // Once user and profile are loaded, the redirect above will trigger
+      // For OAuth flows, we let the unified auth hook handle all redirects
+      // This ensures consistent behavior between email and Discord OAuth
       return
     }
 

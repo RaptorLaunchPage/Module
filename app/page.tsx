@@ -47,6 +47,8 @@ export default function HomePage() {
               <CardContent className="space-y-3">
                 <Button 
                   onClick={() => {
+                    // Let the auth hook handle the redirect to ensure consistency
+                    console.log('🔄 Homepage: Manual redirect requested, letting auth hook handle it')
                     if (profile.role === "pending_player" && !profile.onboarding_completed) {
                       router.push("/onboarding")
                     } else {

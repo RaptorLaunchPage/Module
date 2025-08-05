@@ -78,18 +78,19 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           
           if (!mounted.current) return
           
-          if (result.success && result.shouldRedirect && result.redirectPath) {
-            console.log(`🔄 Auth event: ${provider} sign in complete, redirecting to:`, result.redirectPath)
+          // UNIFIED REDIRECT LOGIC: Both email and Discord use the same flow
+          if (result.success) {
+            console.log(`🔄 ${provider} authentication complete, triggering unified redirect`)
             
-            // Use safe redirect to prevent loops
-            safeRedirect(result.redirectPath, { delay: 1000 })
-          } else if (result.success && provider === 'discord') {
-            // For Discord OAuth, ensure we redirect even if shouldRedirect is false
-            console.log('🔄 Discord OAuth complete, ensuring redirect to dashboard')
-            const currentPath = window.location.pathname
-            if (currentPath === '/auth/confirm' || currentPath === '/') {
-              safeRedirect('/dashboard', { delay: 1000 })
+            // Set pending redirect for immediate handling when profile loads
+            pendingRedirect.current = {
+              redirectPath: result.redirectPath || '/dashboard',
+              isFromAuthPage: true,
+              isRequiredRedirect: true
             }
+            
+            // The redirect will be handled by the state change handler when profile is ready
+            console.log('⏳ Redirect queued, waiting for profile to load...')
           }
         }
       } catch (error: any) {
@@ -126,34 +127,37 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           const { redirectPath } = pendingRedirect.current
           console.log('⚡ Auth complete, redirecting to:', redirectPath)
           
-          // Small delay to ensure UI updates are complete
+          // Immediate redirect for better UX
           setTimeout(() => {
             if (mounted.current) {
-              safeRedirect(redirectPath, { delay: 500 })
+              safeRedirect(redirectPath, { delay: 100 })
               pendingRedirect.current = null
             }
-          }, 500)
+          }, 100)
         } else {
-          // Check if we're on homepage or auth/confirm but should be on dashboard
+          // UNIFIED FALLBACK: Handle any authenticated user on wrong page
           const currentPath = window.location.pathname
-          if ((currentPath === '/' || currentPath === '/auth/confirm') && newState.isAuthenticated && newState.profile) {
-            console.log(`🏠 User authenticated on ${currentPath}, redirecting to dashboard`)
+          const shouldRedirectPages = ['/', '/auth/confirm', '/auth/login', '/auth/signup']
+          
+          if (shouldRedirectPages.includes(currentPath) && newState.isAuthenticated && newState.profile) {
+            console.log(`🔄 Authenticated user on ${currentPath}, applying unified redirect logic`)
             
-            // Check if user needs onboarding first
+            // Determine correct redirect path
+            let targetPath = '/dashboard'
             if (newState.profile.role === 'pending_player' && !newState.profile.onboarding_completed) {
-              console.log('🔄 New user needs onboarding, redirecting there first')
-              setTimeout(() => {
-                if (mounted.current) {
-                  safeRedirect('/onboarding', { delay: 500 })
-                }
-              }, 500)
+              targetPath = '/onboarding'
+              console.log('🔄 New user needs onboarding')
             } else {
-              setTimeout(() => {
-                if (mounted.current) {
-                  safeRedirect('/dashboard', { delay: 500 })
-                }
-              }, 500)
+              console.log('🔄 Redirecting to dashboard')
             }
+            
+            // Use immediate redirect for consistent behavior
+            setTimeout(() => {
+              if (mounted.current) {
+                console.log(`⚡ Executing unified redirect to: ${targetPath}`)
+                safeRedirect(targetPath, { delay: 100 })
+              }
+            }, 200)
           }
         }
       }
@@ -333,7 +337,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         password,
         options: {
           data: { name },
-          emailRedirectTo: `${getSiteUrl()}/dashboard`
+          emailRedirectTo: `${getSiteUrl()}/auth/confirm`
         }
       })
 
