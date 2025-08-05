@@ -144,15 +144,26 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
     setLoading(true)
     
     try {
+      // Ensure date is never null
+      const currentDate = selectedDate || new Date().toISOString().split('T')[0]
+      
+      // Validate required fields
+      if (!selectedTeam || !sessionType || !userProfile?.id) {
+        throw new Error('Missing required fields: team, session type, or user information')
+      }
+      
       const attendanceRecords = markedPlayers.map(player => ({
         player_id: player.id,
         team_id: selectedTeam,
-        date: selectedDate,
+        date: currentDate,
         session_time: sessionType,
         status: player.status === 'present' ? 'Present' : 
                 player.status === 'late' ? 'Late' : 'Absent',
-        marked_by: userProfile?.id
+        marked_by: userProfile.id
       }))
+
+      // Debug logging
+      console.log('Attendance records to insert:', attendanceRecords)
 
       const { error } = await supabase
         .from('attendances')

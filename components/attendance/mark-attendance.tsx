@@ -115,11 +115,19 @@ export function MarkAttendance({ onAttendanceMarked, userProfile, teams, users }
     setLoading(true)
 
     try {
+      // Ensure date is never null
+      const currentDate = selectedDate || new Date().toISOString().split('T')[0]
+      
+      // Validate required fields
+      if (!selectedTeam || !sessionTime || !userProfile?.id) {
+        throw new Error('Missing required fields: team, session time, or user information')
+      }
+      
       // Prepare attendance records
       const attendanceRecords = selectedPlayers.map(playerId => ({
         player_id: playerId,
         team_id: selectedTeam,
-        date: selectedDate,
+        date: currentDate,
         session_time: sessionTime,
         status: 'present',
         marked_by: userProfile.id
