@@ -31,6 +31,7 @@ import type { Database } from "@/lib/supabase"
 import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
 import { DailyPracticeAttendance } from "@/components/attendance/daily-practice-attendance"
 import { PracticeSessionConfig } from "@/components/attendance/practice-session-config"
+import { DailySessionManager } from "@/components/attendance/daily-session-manager"
 
 type Attendance = Database["public"]["Tables"]["attendances"]["Row"] & {
   users?: {
@@ -333,6 +334,11 @@ export default function AttendancePage() {
               label: "Statistics",
               icon: Users
             },
+            ...((['admin', 'manager', 'coach'].includes(userRole)) ? [{
+              value: "manage-sessions",
+              label: "Manage Sessions",
+              icon: Plus
+            }] : []),
             ...((['admin', 'manager'].includes(userRole)) ? [{
               value: "config",
               label: "Session Config",
@@ -343,8 +349,8 @@ export default function AttendancePage() {
           onValueChange={setActiveTab}
           defaultValue={profile?.role === 'player' ? "training" : "daily"}
           variant="default"
-          size="md"
-          responsiveMode="auto"
+          size="sm"
+          responsiveMode="dropdown"
           className="space-y-6"
         >
 
@@ -445,6 +451,12 @@ export default function AttendancePage() {
               )}
             </div>
           </TabsContent>
+
+          {(['admin', 'manager', 'coach'].includes(userRole)) && (
+            <TabsContent value="manage-sessions">
+              <DailySessionManager />
+            </TabsContent>
+          )}
 
           {['admin', 'manager'].includes(userRole) && (
             <TabsContent value="config">

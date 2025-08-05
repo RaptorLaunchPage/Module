@@ -220,10 +220,10 @@ export default function TryoutDetailsPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="applications">Applications ({applications.length})</TabsTrigger>
-          <TabsTrigger value="evaluations">Evaluations</TabsTrigger>
+        <TabsList className="flex w-full flex-wrap justify-start gap-1 h-auto p-1">
+          <TabsTrigger value="overview" className="flex-1 min-w-0 text-xs sm:text-sm">Overview</TabsTrigger>
+          <TabsTrigger value="applications" className="flex-1 min-w-0 text-xs sm:text-sm">Applications ({applications.length})</TabsTrigger>
+          <TabsTrigger value="evaluations" className="flex-1 min-w-0 text-xs sm:text-sm">Evaluations</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
