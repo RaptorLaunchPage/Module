@@ -50,6 +50,8 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
   const [quickAddData, setQuickAddData] = useState({
     organizer: '',
     time_range: '',
+    start_time: '',
+    end_time: '',
     date: new Date(), // Default to today
     team_id: '',
     slot_rate: 0
@@ -148,6 +150,8 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
       setQuickAddData({
         organizer: '',
         time_range: '',
+        start_time: '',
+        end_time: '',
         date: new Date(),
         team_id: '',
         slot_rate: 0
@@ -195,20 +199,45 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
                     />
                   </div>
                   <div>
-                    <Label>Time Range</Label>
-                    <Select 
-                      value={quickAddData.time_range} 
-                      onValueChange={(value) => setQuickAddData(prev => ({ ...prev, time_range: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select time range" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TIME_RANGES.map(range => (
-                          <SelectItem key={range} value={range}>{range}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label>Custom Time Range</Label>
+                    <div className="flex gap-2 items-center">
+                      <div className="flex-1">
+                        <Label className="text-xs text-muted-foreground">Start</Label>
+                        <Input
+                          type="time"
+                          value={quickAddData.start_time}
+                          onChange={(e) => {
+                            const startTime = e.target.value
+                            setQuickAddData(prev => ({ 
+                              ...prev, 
+                              start_time: startTime,
+                              time_range: startTime && prev.end_time ? `${startTime} - ${prev.end_time}` : ""
+                            }))
+                          }}
+                        />
+                      </div>
+                      <span className="text-muted-foreground pt-5">to</span>
+                      <div className="flex-1">
+                        <Label className="text-xs text-muted-foreground">End</Label>
+                        <Input
+                          type="time"
+                          value={quickAddData.end_time}
+                          onChange={(e) => {
+                            const endTime = e.target.value
+                            setQuickAddData(prev => ({ 
+                              ...prev, 
+                              end_time: endTime,
+                              time_range: prev.start_time && endTime ? `${prev.start_time} - ${endTime}` : ""
+                            }))
+                          }}
+                        />
+                      </div>
+                    </div>
+                    {quickAddData.time_range && (
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Range: {quickAddData.time_range}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <Label>Date</Label>
@@ -336,20 +365,45 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
                   />
                 </div>
                 <div>
-                  <Label>Time Range</Label>
-                  <Select 
-                    value={quickAddData.time_range} 
-                    onValueChange={(value) => setQuickAddData(prev => ({ ...prev, time_range: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select time range" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIME_RANGES.map(range => (
-                        <SelectItem key={range} value={range}>{range}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Custom Time Range</Label>
+                  <div className="flex gap-2 items-center">
+                    <div className="flex-1">
+                      <Label className="text-xs text-muted-foreground">Start</Label>
+                      <Input
+                        type="time"
+                        value={quickAddData.start_time}
+                        onChange={(e) => {
+                          const startTime = e.target.value
+                          setQuickAddData(prev => ({ 
+                            ...prev, 
+                            start_time: startTime,
+                            time_range: startTime && prev.end_time ? `${startTime} - ${prev.end_time}` : ""
+                          }))
+                        }}
+                      />
+                    </div>
+                    <span className="text-muted-foreground pt-5">to</span>
+                    <div className="flex-1">
+                      <Label className="text-xs text-muted-foreground">End</Label>
+                      <Input
+                        type="time"
+                        value={quickAddData.end_time}
+                        onChange={(e) => {
+                          const endTime = e.target.value
+                          setQuickAddData(prev => ({ 
+                            ...prev, 
+                            end_time: endTime,
+                            time_range: prev.start_time && endTime ? `${prev.start_time} - ${endTime}` : ""
+                          }))
+                        }}
+                      />
+                    </div>
+                  </div>
+                  {quickAddData.time_range && (
+                    <div className="text-sm text-muted-foreground mt-1">
+                      Range: {quickAddData.time_range}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label>Date</Label>

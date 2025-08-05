@@ -55,6 +55,8 @@ export default function SlotsPage() {
     team_id: "",
     organizer: "",
     time_range: "",
+    start_time: "",
+    end_time: "",
     number_of_slots: 1,
     slot_rate: 0,
     match_count: 0,
@@ -260,6 +262,8 @@ export default function SlotsPage() {
         team_id: teams[0]?.id || "",
         organizer: "",
         time_range: "",
+        start_time: "",
+        end_time: "",
         number_of_slots: 1,
         slot_rate: tierDefaults.find((td) => td.tier === teams[0]?.tier)?.default_slot_rate || 0,
         match_count: 0,
@@ -414,23 +418,47 @@ export default function SlotsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="timeRange">Time Range</Label>
-                  <Select
-                    value={newSlotData.time_range}
-                    onValueChange={(value) => setNewSlotData({ ...newSlotData, time_range: value })}
-                    required
-                  >
-                    <SelectTrigger id="timeRange">
-                      <SelectValue placeholder="Select Time Range" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIME_RANGES.map((range) => (
-                        <SelectItem key={range} value={range}>
-                          {range}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="timeRange">Custom Time Range</Label>
+                  <div className="flex gap-2 items-center">
+                    <div className="flex-1">
+                      <Label className="text-xs text-muted-foreground">Start Time</Label>
+                      <Input
+                        type="time"
+                        value={newSlotData.start_time || ""}
+                        onChange={(e) => {
+                          const startTime = e.target.value
+                          setNewSlotData(prev => ({ 
+                            ...prev, 
+                            start_time: startTime,
+                            time_range: startTime && prev.end_time ? `${startTime} - ${prev.end_time}` : ""
+                          }))
+                        }}
+                        required
+                      />
+                    </div>
+                    <span className="text-muted-foreground pt-5">to</span>
+                    <div className="flex-1">
+                      <Label className="text-xs text-muted-foreground">End Time</Label>
+                      <Input
+                        type="time"
+                        value={newSlotData.end_time || ""}
+                        onChange={(e) => {
+                          const endTime = e.target.value
+                          setNewSlotData(prev => ({ 
+                            ...prev, 
+                            end_time: endTime,
+                            time_range: prev.start_time && endTime ? `${prev.start_time} - ${endTime}` : ""
+                          }))
+                        }}
+                        required
+                      />
+                    </div>
+                  </div>
+                  {newSlotData.time_range && (
+                    <div className="text-sm text-muted-foreground">
+                      Time Range: {newSlotData.time_range}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">

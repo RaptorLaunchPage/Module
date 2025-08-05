@@ -306,32 +306,10 @@ const QUICK_ACTIONS: Record<UserRole, Array<{
     }
   ],
   player: [
-    {
-      label: 'My Performance',
-      href: '/dashboard/performance',
-      icon: Target,
-      description: 'View your stats'
-    },
-    {
-      label: 'My Profile',
-      href: '/dashboard/profile',
-      icon: Users,
-      description: 'Update your profile'
-    },
-    {
-      label: 'Team Schedule',
-      href: '/dashboard/attendance',
-      icon: CalendarCheck,
-      description: 'View training schedule'
-    }
+    // No quick actions for players
   ],
   pending_player: [
-    {
-      label: 'Complete Profile',
-      href: '/dashboard/profile',
-      icon: Users,
-      description: 'Finish profile setup'
-    }
+    // No quick actions for pending players
   ],
   awaiting_approval: [
     {
