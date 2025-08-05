@@ -65,8 +65,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
-    // Check permissions - only specific roles can view users
-    const allowedRoles = ['admin', 'manager', 'coach', 'analyst']
+    // Check permissions - allow players to see their teammates
+    const allowedRoles = ['admin', 'manager', 'coach', 'analyst', 'player']
     if (!allowedRoles.includes(userData!.role)) {
       return NextResponse.json(
         { error: 'Insufficient permissions to view users' },
@@ -80,11 +80,22 @@ export async function GET(request: NextRequest) {
       .order('name', { ascending: true })
 
     // Role-based filtering
-    if (userData!.role === 'coach' && userData!.team_id) {
+    if (userData!.role === 'admin' || userData!.role === 'manager' || userData!.role === 'analyst') {
+      // Admin, manager, and analyst can see all users
+      // No additional filtering needed
+    } else if (userData!.role === 'coach' && userData!.team_id) {
       // Coaches can only see users in their team
       query = query.eq('team_id', userData!.team_id)
+    } else if (userData!.role === 'player') {
+      // Players can see their teammates and themselves
+      if (!userData!.team_id) {
+        // If player has no team, they can only see themselves
+        query = query.eq('id', userData!.id)
+      } else {
+        // Players can see all users in their team
+        query = query.eq('team_id', userData!.team_id)
+      }
     }
-    // Admin, manager, and analyst can see all users
 
     const { data: users, error: usersError } = await query
 

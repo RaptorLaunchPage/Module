@@ -778,10 +778,10 @@ export default function OptimizedDashboardPage() {
                 <div className="p-2 rounded-lg bg-blue-500/20">
                   <Activity className="h-6 w-6 text-white" />
                 </div>
-                {isPlayer ? 'My Performance & Attendance' : 'Performance & Attendance'}
+                {isPlayer ? 'My Team Performance & Attendance' : 'Performance & Attendance'}
               </CardTitle>
               <CardDescription className="text-white/70">
-                {isPlayer ? 'Your personal performance metrics and attendance record' : 'Team performance statistics and attendance tracking'}
+                {isPlayer ? 'Consolidated team data and top performer statistics' : 'Team performance statistics and attendance tracking'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -791,14 +791,20 @@ export default function OptimizedDashboardPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-indigo-100 text-sm font-medium">
-                        {isPlayer ? 'My Attendance' : 'Attendance Rate'}
+                        {isPlayer ? 'Total Team Matches' : 'Attendance Rate'}
                       </p>
-                      <p className="text-2xl font-bold">{(stats?.overallAttendanceRate || 0).toFixed(1)}%</p>
+                      <p className="text-2xl font-bold">
+                        {isPlayer ? (stats?.totalMatches || 0) : `${(stats?.overallAttendanceRate || 0).toFixed(1)}%`}
+                      </p>
                       <p className="text-indigo-200 text-xs">
-                        {isPlayer ? 'Personal rate' : 'Overall attendance'}
+                        {isPlayer ? 'Matches played' : 'Overall attendance'}
                       </p>
                     </div>
-                    <Calendar className="h-8 w-8 text-indigo-200" />
+                    {isPlayer ? (
+                      <Target className="h-8 w-8 text-indigo-200" />
+                    ) : (
+                      <Calendar className="h-8 w-8 text-indigo-200" />
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -820,11 +826,21 @@ export default function OptimizedDashboardPage() {
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-yellow-100 text-sm font-medium">Avg Survival</p>
-                      <p className="text-2xl font-bold">{formatNumber(stats?.avgSurvival || 0)}s</p>
-                      <p className="text-yellow-200 text-xs">Average survival time</p>
+                      <p className="text-yellow-100 text-sm font-medium">
+                        {isPlayer ? 'Total Kills' : 'Avg Survival'}
+                      </p>
+                      <p className="text-2xl font-bold">
+                        {isPlayer ? formatNumber(stats?.totalKills || 0) : `${formatNumber(stats?.avgSurvival || 0)}s`}
+                      </p>
+                      <p className="text-yellow-200 text-xs">
+                        {isPlayer ? 'Team total kills' : 'Average survival time'}
+                      </p>
                     </div>
-                    <Clock className="h-8 w-8 text-yellow-200" />
+                    {isPlayer ? (
+                      <Crosshair className="h-8 w-8 text-yellow-200" />
+                    ) : (
+                      <Clock className="h-8 w-8 text-yellow-200" />
+                    )}
                   </div>
                 </CardContent>
               </Card>

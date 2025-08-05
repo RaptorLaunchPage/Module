@@ -58,8 +58,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
-    // Check permissions - only specific roles can view teams
-    const allowedRoles = ['admin', 'manager', 'coach', 'analyst']
+    // Check permissions - allow players to see their own team data
+    const allowedRoles = ['admin', 'manager', 'coach', 'analyst', 'player']
     if (!allowedRoles.includes(userData!.role)) {
       return NextResponse.json(
         { error: 'Insufficient permissions to view teams' },
@@ -72,9 +72,27 @@ export async function GET(request: NextRequest) {
       .select('id, name, tier, status')
       .order('name', { ascending: true })
 
-    // Non-admin users can only see their own team
-    if (userData!.role !== 'admin' && userData!.team_id) {
+    // Role-based filtering
+    if (userData!.role === 'admin' || userData!.role === 'manager') {
+      // Admin and Manager can see all teams
+      // No additional filtering needed
+    } else if (userData!.role === 'player') {
+      // Players can only see their own team
+      if (!userData!.team_id) {
+        return NextResponse.json(
+          { error: 'Player must be assigned to a team to view team data' },
+          { status: 403 }
+        )
+      }
       query = query.eq('id', userData!.team_id)
+    } else {
+      // Coach, Analyst - can only see their assigned team
+      if (userData!.team_id) {
+        query = query.eq('id', userData!.team_id)
+      } else {
+        // If no team assigned, return empty array
+        return NextResponse.json([])
+      }
     }
 
     const { data: teams, error: teamsError } = await query

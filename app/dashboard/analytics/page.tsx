@@ -75,6 +75,13 @@ export default function AnalyticsPage() {
     }
   }, [profile, selectedTimeframe, selectedTeam, selectedMap])
 
+  // Auto-select team for players when profile loads
+  useEffect(() => {
+    if (profile?.role === 'player' && profile?.team_id && selectedTeam === 'all') {
+      setSelectedTeam(profile.team_id)
+    }
+  }, [profile?.role, profile?.team_id, selectedTeam])
+
   const loadAnalyticsData = async () => {
     if (!profile) return
 
@@ -133,12 +140,39 @@ export default function AnalyticsPage() {
       
       // Load teams and maps for filters with error handling
       const [teamsResult, mapsResult] = await Promise.all([
-        supabase.from('teams').select('id, name').order('name').then(result => {
-          if (result.error) {
-            console.warn('Teams fetch error:', result.error)
-            return { data: [], error: result.error }
+        // Try to fetch teams via API for proper role-based access
+        fetch('/api/teams', {
+          headers: {
+            'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}`
           }
-          return result
+        }).then(async (response) => {
+          if (response.ok) {
+            const data = await response.json()
+            return { data, error: null }
+          } else {
+            // If API fails, for players we can create a minimal team object from their profile
+            if (profile.role === 'player' && profile.team_id) {
+              // Get team name from performances data if available
+              const teamName = performances?.find(p => p.teams?.id === profile.team_id)?.teams?.name || 'My Team'
+              return { 
+                data: [{ id: profile.team_id, name: teamName }], 
+                error: null 
+              }
+            }
+            console.warn('Teams API error:', response.status, await response.text())
+            return { data: [], error: `Teams API Error ${response.status}` }
+          }
+        }).catch(error => {
+          console.warn('Teams fetch error:', error)
+          // Fallback for players - create team object from profile
+          if (profile.role === 'player' && profile.team_id) {
+            const teamName = performances?.find(p => p.teams?.id === profile.team_id)?.teams?.name || 'My Team'
+            return { 
+              data: [{ id: profile.team_id, name: teamName }], 
+              error: null 
+            }
+          }
+          return { data: [], error: error.message }
         }),
         supabase.from('performances').select('map').not('map', 'is', null).then(result => {
           if (result.error) {
@@ -152,6 +186,11 @@ export default function AnalyticsPage() {
       if (teamsResult.data) {
         setTeams(teamsResult.data)
         console.log('✅ Fetched teams:', teamsResult.data.length)
+        
+        // Auto-select team for players
+        if (profile.role === 'player' && profile.team_id && selectedTeam === 'all') {
+          setSelectedTeam(profile.team_id)
+        }
       }
       if (mapsResult.data) {
         const uniqueMaps = [...new Set(mapsResult.data.map(p => p.map).filter(Boolean))]
@@ -377,6 +416,15 @@ export default function AnalyticsPage() {
                 <p className="mt-1">As a player, you need to be assigned to a team to access analytics data.</p>
                 <p className="mt-2">Please contact your team manager or administrator for assistance.</p>
               </div>
+            ) : error?.includes('Teams API Error 403') ? (
+              <div className="text-sm text-muted-foreground bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <p className="font-medium text-blue-800">Loading Analytics Data</p>
+                <p className="mt-1">We're setting up your analytics view. This may take a moment...</p>
+                <Button onClick={handleRefresh} variant="outline" className="mt-3">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Continue
+                </Button>
+              </div>
             ) : (
               <Button onClick={handleRefresh} variant="outline">
                 <RefreshCw className="h-4 w-4 mr-2" />
@@ -458,7 +506,7 @@ export default function AnalyticsPage() {
                   <SelectValue placeholder="All Teams" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Teams</SelectItem>
+                  {profile?.role !== 'player' && <SelectItem value="all">All Teams</SelectItem>}
                   {teams.map(team => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}

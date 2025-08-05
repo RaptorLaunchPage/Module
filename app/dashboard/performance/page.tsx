@@ -161,6 +161,23 @@ export default function PerformancePage() {
       if (!response.ok) {
         const errorText = await response.text()
         console.error('Teams API Error:', response.status, errorText)
+        
+        // For players, create a fallback team object from their profile
+        if (profile?.role === 'player' && profile?.team_id) {
+          console.log('Using fallback team data for player')
+          // Try to get team name from existing performance data
+          const existingTeamName = performances.find(p => p.teams?.id === profile.team_id)?.teams?.name
+          setTeams([{ 
+            id: profile.team_id, 
+            name: existingTeamName || 'My Team',
+            tier: null,
+            coach_id: null,
+            status: 'active',
+            created_at: new Date().toISOString()
+          }])
+          return
+        }
+        
         throw new Error(`Teams API Error ${response.status}: ${errorText}`)
       }
 
@@ -168,6 +185,14 @@ export default function PerformancePage() {
       setTeams(data || [])
     } catch (error) {
       console.error("Error fetching teams:", error)
+      
+      // Final fallback for players - don't throw error, just set empty teams
+      if (profile?.role === 'player') {
+        console.log('Setting empty teams array for player due to fetch error')
+        setTeams([])
+        return
+      }
+      
       throw error
     }
   }
@@ -454,7 +479,7 @@ export default function PerformancePage() {
           <h1 className="text-2xl sm:text-3xl font-bold">Performance Tracking</h1>
           <p className="text-muted-foreground">Track and analyze match performance data</p>
         </div>
-        {(canAddPerformance && !isAnalyst) && (
+        {(canAddPerformance && !isAnalyst && profile?.role !== 'player') && (
           <Dialog open={addPerformanceOpen} onOpenChange={setAddPerformanceOpen}>
             <DialogTrigger asChild>
               <Button className="w-full sm:w-auto">

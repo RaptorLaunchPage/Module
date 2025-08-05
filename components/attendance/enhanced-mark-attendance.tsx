@@ -78,17 +78,15 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
     }
   }, [isPlayer, isCoach, userProfile?.team_id, selectedTeam, userProfile])
 
-  // Get players for selected team
-  const teamPlayers = selectedTeam 
-    ? users.filter(user => 
-        user.team_id === selectedTeam && 
-        (user.role === 'player' || user.role === 'coach')
-      )
-    : []
-
   // Initialize player attendance states when team changes
   useEffect(() => {
     if (selectedTeam) {
+      // Get players for selected team inside useEffect to avoid dependency issues
+      const teamPlayers = users.filter(user => 
+        user.team_id === selectedTeam && 
+        (user.role === 'player' || user.role === 'coach')
+      )
+      
       const initialStates: PlayerAttendanceState[] = teamPlayers.map(player => ({
         id: player.id,
         name: player.name || player.email,
@@ -98,8 +96,10 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
         status: 'unset'
       }))
       setPlayersAttendance(initialStates)
+    } else {
+      setPlayersAttendance([])
     }
-  }, [selectedTeam, teamPlayers])
+  }, [selectedTeam, users])
 
   if (!userProfile) return null
 
@@ -144,15 +144,26 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
     setLoading(true)
     
     try {
+      // Ensure date is never null
+      const currentDate = selectedDate || new Date().toISOString().split('T')[0]
+      
+      // Validate required fields
+      if (!selectedTeam || !sessionType || !userProfile?.id) {
+        throw new Error('Missing required fields: team, session type, or user information')
+      }
+      
       const attendanceRecords = markedPlayers.map(player => ({
         player_id: player.id,
         team_id: selectedTeam,
-        date: selectedDate,
+        date: currentDate,
         session_time: sessionType,
         status: player.status === 'present' ? 'Present' : 
                 player.status === 'late' ? 'Late' : 'Absent',
-        marked_by: userProfile?.id
+        marked_by: userProfile.id
       }))
+
+      // Debug logging
+      console.log('Attendance records to insert:', attendanceRecords)
 
       const { error } = await supabase
         .from('attendances')
@@ -260,7 +271,7 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
       </Card>
 
       {/* Player Attendance */}
-      {selectedTeam && teamPlayers.length > 0 && (
+      {selectedTeam && playersAttendance.length > 0 && (
         <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-white">
@@ -400,7 +411,7 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
       )}
 
       {/* Empty State */}
-      {selectedTeam && teamPlayers.length === 0 && (
+      {selectedTeam && playersAttendance.length === 0 && (
         <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
           <CardContent className="p-8 text-center">
             <Users className="h-12 w-12 text-white/60 mx-auto mb-4" />
