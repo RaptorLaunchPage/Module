@@ -76,6 +76,13 @@ export default function PerformancePage() {
     setError(null)
     
     try {
+      // For players, check if they have team assignment
+      if (profile?.role === 'player' && !profile?.team_id) {
+        setError('You need to be assigned to a team to view performance data. Please contact your manager.')
+        setLoading(false)
+        return
+      }
+
       await Promise.all([
         fetchPerformances(),
         fetchUsers(),
@@ -84,7 +91,8 @@ export default function PerformancePage() {
       setDataFetched(true)
     } catch (err) {
       console.error('Error loading data:', err)
-      setError('Failed to load performance data. Please try refreshing the page.')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load performance data. Please try refreshing the page.'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -399,10 +407,18 @@ export default function PerformancePage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Unable to Load Data</h3>
             <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={loadAllData} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
+            {profile?.role === 'player' && !profile?.team_id ? (
+              <div className="text-sm text-muted-foreground bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                <p className="font-medium text-yellow-800">Team Assignment Required</p>
+                <p className="mt-1">As a player, you need to be assigned to a team to access performance data.</p>
+                <p className="mt-2">Please contact your team manager or administrator for assistance.</p>
+              </div>
+            ) : (
+              <Button onClick={loadAllData} variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

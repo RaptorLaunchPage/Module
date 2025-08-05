@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useCallback, createContext, useContext, useRef } from 'react'
+import { useState, useEffect, useCallback, createContext, useContext, useRef, memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import authFlowV2, { AuthState, AuthFlowResult } from '@/lib/auth-flow-v2'
 import { useSession } from '@/hooks/use-session'
 import { useToast } from '@/hooks/use-toast'
 import { useSafeRedirect } from '@/lib/client-utils'
+import { useAuthLoading } from '@/lib/global-loading-manager'
 import { IdleTimer } from '@/components/session/idle-timer'
 import { TokenRefresher } from '@/components/session/token-refresher'
 
@@ -37,11 +38,12 @@ const getSiteUrl = () => {
   return url.endsWith('/') ? url.slice(0, -1) : url
 }
 
-export function AuthProviderV2({ children }: { children: React.ReactNode }) {
+const AuthProviderV2 = memo(function AuthProviderV2({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { toast } = useToast()
   const { safeRedirect } = useSafeRedirect()
   const session = useSession()
+  const { startAuth, startProfile, startAgreement, startInitializing, completeAuth, errorAuth } = useAuthLoading()
   
   // Auth flow state
   const [authState, setAuthState] = useState<AuthState>(authFlowV2.getState())
@@ -50,7 +52,6 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
   const pendingRedirect = useRef<{ redirectPath: string; isFromAuthPage: boolean; isRequiredRedirect: boolean } | null>(null)
   const mounted = useRef(true)
   const redirectTimeout = useRef<NodeJS.Timeout | null>(null)
-  const redirectInProgress = useRef(false) // Add this to prevent multiple redirects
   
   // Track Supabase auth events
   useEffect(() => {
@@ -155,7 +156,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
     if (!mounted.current) return
 
     // Check if we should trigger an instant redirect after authentication completes
-    if (authState.isAuthenticated && !authState.isLoading && authState.profile && pendingRedirect.current && !redirectInProgress.current) {
+    if (authState.isAuthenticated && !authState.isLoading && authState.profile && pendingRedirect.current) {
       const { redirectPath, isFromAuthPage, isRequiredRedirect } = pendingRedirect.current
       const currentPath = window.location.pathname
 
@@ -561,7 +562,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       )}
     </AuthContext.Provider>
   )
-}
+})
 
 export function useAuthV2() {
   const context = useContext(AuthContext)
@@ -570,3 +571,5 @@ export function useAuthV2() {
   }
   return context
 }
+
+export { AuthProviderV2 }

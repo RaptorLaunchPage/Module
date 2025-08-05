@@ -1,9 +1,9 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, memo } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { AdvancedLoading, LoadingStep } from '@/components/ui/advanced-loading'
 import { useSafeRedirect } from '@/lib/client-utils'
+import { useGlobalLoading } from '@/lib/global-loading-manager'
 
 interface RouteGuardV2Props {
   children: React.ReactNode
@@ -35,283 +35,86 @@ const isPublicRoute = (pathname: string): boolean => {
   })
 }
 
-export function RouteGuardV2({ children }: RouteGuardV2Props) {
+const RouteGuardV2 = memo(function RouteGuardV2({ children }: RouteGuardV2Props) {
   const router = useRouter()
   const pathname = usePathname()
   const { safeRedirect } = useSafeRedirect()
+  const { startLoading, completeLoading, updateLoading } = useGlobalLoading()
   const [authState, setAuthState] = useState<any>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [loadingStep, setLoadingStep] = useState<LoadingStep>('connecting')
-
-  // Force completion timeout to prevent infinite loading
-  useEffect(() => {
-    const forceCompletionTimer = setTimeout(() => {
-      if (isLoading) {
-        console.log('⚠️ Force completing authentication - timeout reached')
-        console.log('🔍 Timeout force details:', {
-          isAuthenticated: authState?.isAuthenticated,
-          hasUser: !!authState?.user,
-          hasProfile: !!authState?.profile,
-          authLoading: authState?.isLoading,
-          routeGuardLoading: isLoading,
-          pathname
-        })
-        setIsLoading(false)
-      }
-    }, 8000) // Increased to 8 seconds for better UX
-
-    return () => clearTimeout(forceCompletionTimer)
-  }, [isLoading, authState?.isAuthenticated, authState?.profile, pathname])
-
-  // Additional safety check - clear loading if we have complete auth data
-  useEffect(() => {
-    if (isLoading && authState && !authState.isLoading && 
-        authState.isAuthenticated && authState.user && authState.profile) {
-      console.log('🔧 Safety check: Auth data complete, clearing loading state')
-      setTimeout(() => {
-        setIsLoading(false)
-      }, 100)
-    }
-  }, [isLoading, authState])
-
-  // Emergency fallback - if loading for more than 10 seconds, force completion
-  useEffect(() => {
-    const emergencyTimer = setTimeout(() => {
-      if (isLoading) {
-        console.log('🚨 Emergency fallback: Force completing after 10 seconds')
-        setIsLoading(false)
-      }
-    }, 10000)
-
-    return () => clearTimeout(emergencyTimer)
-  }, [isLoading])
+  const [isInitialized, setIsInitialized] = useState(false)
 
   // Initialize auth and handle state changes
   useEffect(() => {
     let mounted = true
-    let initTimeout: NodeJS.Timeout | null = null
+    let unsubscribe: (() => void) | null = null
 
     const initializeAuth = async () => {
       try {
-        console.log('🚀 Route guard: Starting auth initialization...')
-        
         // Dynamic import to avoid potential circular dependencies
         const { default: authFlowV2 } = await import('@/lib/auth-flow-v2')
 
         if (!mounted) return
 
         // Subscribe to auth state changes first
-        const unsubscribe = authFlowV2.subscribe((newState) => {
+        unsubscribe = authFlowV2.subscribe((newState) => {
           if (!mounted) return
-          
-          console.log('🔄 Route Guard received auth state update:', {
-            isAuthenticated: newState.isAuthenticated,
-            isInitialized: newState.isInitialized,
-            isLoading: newState.isLoading,
-            hasProfile: !!newState.profile,
-            pathname
-          })
-
           setAuthState(newState)
-
-          // Update loading step based on auth state
-          if (newState.isLoading) {
-            if (!newState.isAuthenticated) {
-              setLoadingStep('connecting')
-            } else if (!newState.profile) {
-              setLoadingStep('loading-profile')
-            } else {
-              setLoadingStep('initializing')
-            }
-          } else {
-            setLoadingStep('redirecting')
-            setIsLoading(false)
+          
+          // Mark as initialized when auth flow is ready
+          if (newState.isInitialized) {
+            setIsInitialized(true)
           }
         })
 
         // Check if already initialized to prevent duplicate calls
         const currentState = authFlowV2.getState()
-        if (currentState.isInitialized && !currentState.isLoading) {
-          console.log('✅ Route guard: Auth already initialized, using existing state')
+        if (currentState.isInitialized) {
           setAuthState(currentState)
-          setIsLoading(false)
-          return unsubscribe
+          setIsInitialized(true)
+          return
         }
 
-        // Set a timeout for the initialization
-        initTimeout = setTimeout(() => {
-          if (mounted && isLoading) {
-            console.log('⚠️ Auth initialization timeout - forcing completion')
-            setIsLoading(false)
-          }
-        }, 5000) // 5 second timeout
-
-        // Initialize auth flow - this should be the primary initialization point
-        console.log('🚀 Route guard: Performing fresh auth initialization...')
-        const result = await authFlowV2.initialize(true) // This is the main initialization
-        
-        if (!mounted) return
-
-        // Clear the timeout since we got a result
-        if (initTimeout) {
-          clearTimeout(initTimeout)
-          initTimeout = null
-        }
-
-        // Route guard focuses on protection, not redirection
-        // Let the auth flow handle its own redirects through events
-        if (result.success && result.shouldRedirect && result.redirectPath) {
-          console.log('🔄 Route guard: Auth flow determined redirect needed to', result.redirectPath, '- auth hook will handle it')
-        }
-
-        return unsubscribe
+        // Initialize auth flow - this is the primary initialization point
+        await authFlowV2.initialize(true)
       } catch (error: any) {
-        console.error('❌ Route guard initialization error:', error)
-        if (mounted) {
-          setIsLoading(false)
-        }
-        // Clear timeout on error
-        if (initTimeout) {
-          clearTimeout(initTimeout)
-          initTimeout = null
-        }
+        // Fallback to allow access if auth fails completely
+        setIsInitialized(true)
       }
     }
 
-    initializeAuth().then((unsubscribe) => {
-      if (mounted && unsubscribe) {
-        // Store cleanup function
-        return () => {
-          mounted = false
-          unsubscribe()
-        }
-      }
-    })
+    initializeAuth()
 
     return () => {
       mounted = false
-      if (initTimeout) {
-        clearTimeout(initTimeout)
+      if (unsubscribe) {
+        unsubscribe()
       }
     }
-  }, [isLoading, pathname])
+  }, [pathname])
 
   // Handle route protection logic
   useEffect(() => {
-    if (!authState) {
-      return // Still waiting for initial auth state
+    if (!isInitialized || !authState) {
+      return // Still waiting for auth initialization
     }
 
-    // If auth state shows not loading and we're still showing loading screen, clear it
-    if (!authState.isLoading && isLoading) {
-      console.log('🔄 Route guard: Auth completed, clearing loading screen')
-      setIsLoading(false)
-      return
-    }
-
-    // Force clear loading if authenticated and profile is loaded (fallback)
-    if (authState.isAuthenticated && authState.profile && !authState.isLoading && isLoading) {
-      console.log('⚡ Route guard: Force clearing loading - auth complete with profile')
-      console.log('🔍 Force clear details:', {
-        isAuthenticated: authState.isAuthenticated,
-        hasProfile: !!authState.profile,
-        authLoading: authState.isLoading,
-        routeGuardLoading: isLoading,
-        pathname
-      })
-      setIsLoading(false)
-      return
-    }
-
-    // Don't interfere with auth flow redirects - let the auth hook handle them
     // Only handle basic route protection for unauthenticated users
     if (!authState.isAuthenticated && !isPublicRoute(pathname)) {
-      console.log('🚫 Route guard: Unauthenticated user accessing protected route, redirecting to login')
       safeRedirect('/auth/login')
       return
     }
 
     // For authenticated users, let the auth flow handle redirects
     // Don't make routing decisions here to avoid conflicts
-  }, [authState, isLoading, pathname, safeRedirect])
+  }, [authState, isInitialized, pathname, safeRedirect])
 
-  // Show loading screen while initializing or making route decisions
-  if (isLoading || (authState?.isLoading)) {
-    const steps: LoadingStep[] = ['connecting', 'authenticating', 'loading-profile', 'initializing', 'redirecting']
-    
-    let currentStep: LoadingStep = loadingStep
-    let description = 'Establishing connection...'
-    
-    if (authState) {
-      if (!authState.isAuthenticated && !authState.user) {
-        currentStep = 'connecting'
-        description = 'Establishing connection...'
-      } else if (authState.isAuthenticated && !authState.profile) {
-        currentStep = 'loading-profile'
-        description = 'Loading your profile...'
-      } else if (authState.isAuthenticated && authState.profile && authState.isLoading) {
-        currentStep = 'initializing'
-        description = 'Setting up your dashboard...'
-      } else if (authState.isAuthenticated && authState.profile && !authState.isLoading) {
-        // Auth is complete but route guard is still processing
-        currentStep = 'redirecting'
-        description = 'Access granted! Loading your dashboard...'
-      } else {
-        currentStep = 'authenticating'
-        description = 'Verifying your credentials...'
-      }
-    }
-
-    console.log('🔄 Route guard showing loading screen:', {
-      currentStep,
-      description,
-      authStateLoading: authState?.isLoading,
-      routeGuardLoading: isLoading,
-      isAuthenticated: authState?.isAuthenticated,
-      hasProfile: !!authState?.profile,
-      pathname
-    })
-
-    return (
-      <AdvancedLoading
-        currentStep={currentStep}
-        steps={steps}
-        customDescription={description}
-        timeoutMs={5000} // Increased timeout for better UX
-        showProgress={true}
-        autoProgress={false} // Don't auto-progress, wait for actual auth completion
-        onTimeout={() => {
-          console.log('⚠️ Route guard loading timeout - forcing completion')
-          console.log('🔍 Timeout details:', {
-            isAuthenticated: authState?.isAuthenticated,
-            hasUser: !!authState?.user,
-            hasProfile: !!authState?.profile,
-            authLoading: authState?.isLoading,
-            pathname
-          })
-          // Don't force redirect - let the auth flow handle it
-          // Just clear the loading state to prevent infinite loading
-          console.log('🚀 Clearing loading state after timeout - auth flow will handle redirect')
-          setIsLoading(false)
-        }}
-      />
-    )
-  }
-
-  // Show loading for protected routes while checking authentication
-  if (!isPublicRoute(pathname) && (!authState || !authState.isInitialized)) {
-    return (
-      <AdvancedLoading
-        currentStep="initializing"
-        steps={['connecting', 'authenticating', 'loading-profile', 'initializing']}
-        customDescription="Verifying access permissions..."
-        timeoutMs={5000}
-        showProgress={true}
-        autoProgress={false} // Don't auto-progress, wait for actual auth completion
-      />
-    )
+  // Don't render anything while auth is initializing - let global loading handle it
+  if (!isInitialized) {
+    return null
   }
 
   // Render children if all checks pass
   return <>{children}</>
-}
+})
+
+export { RouteGuardV2 }
