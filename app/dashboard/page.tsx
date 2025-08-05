@@ -778,10 +778,10 @@ export default function OptimizedDashboardPage() {
                 <div className="p-2 rounded-lg bg-blue-500/20">
                   <Activity className="h-6 w-6 text-white" />
                 </div>
-                {isPlayer ? 'My Performance & Attendance' : 'Performance & Attendance'}
+                {isPlayer ? 'My Team Performance & Attendance' : 'Performance & Attendance'}
               </CardTitle>
               <CardDescription className="text-white/70">
-                {isPlayer ? 'Your personal performance metrics and attendance record' : 'Team performance statistics and attendance tracking'}
+                {isPlayer ? 'Consolidated team data and top performer statistics' : 'Team performance statistics and attendance tracking'}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -791,11 +791,11 @@ export default function OptimizedDashboardPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-indigo-100 text-sm font-medium">
-                        {isPlayer ? 'My Attendance' : 'Attendance Rate'}
+                        {isPlayer ? 'Team Attendance' : 'Attendance Rate'}
                       </p>
                       <p className="text-2xl font-bold">{(stats?.overallAttendanceRate || 0).toFixed(1)}%</p>
                       <p className="text-indigo-200 text-xs">
-                        {isPlayer ? 'Personal rate' : 'Overall attendance'}
+                        {isPlayer ? 'Team average' : 'Overall attendance'}
                       </p>
                     </div>
                     <Calendar className="h-8 w-8 text-indigo-200" />

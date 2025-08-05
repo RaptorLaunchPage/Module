@@ -78,17 +78,15 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
     }
   }, [isPlayer, isCoach, userProfile?.team_id, selectedTeam, userProfile])
 
-  // Get players for selected team
-  const teamPlayers = selectedTeam 
-    ? users.filter(user => 
-        user.team_id === selectedTeam && 
-        (user.role === 'player' || user.role === 'coach')
-      )
-    : []
-
   // Initialize player attendance states when team changes
   useEffect(() => {
     if (selectedTeam) {
+      // Get players for selected team inside useEffect to avoid dependency issues
+      const teamPlayers = users.filter(user => 
+        user.team_id === selectedTeam && 
+        (user.role === 'player' || user.role === 'coach')
+      )
+      
       const initialStates: PlayerAttendanceState[] = teamPlayers.map(player => ({
         id: player.id,
         name: player.name || player.email,
@@ -98,8 +96,10 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
         status: 'unset'
       }))
       setPlayersAttendance(initialStates)
+    } else {
+      setPlayersAttendance([])
     }
-  }, [selectedTeam, teamPlayers])
+  }, [selectedTeam, users])
 
   if (!userProfile) return null
 
@@ -260,7 +260,7 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
       </Card>
 
       {/* Player Attendance */}
-      {selectedTeam && teamPlayers.length > 0 && (
+      {selectedTeam && playersAttendance.length > 0 && (
         <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-white">
@@ -400,7 +400,7 @@ export function EnhancedMarkAttendance({ onAttendanceMarked, userProfile, teams,
       )}
 
       {/* Empty State */}
-      {selectedTeam && teamPlayers.length === 0 && (
+      {selectedTeam && playersAttendance.length === 0 && (
         <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
           <CardContent className="p-8 text-center">
             <Users className="h-12 w-12 text-white/60 mx-auto mb-4" />
