@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
 import { usePostAuthRedirect } from "@/hooks/use-post-auth-redirect"
-import { FullPageLoader } from "@/components/ui/full-page-loader"
+import { usePageLoading } from "@/lib/global-loading-manager"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -185,13 +185,23 @@ function AuthConfirmContent() {
   const type = searchParams.get('type')
   const isOAuthFlow = !tokenHash && !type
 
+  const { startPageLoad, completePageLoad } = usePageLoading()
+  
+  useEffect(() => {
+    if (isLoading || (user && !profile) || isRedirecting) {
+      startPageLoad('auth-confirm')
+    } else {
+      completePageLoad('auth-confirm')
+    }
+  }, [isLoading, user, profile, isRedirecting, startPageLoad, completePageLoad])
+
   if (isLoading || (user && !profile)) {
-    return <FullPageLoader message={isOAuthFlow ? authProgress : "Loading your account..."} />
+    return null // Global loading will handle this
   }
   
   // Show redirecting state
   if (isRedirecting) {
-    return <FullPageLoader message="Redirecting to dashboard..." />
+    return null // Global loading will handle this
   }
 
   // For OAuth flows, show a simpler loading state

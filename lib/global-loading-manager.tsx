@@ -1,10 +1,12 @@
+"use client"
+
 /**
  * Global Loading State Manager
  * Consolidates all loading states across the application into a single, efficient system
  * Eliminates race conditions and provides consistent loading UX
  */
 
-import { useState, useEffect, useCallback, createContext, useContext } from 'react'
+import React, { useState, useEffect, useCallback, createContext, useContext } from 'react'
 
 export type LoadingState = 
   | 'idle'

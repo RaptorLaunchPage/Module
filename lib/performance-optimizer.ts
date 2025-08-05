@@ -3,6 +3,8 @@
  * Provides utilities for optimizing React components and removing debug code
  */
 
+import React from 'react'
+
 // Production-safe logging function
 export const devLog = (...args: any[]) => {
   if (process.env.NODE_ENV === 'development') {

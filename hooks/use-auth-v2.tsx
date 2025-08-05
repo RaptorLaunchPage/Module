@@ -156,7 +156,7 @@ const AuthProviderV2 = memo(function AuthProviderV2({ children }: { children: Re
     if (!mounted.current) return
 
     // Check if we should trigger an instant redirect after authentication completes
-    if (authState.isAuthenticated && !authState.isLoading && authState.profile && pendingRedirect.current && !redirectInProgress.current) {
+    if (authState.isAuthenticated && !authState.isLoading && authState.profile && pendingRedirect.current) {
       const { redirectPath, isFromAuthPage, isRequiredRedirect } = pendingRedirect.current
       const currentPath = window.location.pathname
 
@@ -562,7 +562,7 @@ const AuthProviderV2 = memo(function AuthProviderV2({ children }: { children: Re
       )}
     </AuthContext.Provider>
   )
-}
+})
 
 export function useAuthV2() {
   const context = useContext(AuthContext)
@@ -571,3 +571,5 @@ export function useAuthV2() {
   }
   return context
 }
+
+export { AuthProviderV2 }

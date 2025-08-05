@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
-import { FullPageLoader } from "@/components/ui/full-page-loader"
+import { usePageLoading } from "@/lib/global-loading-manager"
 
 export default function HomePage() {
   const { user, isLoading, profile, signOut } = useAuth()
@@ -27,14 +27,24 @@ export default function HomePage() {
   // Manual redirect hook for fallback button
   const { triggerRedirect, targetPath, canRedirect } = useManualRedirect()
 
+  const { startPageLoad, completePageLoad } = usePageLoading()
+  
+  useEffect(() => {
+    if (isLoading || isRedirecting) {
+      startPageLoad('home')
+    } else {
+      completePageLoad('home')
+    }
+  }, [isLoading, isRedirecting, startPageLoad, completePageLoad])
+
   // Show loading while auth is loading or redirecting
   if (isLoading) {
-    return <FullPageLoader message="Loading..." />
+    return null // Global loading will handle this
   }
   
   // Show redirecting state
   if (isRedirecting) {
-    return <FullPageLoader message="Redirecting to dashboard..." />
+    return null // Global loading will handle this
   }
 
   // Show homepage for all users - let them choose their next action

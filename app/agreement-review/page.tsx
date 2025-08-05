@@ -18,7 +18,7 @@ import {
 } from "lucide-react"
 import ReactMarkdown from 'react-markdown'
 import { VideoBackground } from "@/components/video-background"
-import { FullPageLoader } from "@/components/ui/full-page-loader"
+import { usePageLoading } from "@/lib/global-loading-manager"
 
 interface AgreementContent {
   role: string
@@ -177,8 +177,18 @@ export default function AgreementReviewPage() {
     }
   }, [authLoading, agreementStatus, router])
 
+  const { startPageLoad, completePageLoad } = usePageLoading()
+  
+  useEffect(() => {
+    if (authLoading || loading) {
+      startPageLoad('agreement-review')
+    } else {
+      completePageLoad('agreement-review')
+    }
+  }, [authLoading, loading, startPageLoad, completePageLoad])
+
   if (authLoading || loading) {
-    return <FullPageLoader state="checking-agreement" customDescription="Loading agreement data" />
+    return null // Global loading will handle this
   }
 
   if (!user || !profile) {
