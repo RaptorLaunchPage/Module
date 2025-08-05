@@ -8,8 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { MarkAttendance } from "@/components/attendance/mark-attendance"
-import { EnhancedMarkAttendance } from "@/components/attendance/enhanced-mark-attendance"
+import { TrainingSessionAttendance } from "@/components/attendance/training-session-attendance"
+import { ScrimAttendance } from "@/components/attendance/scrim-attendance"
+import { ManagerVerification } from "@/components/attendance/manager-verification"
 import { SessionAttendance } from "@/components/attendance/session-attendance"
 import { AttendanceLogs } from "@/components/attendance/attendance-logs"
 import { AttendanceStats } from "@/components/attendance/attendance-stats"
@@ -22,7 +23,9 @@ import {
   Filter,
   CheckCircle,
   XCircle,
-  Calendar
+  Calendar,
+  Target,
+  Eye
 } from "lucide-react"
 import type { Database } from "@/lib/supabase"
 import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
@@ -293,6 +296,23 @@ export default function AttendancePage() {
         {/* Main Content */}
         <ResponsiveTabs 
           tabs={[
+            ...(profile?.role === 'player' ? [
+              {
+                value: "training",
+                label: "Training",
+                icon: Plus
+              },
+              {
+                value: "scrim",
+                label: "Scrim",
+                icon: Target
+              }
+            ] : []),
+            ...((['manager', 'coach', 'admin'].includes(userRole)) ? [{
+              value: "verification",
+              label: "Verification",
+              icon: Eye
+            }] : []),
             {
               value: "daily",
               label: "Daily Practice",
@@ -302,12 +322,6 @@ export default function AttendancePage() {
               value: "sessions",
               label: "All Sessions",
               icon: Clock
-            },
-            {
-              value: "mark",
-              label: "Enhanced Mark",
-              icon: Plus,
-              hidden: !canMarkAttendance
             },
             {
               value: "logs",
@@ -327,12 +341,30 @@ export default function AttendancePage() {
           ]}
           value={activeTab}
           onValueChange={setActiveTab}
-          defaultValue="daily"
+          defaultValue={profile?.role === 'player' ? "training" : "daily"}
           variant="default"
           size="md"
           responsiveMode="auto"
           className="space-y-6"
         >
+
+          {profile?.role === 'player' && (
+            <>
+              <TabsContent value="training">
+                <TrainingSessionAttendance />
+              </TabsContent>
+
+              <TabsContent value="scrim">
+                <ScrimAttendance />
+              </TabsContent>
+            </>
+          )}
+
+          {(['manager', 'coach', 'admin'].includes(userRole)) && (
+            <TabsContent value="verification">
+              <ManagerVerification />
+            </TabsContent>
+          )}
 
           <TabsContent value="daily">
             <DailyPracticeAttendance 
@@ -350,30 +382,7 @@ export default function AttendancePage() {
             />
           </TabsContent>
 
-          <TabsContent value="mark">
-            {canMarkAttendance ? (
-              <EnhancedMarkAttendance 
-                onAttendanceMarked={fetchAttendances}
-                userProfile={profile}
-                teams={teams}
-                users={users}
-              />
-            ) : (
-              <Card>
-                <CardContent className="py-8">
-                  <div className="text-center">
-                    <XCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Permission Required
-                    </h3>
-                    <p className="text-gray-600">
-                      You don't have permission to mark attendance.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+
 
           <TabsContent value="logs">
             <AttendanceLogs 
