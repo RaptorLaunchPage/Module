@@ -3,6 +3,8 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
+import { usePostAuthRedirect, useManualRedirect } from "@/hooks/use-post-auth-redirect"
+import { useOAuthSessionDetector } from "@/hooks/use-oauth-session-detector"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
@@ -12,10 +14,27 @@ import { FullPageLoader } from "@/components/ui/full-page-loader"
 export default function HomePage() {
   const { user, isLoading, profile, signOut } = useAuth()
   const router = useRouter()
+  
+  // Detect OAuth sessions immediately (especially Discord)
+  useOAuthSessionDetector()
+  
+  // Use unified post-auth redirect hook
+  const { isRedirecting } = usePostAuthRedirect({
+    redirectFromPages: ['/'],
+    redirectDelay: 50 // Fast redirect
+  })
+  
+  // Manual redirect hook for fallback button
+  const { triggerRedirect, targetPath, canRedirect } = useManualRedirect()
 
-  // Show loading while auth is loading
+  // Show loading while auth is loading or redirecting
   if (isLoading) {
     return <FullPageLoader message="Loading..." />
+  }
+  
+  // Show redirecting state
+  if (isRedirecting) {
+    return <FullPageLoader message="Redirecting to dashboard..." />
   }
 
   // Show homepage for all users - let them choose their next action
@@ -46,16 +65,11 @@ export default function HomePage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button 
-                  onClick={() => {
-                    if (profile.role === "pending_player" && !profile.onboarding_completed) {
-                      router.push("/onboarding")
-                    } else {
-                      router.push("/dashboard")
-                    }
-                  }}
-                  className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
+                  onClick={triggerRedirect}
+                  disabled={!canRedirect}
+                  className="w-full bg-primary hover:bg-primary/90 text-white font-medium disabled:opacity-50"
                 >
-                  Continue to {(profile.role === "pending_player" && !profile.onboarding_completed) ? "Setup" : "Dashboard"}
+                  Continue to {targetPath === '/onboarding' ? "Setup" : "Dashboard"}
                 </Button>
                 <Button 
                   variant="outline" 

@@ -70,17 +70,27 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         
         if (event === 'SIGNED_IN' && supabaseSession) {
           console.log('✅ Supabase signed in event')
+          const provider = supabaseSession.user.app_metadata?.provider || 'email'
+          console.log(`🔐 Sign in via ${provider}`)
           
           // Handle the session through auth flow
           const result = await authFlowV2.handleSupabaseSession(supabaseSession)
           
           if (!mounted.current) return
           
-          if (result.success && result.shouldRedirect && result.redirectPath) {
-            console.log('🔄 Auth event: Redirecting to:', result.redirectPath)
+          // UNIFIED REDIRECT LOGIC: Both email and Discord use the same flow
+          if (result.success) {
+            console.log(`🔄 ${provider} authentication complete, triggering unified redirect`)
             
-            // Use safe redirect to prevent loops
-            safeRedirect(result.redirectPath, { delay: 1000 })
+            // Set pending redirect for immediate handling when profile loads
+            pendingRedirect.current = {
+              redirectPath: result.redirectPath || '/dashboard',
+              isFromAuthPage: true,
+              isRequiredRedirect: true
+            }
+            
+            // The redirect will be handled by the state change handler when profile is ready
+            console.log('⏳ Redirect queued, waiting for profile to load...')
           }
         }
       } catch (error: any) {
@@ -117,24 +127,17 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           const { redirectPath } = pendingRedirect.current
           console.log('⚡ Auth complete, redirecting to:', redirectPath)
           
-          // Small delay to ensure UI updates are complete
+          // Immediate redirect for better UX
           setTimeout(() => {
             if (mounted.current) {
-              safeRedirect(redirectPath, { delay: 500 })
+              safeRedirect(redirectPath, { delay: 100 })
               pendingRedirect.current = null
             }
-          }, 500)
+          }, 100)
         } else {
-          // Check if we're on homepage but should be on dashboard
-          const currentPath = window.location.pathname
-          if (currentPath === '/' && newState.isAuthenticated && newState.profile) {
-            console.log('🏠 User authenticated on homepage, redirecting to dashboard')
-            setTimeout(() => {
-              if (mounted.current) {
-                safeRedirect('/dashboard', { delay: 500 })
-              }
-            }, 500)
-          }
+          // Note: Redirect logic has been moved to usePostAuthRedirect hook
+          // This ensures consistent behavior across all pages and components
+          console.log('🔄 Auth state updated - redirect handled by usePostAuthRedirect hook')
         }
       }
       
@@ -313,7 +316,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         password,
         options: {
           data: { name },
-          emailRedirectTo: `${getSiteUrl()}/dashboard`
+          emailRedirectTo: `${getSiteUrl()}/auth/confirm`
         }
       })
 
@@ -397,7 +400,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: `${getSiteUrl()}/dashboard`
+          redirectTo: `${getSiteUrl()}/auth/confirm`
         }
       })
 

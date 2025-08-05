@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
+import { usePostAuthRedirect } from "@/hooks/use-post-auth-redirect"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,11 +21,29 @@ function AuthConfirmContent() {
   const { toast } = useToast()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
+  const [authProgress, setAuthProgress] = useState('Initializing...')
+  
+  // Use unified post-auth redirect hook
+  const { isRedirecting } = usePostAuthRedirect({
+    redirectFromPages: ['/auth/confirm'],
+    redirectDelay: 200 // Slightly longer delay for OAuth flows
+  })
 
   useEffect(() => {
-    // If user is already authenticated (OAuth or email), redirect via route guard
+    // UNIFIED AUTH CONFIRMATION: Handle redirects with timeout fallback
     if (user && profile && !isLoading) {
-      console.log('✅ User already authenticated, letting route guard handle redirect')
+      console.log('✅ Auth confirmation: User authenticated, redirecting immediately')
+      
+      // Determine redirect path
+      let redirectPath = '/dashboard'
+      if (profile.role === 'pending_player' && !profile.onboarding_completed) {
+        redirectPath = '/onboarding'
+        console.log('🔄 New user needs onboarding')
+      }
+      
+      // Immediate redirect - don't wait for auth hook
+      console.log(`🚀 Auth confirm: Redirecting to ${redirectPath}`)
+      router.replace(redirectPath) // Use replace to avoid back button issues
       return
     }
 
@@ -35,9 +54,38 @@ function AuthConfirmContent() {
 
     if (isOAuthFlow) {
       console.log('🔐 OAuth flow detected, waiting for auth state to complete...')
-      // For OAuth flows, we just wait for the auth state to be processed
-      // The auth flow will handle the redirect automatically
-      return
+      setAuthProgress('Processing authentication...')
+      
+      // Update progress indicators
+      const progressInterval = setInterval(() => {
+        if (user && !profile) {
+          setAuthProgress('Loading profile...')
+        } else if (user && profile) {
+          setAuthProgress('Redirecting...')
+        }
+      }, 1000)
+      
+      // Add timeout fallback in case auth hook doesn't trigger
+      const timeoutId = setTimeout(() => {
+        console.log('⚠️ Auth confirmation timeout - checking auth state...')
+        setAuthProgress('Finalizing...')
+        
+        if (user && profile) {
+          const redirectPath = profile.role === 'pending_player' && !profile.onboarding_completed 
+            ? '/onboarding' 
+            : '/dashboard'
+          console.log(`🚀 Timeout fallback: Redirecting to ${redirectPath}`)
+          router.push(redirectPath)
+        } else {
+          console.log('⚠️ No auth state after timeout, redirecting to homepage')
+          router.push('/')
+        }
+      }, 5000) // 5 second timeout
+      
+      return () => {
+        clearTimeout(timeoutId)
+        clearInterval(progressInterval)
+      }
     }
 
     // Handle email confirmation flow
@@ -86,13 +134,64 @@ function AuthConfirmContent() {
     }
   }, [searchParams, router, toast, user, profile, isLoading])
 
+  // Additional effect to ensure redirect happens even if main effect misses it
+  useEffect(() => {
+    if (user && profile && !isLoading) {
+      const timer = setTimeout(() => {
+        const redirectPath = profile.role === 'pending_player' && !profile.onboarding_completed 
+          ? '/onboarding' 
+          : '/dashboard'
+        console.log('🔄 Secondary redirect check - ensuring redirect happens')
+        router.replace(redirectPath) // Use replace to avoid back button issues
+      }, 2000) // 2 second secondary check
+      
+      return () => clearTimeout(timer)
+    }
+  }, [user, profile, isLoading, router])
+
+  // Aggressive session check for OAuth flows
+  useEffect(() => {
+    const tokenHash = searchParams.get('token_hash')
+    const type = searchParams.get('type')
+    const isOAuthFlow = !tokenHash && !type
+
+    if (isOAuthFlow && !user) {
+      console.log('🔍 Auth confirm: Checking for immediate OAuth session...')
+      
+      // Check for session immediately
+      const checkSession = async () => {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession()
+          if (session?.user && !error) {
+            console.log('✅ Auth confirm: Found immediate OAuth session, forcing auth refresh')
+            // Force auth state refresh
+            window.location.reload()
+          }
+        } catch (error) {
+          console.error('❌ Auth confirm: Session check error:', error)
+        }
+      }
+
+      // Check immediately and after delay
+      checkSession()
+      const timeoutId = setTimeout(checkSession, 1000)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [searchParams, user])
+
   // For OAuth flows, show a different message
   const tokenHash = searchParams.get('token_hash')
   const type = searchParams.get('type')
   const isOAuthFlow = !tokenHash && !type
 
   if (isLoading || (user && !profile)) {
-    return <FullPageLoader message={isOAuthFlow ? "Completing authentication..." : "Loading your account..."} />
+    return <FullPageLoader message={isOAuthFlow ? authProgress : "Loading your account..."} />
+  }
+  
+  // Show redirecting state
+  if (isRedirecting) {
+    return <FullPageLoader message="Redirecting to dashboard..." />
   }
 
   // For OAuth flows, show a simpler loading state
@@ -110,12 +209,16 @@ function AuthConfirmContent() {
                 Authentication
               </CardTitle>
               <CardDescription className="text-slate-200">
-                Completing authentication...
+                {authProgress}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-center">
-                <p className="text-slate-300">Please wait while we complete your authentication.</p>
+                <p className="text-slate-300">{authProgress}</p>
+                <div className="mt-2 text-xs text-slate-400">
+                  {user ? 'User authenticated ✓' : 'Waiting for authentication...'}
+                  {user && profile && ' | Profile loaded ✓'}
+                </div>
               </div>
             </CardContent>
           </Card>

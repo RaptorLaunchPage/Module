@@ -418,8 +418,12 @@ class AuthFlowV2Manager {
       // Store session
       SessionStorage.setSession(sessionData)
 
-      console.log(`✅ ${provider} session processed successfully, redirecting to dashboard`)
-      return await this.setAuthenticatedState(sessionData, profile, true) // Redirect on login
+      console.log(`✅ ${provider} session processed successfully`)
+      
+      // UNIFIED BEHAVIOR: All authentication methods (email, Discord, etc.) use same redirect logic
+      console.log(`🔄 ${provider} authentication complete, will redirect to appropriate page`)
+      
+      return await this.setAuthenticatedState(sessionData, profile, true)
 
     } catch (error: any) {
       console.error('❌ Session handling failed:', error)
