@@ -155,9 +155,9 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
             setTimeout(() => {
               if (mounted.current) {
                 console.log(`⚡ Executing unified redirect to: ${targetPath}`)
-                safeRedirect(targetPath, { delay: 100 })
+                safeRedirect(targetPath, { delay: 50 })
               }
-            }, 200)
+            }, 100)
           }
         }
       }
