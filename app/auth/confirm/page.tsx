@@ -43,7 +43,7 @@ function AuthConfirmContent() {
       
       // Immediate redirect - don't wait for auth hook
       console.log(`🚀 Auth confirm: Redirecting to ${redirectPath}`)
-      router.push(redirectPath)
+      router.replace(redirectPath) // Use replace to avoid back button issues
       return
     }
 
@@ -142,12 +142,43 @@ function AuthConfirmContent() {
           ? '/onboarding' 
           : '/dashboard'
         console.log('🔄 Secondary redirect check - ensuring redirect happens')
-        router.push(redirectPath)
+        router.replace(redirectPath) // Use replace to avoid back button issues
       }, 2000) // 2 second secondary check
       
       return () => clearTimeout(timer)
     }
   }, [user, profile, isLoading, router])
+
+  // Aggressive session check for OAuth flows
+  useEffect(() => {
+    const tokenHash = searchParams.get('token_hash')
+    const type = searchParams.get('type')
+    const isOAuthFlow = !tokenHash && !type
+
+    if (isOAuthFlow && !user) {
+      console.log('🔍 Auth confirm: Checking for immediate OAuth session...')
+      
+      // Check for session immediately
+      const checkSession = async () => {
+        try {
+          const { data: { session }, error } = await supabase.auth.getSession()
+          if (session?.user && !error) {
+            console.log('✅ Auth confirm: Found immediate OAuth session, forcing auth refresh')
+            // Force auth state refresh
+            window.location.reload()
+          }
+        } catch (error) {
+          console.error('❌ Auth confirm: Session check error:', error)
+        }
+      }
+
+      // Check immediately and after delay
+      checkSession()
+      const timeoutId = setTimeout(checkSession, 1000)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [searchParams, user])
 
   // For OAuth flows, show a different message
   const tokenHash = searchParams.get('token_hash')

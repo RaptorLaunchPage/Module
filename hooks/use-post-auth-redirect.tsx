@@ -70,10 +70,14 @@ export function usePostAuthRedirect(options: UsePostAuthRedirectOptions = {}) {
       clearTimeout(redirectTimeout.current)
     }
 
+    // For homepage (likely Discord OAuth landing), redirect immediately
+    const isHomepageRedirect = pathname === '/'
+    const actualDelay = isHomepageRedirect ? 50 : redirectDelay
+
+    console.log(`⚡ Executing post-auth redirect to: ${targetPath} (delay: ${actualDelay}ms)`)
+
     // Perform redirect with delay
     redirectTimeout.current = setTimeout(() => {
-      console.log(`⚡ Executing post-auth redirect to: ${targetPath}`)
-      
       // Use router.replace to avoid back button issues
       router.replace(targetPath)
       
@@ -82,7 +86,7 @@ export function usePostAuthRedirect(options: UsePostAuthRedirectOptions = {}) {
         safeRedirect(targetPath, { delay: 50 })
       }, 100)
       
-    }, redirectDelay)
+    }, actualDelay)
 
     return () => {
       if (redirectTimeout.current) {

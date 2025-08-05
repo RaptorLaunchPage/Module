@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
 import { usePostAuthRedirect, useManualRedirect } from "@/hooks/use-post-auth-redirect"
+import { useOAuthSessionDetector } from "@/hooks/use-oauth-session-detector"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
@@ -13,6 +14,9 @@ import { FullPageLoader } from "@/components/ui/full-page-loader"
 export default function HomePage() {
   const { user, isLoading, profile, signOut } = useAuth()
   const router = useRouter()
+  
+  // Detect OAuth sessions immediately (especially Discord)
+  useOAuthSessionDetector()
   
   // Use unified post-auth redirect hook
   const { isRedirecting } = usePostAuthRedirect({
