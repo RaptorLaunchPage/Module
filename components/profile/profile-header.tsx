@@ -226,7 +226,7 @@ export function ProfileHeader({ profile, viewerProfile, onEdit, isEditing, showA
               
               {/* Actions */}
               <div className="flex flex-col gap-2 md:items-end">
-                {canEdit && onEdit && (
+                {canEdit && onEdit && viewerProfile.role !== 'player' && (
                   <Button 
                     onClick={onEdit}
                     variant={isEditing ? "secondary" : "default"}
@@ -238,7 +238,7 @@ export function ProfileHeader({ profile, viewerProfile, onEdit, isEditing, showA
                   </Button>
                 )}
                 
-                {isOwnProfile && (
+                {isOwnProfile && viewerProfile.role !== 'player' && (
                   <Button variant="outline" size="sm" className="w-full md:w-auto">
                     <Settings className="h-4 w-4 mr-2" />
                     Settings

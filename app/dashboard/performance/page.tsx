@@ -479,7 +479,7 @@ export default function PerformancePage() {
           <h1 className="text-2xl sm:text-3xl font-bold">Performance Tracking</h1>
           <p className="text-muted-foreground">Track and analyze match performance data</p>
         </div>
-        {(canAddPerformance && !isAnalyst) && (
+        {(canAddPerformance && !isAnalyst && profile?.role !== 'player') && (
           <Dialog open={addPerformanceOpen} onOpenChange={setAddPerformanceOpen}>
             <DialogTrigger asChild>
               <Button className="w-full sm:w-auto">
