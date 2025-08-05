@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { CalendarIcon, Trash2, Settings } from "lucide-react"
-import { format } from "date-fns"
+import { format, startOfMonth, endOfMonth } from "date-fns"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
@@ -49,6 +49,8 @@ export default function SlotsPage() {
   const [tierDefaults, setTierDefaults] = useState<TierDefault[]>([])
   const [loading, setLoading] = useState(true)
   const [formLoading, setFormLoading] = useState(false)
+  const [currentView, setCurrentView] = useState<'current' | 'archived' | 'all'>('current')
+  const [filterMonth, setFilterMonth] = useState<Date | undefined>(new Date())
   const [newSlotData, setNewSlotData] = useState({
     team_id: "",
     organizer: "",
@@ -62,9 +64,14 @@ export default function SlotsPage() {
 
   useEffect(() => {
     fetchTeams()
-    fetchSlots()
     fetchTierDefaults()
   }, [profile])
+
+  useEffect(() => {
+    if (profile) {
+      fetchSlots(currentView, filterMonth ? format(filterMonth, 'yyyy-MM') : undefined)
+    }
+  }, [profile, currentView, filterMonth])
 
   const fetchTeams = async () => {
     try {
@@ -105,30 +112,39 @@ export default function SlotsPage() {
   const fetchSlots = async (view: 'current' | 'archived' | 'all' = 'current', month?: string) => {
     setLoading(true)
     try {
-      const params = new URLSearchParams()
-      params.append('view', view)
-      if (month) params.append('month', month)
+      const userRole = profile?.role as UserRole
+      const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
       
-      const { data: { session } } = await supabase.auth.getSession()
-      const token = session?.access_token
-      
-      if (!token) {
-        throw new Error('No authentication token available')
-      }
-      
-      const response = await fetch(`/api/slots?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      let query = supabase.from("slots").select("*, team:team_id(name, tier)").order("date", { ascending: false })
+
+      // Filter slots based on role permissions  
+      if (!shouldSeeAllData) {
+        if (userRole === "coach" || userRole === "player") {
+          query = query.eq("team_id", profile.team_id!)
         }
-      })
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch slots')
       }
+      // Admin and manager see all slots (no filtering)
+
+      // Date filtering based on view
+      const today = format(new Date(), 'yyyy-MM-dd')
       
-      setSlots(data.slots || [])
+      if (view === 'current') {
+        query = query.eq('date', today)
+      } else if (view === 'archived') {
+        if (month) {
+          const monthDate = new Date(month + '-01')
+          const startDate = format(startOfMonth(monthDate), 'yyyy-MM-dd')
+          const endDate = format(endOfMonth(monthDate), 'yyyy-MM-dd')
+          query = query.gte('date', startDate).lte('date', endDate)
+        } else {
+          query = query.lt('date', today)
+        }
+      }
+      // 'all' view has no date filtering
+
+      const { data, error } = await query
+      if (error) throw error
+      setSlots(data || [])
     } catch (error: any) {
       console.error("Error fetching slots:", error)
       toast({
@@ -250,7 +266,7 @@ export default function SlotsPage() {
         notes: "",
         date: new Date(),
       })
-      fetchSlots()
+      fetchSlots(currentView, filterMonth ? format(filterMonth, 'yyyy-MM') : undefined)
     } catch (error: any) {
       console.error("Error booking slot:", error)
       toast({
@@ -272,7 +288,7 @@ export default function SlotsPage() {
       const { error } = await supabase.from("slots").delete().eq("id", slotId)
       if (error) throw error
       toast({ title: "Success", description: "Slot deleted successfully." })
-      fetchSlots()
+      fetchSlots(currentView, filterMonth ? format(filterMonth, 'yyyy-MM') : undefined)
     } catch (error: any) {
       console.error("Error deleting slot:", error)
       toast({
@@ -327,10 +343,10 @@ export default function SlotsPage() {
 
   return (
     <Tabs defaultValue="booking" className="space-y-6">
-      <TabsList>
-        <TabsTrigger value="booking">Slot Booking</TabsTrigger>
-        <TabsTrigger value="list">Booked Slots</TabsTrigger>
-        {canManageSettings && <TabsTrigger value="settings">Tier Settings</TabsTrigger>}
+      <TabsList className="flex w-full flex-wrap justify-start gap-1 h-auto p-1">
+        <TabsTrigger value="booking" className="flex-1 min-w-0 text-xs sm:text-sm">Slot Booking</TabsTrigger>
+        <TabsTrigger value="list" className="flex-1 min-w-0 text-xs sm:text-sm">Booked Slots</TabsTrigger>
+        {canManageSettings && <TabsTrigger value="settings" className="flex-1 min-w-0 text-xs sm:text-sm">Tier Settings</TabsTrigger>}
       </TabsList>
 
       <TabsContent value="booking">
@@ -485,6 +501,64 @@ export default function SlotsPage() {
           <CardHeader>
             <CardTitle>Booked Slots</CardTitle>
             <CardDescription>Overview of all scheduled slots with slot-based billing.</CardDescription>
+            
+            {/* View Controls */}
+            <div className="flex flex-wrap items-center gap-4 pt-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">View:</label>
+                <div className="flex gap-1">
+                  <Button
+                    variant={currentView === 'current' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCurrentView('current')}
+                  >
+                    Current
+                  </Button>
+                  <Button
+                    variant={currentView === 'archived' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCurrentView('archived')}
+                  >
+                    Archive
+                  </Button>
+                  <Button
+                    variant={currentView === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setCurrentView('all')}
+                  >
+                    All
+                  </Button>
+                </div>
+              </div>
+              
+              {currentView === 'archived' && (
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium">Month:</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {filterMonth ? format(filterMonth, "MMM yyyy") : "Select month"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={filterMonth}
+                        onSelect={setFilterMonth}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+              
+              <div className="text-sm text-muted-foreground">
+                {currentView === 'current' && "Showing today's slots"}
+                {currentView === 'archived' && `Showing archived slots${filterMonth ? ` for ${format(filterMonth, "MMM yyyy")}` : ''}`}
+                {currentView === 'all' && "Showing all slots"}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>

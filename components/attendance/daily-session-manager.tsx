@@ -295,10 +295,10 @@ export function DailySessionManager() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="create" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="create">Create Session</TabsTrigger>
-          <TabsTrigger value="manage">Manage Sessions</TabsTrigger>
-          <TabsTrigger value="generate">Auto Generate</TabsTrigger>
+        <TabsList className="flex w-full flex-wrap justify-start gap-1 h-auto p-1">
+          <TabsTrigger value="create" className="flex-1 min-w-0 text-xs sm:text-sm">Create Session</TabsTrigger>
+          <TabsTrigger value="manage" className="flex-1 min-w-0 text-xs sm:text-sm">Manage Sessions</TabsTrigger>
+          <TabsTrigger value="generate" className="flex-1 min-w-0 text-xs sm:text-sm">Auto Generate</TabsTrigger>
         </TabsList>
 
         <TabsContent value="create">

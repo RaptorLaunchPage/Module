@@ -349,8 +349,8 @@ export default function AttendancePage() {
           onValueChange={setActiveTab}
           defaultValue={profile?.role === 'player' ? "training" : "daily"}
           variant="default"
-          size="md"
-          responsiveMode="auto"
+          size="sm"
+          responsiveMode="dropdown"
           className="space-y-6"
         >
 
