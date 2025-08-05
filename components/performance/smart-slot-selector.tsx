@@ -12,8 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CalendarIcon, Plus, Search } from 'lucide-react'
-import { format } from 'date-fns'
+import { CalendarIcon, Plus, Search, Archive, Filter } from 'lucide-react'
+import { format, isToday, startOfMonth, endOfMonth } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { Database } from '@/lib/supabase'
 
@@ -43,12 +43,14 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
+  const [filterMonth, setFilterMonth] = useState<Date | undefined>(new Date())
   
   // Quick add form state
   const [quickAddData, setQuickAddData] = useState({
     organizer: '',
     time_range: '',
-    date: undefined as Date | undefined,
+    date: new Date(), // Default to today
     team_id: '',
     slot_rate: 0
   })
@@ -56,13 +58,14 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
   const userRole = profile?.role as UserRole
   const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
   const isAdminOrManager = ['admin', 'manager'].includes(userRole)
+  const isPlayer = userRole === 'player'
 
   useEffect(() => {
     fetchSlots()
     if (isAdminOrManager) {
       fetchTeams()
     }
-  }, [profile])
+  }, [profile, showArchived, filterMonth])
 
   const fetchSlots = async () => {
     try {
@@ -70,10 +73,28 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
         .select("*, team:team_id(name)")
         .order("date", { ascending: false })
 
-      // Filter based on role
+      // Role-based filtering
       if (!shouldSeeAllData) {
         if (userRole === "coach" || userRole === "player") {
           query = query.eq("team_id", profile?.team_id!)
+        }
+      }
+
+      // Date filtering based on role and archive view
+      if (isPlayer) {
+        // Players only see today's slots
+        const today = format(new Date(), 'yyyy-MM-dd')
+        query = query.eq("date", today)
+      } else if (isAdminOrManager) {
+        if (showArchived && filterMonth) {
+          // Show archived slots for selected month
+          const startDate = format(startOfMonth(filterMonth), 'yyyy-MM-dd')
+          const endDate = format(endOfMonth(filterMonth), 'yyyy-MM-dd')
+          query = query.gte("date", startDate).lte("date", endDate)
+        } else if (!showArchived) {
+          // Show only today's slots for current view
+          const today = format(new Date(), 'yyyy-MM-dd')
+          query = query.eq("date", today)
         }
       }
 
@@ -112,7 +133,8 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
         time_range: quickAddData.time_range,
         date: format(quickAddData.date, 'yyyy-MM-dd'),
         team_id: quickAddData.team_id,
-        slot_rate: quickAddData.slot_rate
+        slot_rate: quickAddData.slot_rate,
+        match_count: 0 // Default value
       }).select("*, team:team_id(name)").single()
 
       if (error) throw error
@@ -126,7 +148,7 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
       setQuickAddData({
         organizer: '',
         time_range: '',
-        date: undefined,
+        date: new Date(),
         team_id: '',
         slot_rate: 0
       })
@@ -161,7 +183,7 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Quick Add Slot</DialogTitle>
+                  <DialogTitle>Quick Add Daily Slot</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
@@ -201,8 +223,9 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
                         <Calendar
                           mode="single"
                           selected={quickAddData.date}
-                          onSelect={(date) => setQuickAddData(prev => ({ ...prev, date }))}
+                          onSelect={(date) => date && setQuickAddData(prev => ({ ...prev, date }))}
                           initialFocus
+                          disabled={(date) => date < new Date()}
                         />
                       </PopoverContent>
                     </Popover>
@@ -233,13 +256,20 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
                     />
                   </div>
                   <Button onClick={handleQuickAdd} className="w-full">
-                    Create Slot
+                    Create Daily Slot
                   </Button>
                 </div>
               </DialogContent>
             </Dialog>
           )}
         </div>
+
+        {/* Show status for players */}
+        {isPlayer && (
+          <div className="text-xs text-muted-foreground">
+            Showing only today's available slots
+          </div>
+        )}
         
         {loading ? (
           <Input disabled value="Loading slots..." />
@@ -259,105 +289,145 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
           </Select>
         ) : (
           <div className="text-red-500 text-sm">
-            No slots available. {isAdminOrManager ? 'Click Quick Add to create one.' : 'Please contact your coach or admin.'}
+            {isPlayer 
+              ? "No slots available for today. Please contact your coach or admin."
+              : `No slots available. ${isAdminOrManager ? 'Click Quick Add to create one.' : 'Please contact your coach or admin.'}`
+            }
           </div>
         )}
       </div>
     )
   }
 
-  // For admin/manager with many slots, use search interface
+  // For admin/manager with many slots, use advanced search interface
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <Label htmlFor="slot">Slot</Label>
-        <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Plus className="h-4 w-4 mr-1" />
-              Quick Add
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Quick Add Slot</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Organizer</Label>
-                <Input 
-                  value={quickAddData.organizer}
-                  onChange={(e) => setQuickAddData(prev => ({ ...prev, organizer: e.target.value }))}
-                  placeholder="Tournament/League name"
-                />
-              </div>
-              <div>
-                <Label>Time Range</Label>
-                <Select 
-                  value={quickAddData.time_range} 
-                  onValueChange={(value) => setQuickAddData(prev => ({ ...prev, time_range: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select time range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIME_RANGES.map(range => (
-                      <SelectItem key={range} value={range}>{range}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {quickAddData.date ? format(quickAddData.date, "PPP") : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={quickAddData.date}
-                      onSelect={(date) => setQuickAddData(prev => ({ ...prev, date }))}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div>
-                <Label>Team</Label>
-                <Select 
-                  value={quickAddData.team_id} 
-                  onValueChange={(value) => setQuickAddData(prev => ({ ...prev, team_id: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select team" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teams.map(team => (
-                      <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Slot Rate</Label>
-                <Input 
-                  type="number"
-                  value={quickAddData.slot_rate}
-                  onChange={(e) => setQuickAddData(prev => ({ ...prev, slot_rate: Number(e.target.value) }))}
-                  placeholder="0"
-                />
-              </div>
-              <Button onClick={handleQuickAdd} className="w-full">
-                Create Slot
+        <div className="flex gap-2">
+          {/* Archive toggle */}
+          <Button
+            variant={showArchived ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowArchived(!showArchived)}
+          >
+            <Archive className="h-4 w-4 mr-1" />
+            {showArchived ? "Current" : "Archive"}
+          </Button>
+          
+          <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Quick Add
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Quick Add Daily Slot</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Organizer</Label>
+                  <Input 
+                    value={quickAddData.organizer}
+                    onChange={(e) => setQuickAddData(prev => ({ ...prev, organizer: e.target.value }))}
+                    placeholder="Tournament/League name"
+                  />
+                </div>
+                <div>
+                  <Label>Time Range</Label>
+                  <Select 
+                    value={quickAddData.time_range} 
+                    onValueChange={(value) => setQuickAddData(prev => ({ ...prev, time_range: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select time range" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_RANGES.map(range => (
+                        <SelectItem key={range} value={range}>{range}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {quickAddData.date ? format(quickAddData.date, "PPP") : "Pick a date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={quickAddData.date}
+                        onSelect={(date) => date && setQuickAddData(prev => ({ ...prev, date }))}
+                        initialFocus
+                        disabled={(date) => date < new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label>Team</Label>
+                  <Select 
+                    value={quickAddData.team_id} 
+                    onValueChange={(value) => setQuickAddData(prev => ({ ...prev, team_id: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams.map(team => (
+                        <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Slot Rate</Label>
+                  <Input 
+                    type="number"
+                    value={quickAddData.slot_rate}
+                    onChange={(e) => setQuickAddData(prev => ({ ...prev, slot_rate: Number(e.target.value) }))}
+                    placeholder="0"
+                  />
+                </div>
+                <Button onClick={handleQuickAdd} className="w-full">
+                  Create Daily Slot
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
+
+      {/* Archive month filter */}
+      {showArchived && (
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4" />
+          <Label className="text-sm">Filter by month:</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {filterMonth ? format(filterMonth, "MMMM yyyy") : "Select month"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={filterMonth}
+                onSelect={setFilterMonth}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
 
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -367,6 +437,13 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
           placeholder="Search slots by organizer, time, team, or date..."
           className="pl-10"
         />
+      </div>
+
+      <div className="text-xs text-muted-foreground">
+        {showArchived 
+          ? `Showing archived slots for ${filterMonth ? format(filterMonth, "MMMM yyyy") : "all time"}`
+          : "Showing today's slots only"
+        }
       </div>
 
       <div className="max-h-48 overflow-y-auto border rounded-md">
@@ -386,6 +463,11 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
                   <div className="text-gray-600">
                     {slot.time_range} • {slot.date}
                     {slot.team && ` • ${slot.team.name}`}
+                    {!isToday(new Date(slot.date)) && (
+                      <span className="ml-2 text-xs bg-gray-600 text-white px-1 rounded">
+                        Past
+                      </span>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -398,7 +480,7 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
           </div>
         ) : (
           <div className="p-4 text-center text-gray-500">
-            {searchTerm ? 'No slots match your search.' : 'No slots available.'}
+            {searchTerm ? 'No slots match your search.' : showArchived ? 'No archived slots found for selected period.' : 'No slots available for today.'}
           </div>
         )}
       </div>

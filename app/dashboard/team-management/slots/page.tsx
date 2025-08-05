@@ -102,25 +102,33 @@ export default function SlotsPage() {
     }
   }
 
-  const fetchSlots = async () => {
+  const fetchSlots = async (view: 'current' | 'archived' | 'all' = 'current', month?: string) => {
     setLoading(true)
     try {
-      const userRole = profile?.role as UserRole
-      const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
+      const params = new URLSearchParams()
+      params.append('view', view)
+      if (month) params.append('month', month)
       
-      let query = supabase.from("slots").select("*, team:team_id(name, tier)").order("date", { ascending: false })
-
-      // Filter slots based on role permissions  
-      if (!shouldSeeAllData) {
-        if (userRole === "coach" || userRole === "player") {
-          query = query.eq("team_id", profile.team_id!)
-        }
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      
+      if (!token) {
+        throw new Error('No authentication token available')
       }
-      // Admin and manager see all slots (no filtering)
-
-      const { data, error } = await query
-      if (error) throw error
-      setSlots(data || [])
+      
+      const response = await fetch(`/api/slots?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch slots')
+      }
+      
+      setSlots(data.slots || [])
     } catch (error: any) {
       console.error("Error fetching slots:", error)
       toast({
