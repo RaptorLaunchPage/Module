@@ -82,6 +82,12 @@ export function ScrimAttendance() {
   const loadScrimData = async () => {
     setLoading(true)
     try {
+      if (!profile?.team_id) {
+        setScrimSessions([])
+        setScrimAttendances([])
+        return
+      }
+
       // Get recent slots (scrims) for the team
       const { data: slots, error: slotsError } = await supabase
         .from('slots')
@@ -128,6 +134,7 @@ export function ScrimAttendance() {
 
     } catch (error) {
       console.error('Error loading scrim data:', error)
+      // Could add toast notification here if needed
     } finally {
       setLoading(false)
     }

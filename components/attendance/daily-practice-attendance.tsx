@@ -64,6 +64,10 @@ export function DailyPracticeAttendance({ userProfile, teams, users }: DailyPrac
     setLoading(true)
     try {
       const token = await getToken()
+      if (!token) {
+        throw new Error('Authentication required. Please log in again.')
+      }
+
       const response = await fetch('/api/sessions/daily-practice', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -71,14 +75,24 @@ export function DailyPracticeAttendance({ userProfile, teams, users }: DailyPrac
       if (response.ok) {
         const data = await response.json()
         processSessionsIntoDaily(data.sessions || [])
+        
+        // Handle special case where player has no team
+        if (data.message) {
+          toast({
+            title: "Info",
+            description: data.message,
+            variant: "default"
+          })
+        }
       } else {
-        throw new Error('Failed to load daily sessions')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || `Server error: ${response.status}`)
       }
     } catch (error) {
       console.error('Error loading daily sessions:', error)
       toast({
         title: "Error Loading Sessions",
-        description: "Failed to load practice sessions",
+        description: error instanceof Error ? error.message : "Failed to load practice sessions",
         variant: "destructive"
       })
     } finally {

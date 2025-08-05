@@ -103,7 +103,7 @@ export function SessionAttendance({ userProfile, teams, users }: SessionAttendan
     setLoading(true)
     try {
       const token = await supabase.auth.getSession().then(({ data }) => data.session?.access_token)
-      if (!token) throw new Error('No authentication token')
+      if (!token) throw new Error('Authentication required. Please log in again.')
 
       // Fetch sessions for the selected date
       const sessionsResponse = await fetch(`/api/sessions?date=${selectedDate}`, {
@@ -111,7 +111,8 @@ export function SessionAttendance({ userProfile, teams, users }: SessionAttendan
       })
 
       if (!sessionsResponse.ok) {
-        throw new Error('Failed to fetch sessions')
+        const errorData = await sessionsResponse.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || `Server error: ${sessionsResponse.status}`)
       }
 
       const sessionsData = await sessionsResponse.json()
