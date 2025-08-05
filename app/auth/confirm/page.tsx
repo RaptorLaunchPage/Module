@@ -22,9 +22,18 @@ function AuthConfirmContent() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    // If user is already authenticated (OAuth or email), redirect via route guard
+    // If user is already authenticated (OAuth or email), redirect to dashboard
     if (user && profile && !isLoading) {
-      console.log('✅ User already authenticated, letting route guard handle redirect')
+      console.log('✅ User already authenticated, redirecting to dashboard')
+      
+      // Check if user needs onboarding
+      if (profile.role === 'pending_player' && !profile.onboarding_completed) {
+        console.log('🔄 Redirecting to onboarding for new user')
+        router.push('/onboarding')
+      } else {
+        console.log('🔄 Redirecting to dashboard')
+        router.push('/dashboard')
+      }
       return
     }
 
@@ -35,8 +44,8 @@ function AuthConfirmContent() {
 
     if (isOAuthFlow) {
       console.log('🔐 OAuth flow detected, waiting for auth state to complete...')
-      // For OAuth flows, we just wait for the auth state to be processed
-      // The auth flow will handle the redirect automatically
+      // For OAuth flows, we wait for the auth state to be processed
+      // Once user and profile are loaded, the redirect above will trigger
       return
     }
 

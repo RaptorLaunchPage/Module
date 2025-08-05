@@ -418,8 +418,16 @@ class AuthFlowV2Manager {
       // Store session
       SessionStorage.setSession(sessionData)
 
-      console.log(`✅ ${provider} session processed successfully, redirecting to dashboard`)
-      return await this.setAuthenticatedState(sessionData, profile, true) // Redirect on login
+      console.log(`✅ ${provider} session processed successfully`)
+      
+      // For OAuth providers, always redirect to dashboard unless user needs onboarding
+      const shouldRedirect = provider === 'discord' || provider === 'google' || provider === 'github'
+      
+      if (shouldRedirect) {
+        console.log(`🔄 ${provider} OAuth complete, will redirect to dashboard`)
+      }
+      
+      return await this.setAuthenticatedState(sessionData, profile, shouldRedirect)
 
     } catch (error: any) {
       console.error('❌ Session handling failed:', error)

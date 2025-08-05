@@ -70,6 +70,8 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
         
         if (event === 'SIGNED_IN' && supabaseSession) {
           console.log('✅ Supabase signed in event')
+          const provider = supabaseSession.user.app_metadata?.provider || 'email'
+          console.log(`🔐 Sign in via ${provider}`)
           
           // Handle the session through auth flow
           const result = await authFlowV2.handleSupabaseSession(supabaseSession)
@@ -77,10 +79,17 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
           if (!mounted.current) return
           
           if (result.success && result.shouldRedirect && result.redirectPath) {
-            console.log('🔄 Auth event: Redirecting to:', result.redirectPath)
+            console.log(`🔄 Auth event: ${provider} sign in complete, redirecting to:`, result.redirectPath)
             
             // Use safe redirect to prevent loops
             safeRedirect(result.redirectPath, { delay: 1000 })
+          } else if (result.success && provider === 'discord') {
+            // For Discord OAuth, ensure we redirect even if shouldRedirect is false
+            console.log('🔄 Discord OAuth complete, ensuring redirect to dashboard')
+            const currentPath = window.location.pathname
+            if (currentPath === '/auth/confirm' || currentPath === '/') {
+              safeRedirect('/dashboard', { delay: 1000 })
+            }
           }
         }
       } catch (error: any) {
@@ -125,15 +134,26 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
             }
           }, 500)
         } else {
-          // Check if we're on homepage but should be on dashboard
+          // Check if we're on homepage or auth/confirm but should be on dashboard
           const currentPath = window.location.pathname
-          if (currentPath === '/' && newState.isAuthenticated && newState.profile) {
-            console.log('🏠 User authenticated on homepage, redirecting to dashboard')
-            setTimeout(() => {
-              if (mounted.current) {
-                safeRedirect('/dashboard', { delay: 500 })
-              }
-            }, 500)
+          if ((currentPath === '/' || currentPath === '/auth/confirm') && newState.isAuthenticated && newState.profile) {
+            console.log(`🏠 User authenticated on ${currentPath}, redirecting to dashboard`)
+            
+            // Check if user needs onboarding first
+            if (newState.profile.role === 'pending_player' && !newState.profile.onboarding_completed) {
+              console.log('🔄 New user needs onboarding, redirecting there first')
+              setTimeout(() => {
+                if (mounted.current) {
+                  safeRedirect('/onboarding', { delay: 500 })
+                }
+              }, 500)
+            } else {
+              setTimeout(() => {
+                if (mounted.current) {
+                  safeRedirect('/dashboard', { delay: 500 })
+                }
+              }, 500)
+            }
           }
         }
       }
@@ -397,7 +417,7 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'discord',
         options: {
-          redirectTo: `${getSiteUrl()}/dashboard`
+          redirectTo: `${getSiteUrl()}/auth/confirm`
         }
       })
 
