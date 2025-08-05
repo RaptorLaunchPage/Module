@@ -16,10 +16,20 @@ export async function middleware(req: NextRequest) {
     return res
   }
 
-  // Let client-side handle all authentication logic
-  // This middleware now only handles very basic routing
+  // Add security headers for better session management
+  res.headers.set('X-Frame-Options', 'DENY')
+  res.headers.set('X-Content-Type-Options', 'nosniff')
+  res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   
-  console.log(`🛡️  Middleware: ${pathname}`)
+  // Add cache control headers for auth-related pages
+  if (pathname.startsWith('/auth/') || pathname.startsWith('/dashboard/')) {
+    res.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+    res.headers.set('Pragma', 'no-cache')
+    res.headers.set('Expires', '0')
+  }
+
+  // Let client-side handle all authentication logic
+  // This middleware now only handles basic security and caching
   
   return res
 }

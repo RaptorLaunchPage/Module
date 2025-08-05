@@ -7,6 +7,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from "@/components/theme-provider"
 import { RouteGuardV2 } from "@/components/route-guard-v2"
 import { LoadingErrorBoundary } from "@/components/loading-error-boundary"
+import { GlobalLoadingProvider } from "@/lib/global-loading-manager"
+import GlobalLoading from "@/components/ui/global-loading"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -26,12 +28,15 @@ export default function RootLayout({
       <body className={`${inter.className} bg-transparent`}>
         <LoadingErrorBoundary>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-            <AuthProviderV2>
-              <RouteGuardV2>
-                {children}
-              </RouteGuardV2>
-              <Toaster />
-            </AuthProviderV2>
+            <GlobalLoadingProvider>
+              <AuthProviderV2>
+                <RouteGuardV2>
+                  {children}
+                </RouteGuardV2>
+                <GlobalLoading />
+                <Toaster />
+              </AuthProviderV2>
+            </GlobalLoadingProvider>
           </ThemeProvider>
         </LoadingErrorBoundary>
       </body>

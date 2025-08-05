@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import { SecureProfileCreation } from '@/lib/secure-profile-creation'
 import SessionStorage, { SessionData, TokenInfo } from '@/lib/session-storage'
 import { isAgreementRole, getRequiredAgreementVersion } from '@/lib/agreement-versions'
+import GlobalLoadingManager from '@/lib/global-loading-manager'
 import type { Session, User } from '@supabase/supabase-js'
 
 export interface AuthState {
@@ -44,7 +45,9 @@ class AuthFlowV2Manager {
   private listeners: Set<(state: AuthState) => void> = new Set()
   private profileCache: Map<string, any> = new Map()
   private initPromise: Promise<AuthFlowResult> | null = null
-  private stateUpdateTimeout: NodeJS.Timeout | null = null // Add debounce timeout
+  private stateUpdateTimeout: NodeJS.Timeout | null = null
+  private loadingManager = GlobalLoadingManager.getInstance()
+  private sessionValidationCache: Map<string, { isValid: boolean; timestamp: number }> = new Map()
 
   static getInstance(): AuthFlowV2Manager {
     if (!AuthFlowV2Manager.instance) {
@@ -84,13 +87,26 @@ class AuthFlowV2Manager {
   async initialize(isInitialLoad: boolean = true): Promise<AuthFlowResult> {
     // Prevent multiple simultaneous initializations
     if (this.initPromise) {
-      console.log('🔄 Auth flow: Initialization already in progress, waiting...')
       return this.initPromise
+    }
+
+    // Check session cache for quick validation
+    const cachedSession = SessionStorage.getSession()
+    if (cachedSession && !isInitialLoad) {
+      const cacheKey = cachedSession.user.id
+      const cached = this.sessionValidationCache.get(cacheKey)
+      const cacheAge = Date.now() - (cached?.timestamp || 0)
+      
+      // Use cache if less than 30 seconds old
+      if (cached && cacheAge < 30000) {
+        if (cached.isValid && this.state.isAuthenticated) {
+          return { success: true, shouldRedirect: false }
+        }
+      }
     }
 
     // If already initialized and authenticated, return current state unless forcing reload
     if (this.state.isInitialized && this.state.isAuthenticated && !isInitialLoad) {
-      console.log('✅ Auth flow: Already initialized and authenticated, returning current state')
       return { 
         success: true, 
         shouldRedirect: false 
@@ -99,11 +115,16 @@ class AuthFlowV2Manager {
 
     // If initialized but not authenticated (signed out state), only reinitialize if explicitly requested
     if (this.state.isInitialized && !this.state.isAuthenticated && !isInitialLoad) {
-      console.log('🏠 Auth flow: In signed-out state, not reinitializing unless requested')
       return { success: true, shouldRedirect: false }
     }
 
-    console.log(`🚀 Auth flow: Starting initialization (isInitialLoad: ${isInitialLoad})`)
+    // Start global loading
+    this.loadingManager.startLoading('auth', 'connecting', {
+      priority: 10,
+      message: 'Establishing connection...',
+      timeout: 15000
+    })
+
     this.initPromise = this.performInitializeWithRetry(isInitialLoad)
     
     try {
@@ -111,6 +132,7 @@ class AuthFlowV2Manager {
       return result
     } finally {
       this.initPromise = null
+      this.loadingManager.completeLoading('auth')
     }
   }
 
@@ -148,11 +170,11 @@ class AuthFlowV2Manager {
   // Actual initialization logic - streamlined and fast
   private async performInitialize(isInitialLoad: boolean): Promise<AuthFlowResult> {
     try {
-      console.log('🚀 Starting streamlined auth initialization...')
       this.setState({ isLoading: true, error: null })
+      this.loadingManager.updateLoading('auth', { state: 'authenticating', message: 'Verifying credentials...' })
 
       // Add timeout wrapper for all async operations
-      const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number = 3000): Promise<T> => {
+      const withTimeout = async <T>(promise: Promise<T>, timeoutMs: number = 2000): Promise<T> => {
         const timeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
         })
@@ -164,12 +186,14 @@ class AuthFlowV2Manager {
       const accessToken = SessionStorage.getAccessToken()
 
       if (existingSession && accessToken && !SessionStorage.isTokenExpired()) {
-        console.log('✅ Valid session found in storage')
-        
         // Try to restore user with cached profile if available
         const cachedProfile = this.profileCache.get(existingSession.user.id)
         if (cachedProfile) {
-          console.log('✅ Using cached profile data')
+          // Cache session validation result
+          this.sessionValidationCache.set(existingSession.user.id, {
+            isValid: true,
+            timestamp: Date.now()
+          })
           return await this.setAuthenticatedState(existingSession, cachedProfile, false) // Don't redirect on restore
         }
 
@@ -177,26 +201,45 @@ class AuthFlowV2Manager {
           // Validate session with Supabase with timeout
           const { data: { user }, error } = await withTimeout(
             supabase.auth.getUser(accessToken),
-            3000
+            2000
           )
           
           if (user && !error) {
+            this.loadingManager.updateLoading('auth', { state: 'loading-profile', message: 'Loading profile...' })
+            
             // Load profile in parallel with timeout
             const profile = await withTimeout(
               this.loadUserProfileFast(user),
-              3000
+              2000
             )
             if (profile) {
               this.profileCache.set(user.id, profile)
+              // Cache successful validation
+              this.sessionValidationCache.set(user.id, {
+                isValid: true,
+                timestamp: Date.now()
+              })
               return await this.setAuthenticatedState(existingSession, profile, false) // Don't redirect on restore
             }
           } else {
-            console.log('⚠️ Stored session invalid, clearing...')
+            // Cache failed validation
+            if (existingSession.user.id) {
+              this.sessionValidationCache.set(existingSession.user.id, {
+                isValid: false,
+                timestamp: Date.now()
+              })
+            }
             SessionStorage.clearSession()
             this.profileCache.clear()
           }
         } catch (timeoutError) {
-          console.warn('⚠️ Session validation timed out, clearing session')
+          // Cache timeout as failed validation
+          if (existingSession.user.id) {
+            this.sessionValidationCache.set(existingSession.user.id, {
+              isValid: false,
+              timestamp: Date.now()
+            })
+          }
           SessionStorage.clearSession()
           this.profileCache.clear()
         }
