@@ -197,7 +197,7 @@ export const ROLE_CONFIG = {
       
       // Performance & Analytics
       viewAllPerformance: false, // Only own performance
-      createPerformance: false,
+      createPerformance: true, // Players can submit their own performance
       updatePerformance: false,
       deletePerformance: false,
       
@@ -215,8 +215,8 @@ export const ROLE_CONFIG = {
       
       // System
       viewAdminPanel: false,
-      viewReports: false, // Only own performance reports
-      viewAnalytics: false, // Only own analytics
+      viewReports: true, // Can view own performance reports
+      viewAnalytics: true, // Can view own analytics
       systemConfiguration: false
     }
   },
@@ -410,14 +410,15 @@ export class RoleAccess {
       modules.push('team-management')
     }
 
-    // Performance
-    if (permissions.viewAllPerformance || permissions.createPerformance) {
+    // Performance - players can access even if they can't view all performance
+    if (permissions.viewAllPerformance || permissions.createPerformance || role === 'player') {
       modules.push('performance')
     }
 
-    // Reports and Analytics
-    if (permissions.viewReports || permissions.viewAnalytics) {
+    // Reports and Analytics - players can access their own data
+    if (permissions.viewReports || permissions.viewAnalytics || role === 'player') {
       modules.push('reports')
+      modules.push('analytics')
     }
 
     // Profile always available
