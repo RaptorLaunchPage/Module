@@ -4,6 +4,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
+import { usePostAuthRedirect } from "@/hooks/use-post-auth-redirect"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -24,6 +25,12 @@ export default function SignUpPage() {
   const [discordLoading, setDiscordLoading] = useState(false)
   const { signUp, signInWithDiscord } = useAuth()
   const router = useRouter()
+  
+  // Use unified post-auth redirect hook
+  usePostAuthRedirect({
+    redirectFromPages: ['/auth/signup'],
+    redirectDelay: 100
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

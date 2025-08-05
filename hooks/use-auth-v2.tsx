@@ -135,30 +135,9 @@ export function AuthProviderV2({ children }: { children: React.ReactNode }) {
             }
           }, 100)
         } else {
-          // UNIFIED FALLBACK: Handle any authenticated user on wrong page
-          const currentPath = window.location.pathname
-          const shouldRedirectPages = ['/', '/auth/confirm', '/auth/login', '/auth/signup']
-          
-          if (shouldRedirectPages.includes(currentPath) && newState.isAuthenticated && newState.profile) {
-            console.log(`🔄 Authenticated user on ${currentPath}, applying unified redirect logic`)
-            
-            // Determine correct redirect path
-            let targetPath = '/dashboard'
-            if (newState.profile.role === 'pending_player' && !newState.profile.onboarding_completed) {
-              targetPath = '/onboarding'
-              console.log('🔄 New user needs onboarding')
-            } else {
-              console.log('🔄 Redirecting to dashboard')
-            }
-            
-            // Use immediate redirect for consistent behavior
-            setTimeout(() => {
-              if (mounted.current) {
-                console.log(`⚡ Executing unified redirect to: ${targetPath}`)
-                safeRedirect(targetPath, { delay: 50 })
-              }
-            }, 100)
-          }
+          // Note: Redirect logic has been moved to usePostAuthRedirect hook
+          // This ensures consistent behavior across all pages and components
+          console.log('🔄 Auth state updated - redirect handled by usePostAuthRedirect hook')
         }
       }
       

@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
+import { usePostAuthRedirect } from "@/hooks/use-post-auth-redirect"
 import { FullPageLoader } from "@/components/ui/full-page-loader"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,6 +22,12 @@ function AuthConfirmContent() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
   const [authProgress, setAuthProgress] = useState('Initializing...')
+  
+  // Use unified post-auth redirect hook
+  const { isRedirecting } = usePostAuthRedirect({
+    redirectFromPages: ['/auth/confirm'],
+    redirectDelay: 200 // Slightly longer delay for OAuth flows
+  })
 
   useEffect(() => {
     // UNIFIED AUTH CONFIRMATION: Handle redirects with timeout fallback
@@ -149,6 +156,11 @@ function AuthConfirmContent() {
 
   if (isLoading || (user && !profile)) {
     return <FullPageLoader message={isOAuthFlow ? authProgress : "Loading your account..."} />
+  }
+  
+  // Show redirecting state
+  if (isRedirecting) {
+    return <FullPageLoader message="Redirecting to dashboard..." />
   }
 
   // For OAuth flows, show a simpler loading state
