@@ -305,4 +305,67 @@ SET status = CASE
 END
 WHERE status IN ('Present', 'Absent', 'Auto (Match)');
 
+-- Fix the old trigger function to use correct status values and avoid conflicts
+-- Drop the old trigger that conflicts with API-based attendance creation
+DROP TRIGGER IF EXISTS auto_attendance_on_performance ON public.performances;
+
+-- Update the trigger function to use correct status values
+CREATE OR REPLACE FUNCTION public.create_auto_attendance()
+RETURNS TRIGGER AS $$
+DECLARE
+  slot_date date;
+  slot_team_id uuid;
+BEGIN
+  -- Get slot information if slot is linked to performance
+  IF NEW.slot IS NOT NULL THEN
+    SELECT date, team_id INTO slot_date, slot_team_id
+    FROM public.slots
+    WHERE id = NEW.slot;
+    
+    -- Use slot date and team_id if available
+    IF slot_date IS NOT NULL AND slot_team_id IS NOT NULL THEN
+      INSERT INTO public.attendances (player_id, team_id, date, session_time, status, source, marked_by, slot_id)
+      SELECT 
+        NEW.player_id,
+        slot_team_id,
+        slot_date,
+        'Match',
+        'auto',  -- Use lowercase status
+        'auto',  -- Add source
+        NULL,
+        NEW.slot
+      WHERE NOT EXISTS (
+        SELECT 1 FROM public.attendances 
+        WHERE player_id = NEW.player_id 
+        AND date = slot_date 
+        AND session_time = 'Match'
+      );
+    END IF;
+  ELSE
+    -- Fallback to current date if no slot information
+    INSERT INTO public.attendances (player_id, team_id, date, session_time, status, source, marked_by, slot_id)
+    SELECT 
+      NEW.player_id,
+      NEW.team_id,
+      CURRENT_DATE,
+      'Match',
+      'auto',  -- Use lowercase status
+      'auto',  -- Add source
+      NULL,
+      NULL
+    WHERE NOT EXISTS (
+      SELECT 1 FROM public.attendances 
+      WHERE player_id = NEW.player_id 
+      AND date = CURRENT_DATE 
+      AND session_time = 'Match'
+    );
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Don't recreate the trigger - let API handle attendance creation
+-- This prevents conflicts between trigger and API-based attendance creation
+
 COMMIT;

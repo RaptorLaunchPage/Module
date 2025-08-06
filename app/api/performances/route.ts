@@ -272,22 +272,31 @@ async function createMatchAttendance(userSupabase: any, performance: any, userDa
     .single()
 
   if (!existingAttendance) {
-    // Create attendance record
-    const { error: attendanceCreateError } = await userSupabase
+    // Create attendance record with all required fields
+    const attendanceData = {
+      player_id: performance.player_id,
+      team_id: performance.team_id,
+      date: currentDate,
+      session_time: 'Scrims', // Keep for compatibility
+      session_id: sessionId,
+      status: 'auto', // Use lowercase status as per schema
+      source: 'auto',
+      marked_by: userData.id,
+      created_at: new Date().toISOString()
+    }
+
+    console.log('Creating attendance with data:', attendanceData)
+
+    const { data: newAttendance, error: attendanceCreateError } = await userSupabase
       .from('attendances')
-      .insert({
-        player_id: performance.player_id,
-        team_id: performance.team_id,
-        date: currentDate,
-        session_time: 'Scrims', // Keep for compatibility
-        session_id: sessionId,
-        status: 'present',
-        source: 'auto',
-        marked_by: userData.id
-      })
+      .insert(attendanceData)
+      .select()
 
     if (attendanceCreateError) {
+      console.error('Attendance creation error:', attendanceCreateError)
       throw new Error(`Failed to create attendance: ${attendanceCreateError.message}`)
     }
+
+    console.log('Successfully created attendance:', newAttendance)
   }
 }
