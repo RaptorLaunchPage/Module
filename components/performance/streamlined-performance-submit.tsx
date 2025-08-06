@@ -190,7 +190,7 @@ export function StreamlinedPerformanceSubmit({ onPerformanceAdded }: Streamlined
       const playersList = Array.isArray(data) ? data : data.players || []
       
       // Filter for active players only
-      const activePlayers = playersList.filter(player => 
+      const activePlayers = playersList.filter((player: any) => 
         player.role === 'player' && player.status === 'Active'
       )
 
