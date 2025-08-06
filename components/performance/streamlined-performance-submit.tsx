@@ -156,7 +156,7 @@ export function StreamlinedPerformanceSubmit({ onPerformanceAdded }: Streamlined
       // Filter teams based on role
       let filteredTeams = teamsList
       if (isCoach && profile.team_id) {
-        filteredTeams = teamsList.filter(team => team.id === profile.team_id)
+        filteredTeams = teamsList.filter((team: any) => team.id === profile.team_id)
         // Auto-select coach's team
         setFormData(prev => ({ ...prev, team_id: profile.team_id }))
       }
@@ -190,7 +190,7 @@ export function StreamlinedPerformanceSubmit({ onPerformanceAdded }: Streamlined
       const playersList = Array.isArray(data) ? data : data.players || []
       
       // Filter for active players only
-      const activePlayers = playersList.filter(player => 
+      const activePlayers = playersList.filter((player: any) => 
         player.role === 'player' && player.status === 'Active'
       )
 
