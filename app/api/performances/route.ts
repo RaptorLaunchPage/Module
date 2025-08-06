@@ -150,14 +150,74 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Ensure player can only submit their own performance
+    // Role-based validation and data assignment
     if (userData!.role === 'player') {
+      // Players can only submit their own performance
       performanceData.player_id = userData!.id
       performanceData.team_id = userData!.team_id
+    } else if (['coach', 'manager', 'admin'].includes(userData!.role)) {
+      // Coaches, managers, and admins can submit for other players
+      
+      // Validate required fields for staff submissions
+      if (!performanceData.player_id || !performanceData.team_id) {
+        return NextResponse.json(
+          { error: 'Player ID and Team ID are required for staff submissions' },
+          { status: 400 }
+        )
+      }
+
+      // Coaches can only submit for players in their team
+      if (userData!.role === 'coach' && userData!.team_id !== performanceData.team_id) {
+        return NextResponse.json(
+          { error: 'Coaches can only submit performance data for players in their own team' },
+          { status: 403 }
+        )
+      }
+
+      // Verify the player exists and belongs to the specified team
+      const { data: playerData, error: playerError } = await userSupabase
+        .from('users')
+        .select('id, team_id, role, status')
+        .eq('id', performanceData.player_id)
+        .single()
+
+      if (playerError || !playerData) {
+        return NextResponse.json(
+          { error: 'Player not found' },
+          { status: 404 }
+        )
+      }
+
+      if (playerData.role !== 'player') {
+        return NextResponse.json(
+          { error: 'Selected user is not a player' },
+          { status: 400 }
+        )
+      }
+
+      if (playerData.team_id !== performanceData.team_id) {
+        return NextResponse.json(
+          { error: 'Player does not belong to the specified team' },
+          { status: 400 }
+        )
+      }
+
+      if (playerData.status !== 'Active') {
+        return NextResponse.json(
+          { error: 'Cannot submit performance for inactive players' },
+          { status: 400 }
+        )
+      }
+    } else {
+      // Other roles (like analyst) cannot submit performance data
+      return NextResponse.json(
+        { error: 'Insufficient permissions to submit performance data' },
+        { status: 403 }
+      )
     }
 
-    // Validate team assignment
-    if (!performanceData.team_id && userData!.team_id) {
+    // Validate team assignment for players only
+    if (userData!.role === 'player' && !performanceData.team_id && userData!.team_id) {
       performanceData.team_id = userData!.team_id
     }
 

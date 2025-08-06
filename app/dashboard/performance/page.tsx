@@ -7,10 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { AddPerformance } from "@/components/performance/add-performance"
 import { OCRExtract } from "@/components/performance/ocr-extract"
 import { PerformanceDashboard } from "@/components/performance/performance-dashboard"
 import { PlayerPerformanceSubmit } from "@/components/performance/player-performance-submit"
+import { StreamlinedPerformanceSubmit } from "@/components/performance/streamlined-performance-submit"
 import { PerformanceReportSimple } from "@/components/performance/performance-report-simple"
 import { SendToDiscordButton } from "@/components/discord-portal/send-to-discord-button"
 import { 
@@ -57,7 +57,7 @@ export default function PerformancePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dataFetched, setDataFetched] = useState(false)
-  const [addPerformanceOpen, setAddPerformanceOpen] = useState(false)
+
   const [selectedTeam, setSelectedTeam] = useState<string>("all")
   const [selectedPlayer, setSelectedPlayer] = useState<string>("all")
   const [selectedMap, setSelectedMap] = useState<string>("all")
@@ -204,9 +204,9 @@ export default function PerformancePage() {
   
   const isAnalyst = profile?.role === "analyst"
   const canViewDashboard = performancePermissions.canView
-  const canAddPerformance = performancePermissions.canCreate
   const canUseOCR = performancePermissions.canCreate && ['admin', 'manager', 'coach'].includes(userRole)
   const canSubmitPerformance = userRole === 'player'
+  const canStaffSubmit = ['admin', 'manager', 'coach'].includes(userRole)
   const canViewReport = performancePermissions.canView
 
   // Auto-select team for players and reset player filter when team changes
@@ -393,10 +393,10 @@ export default function PerformancePage() {
     
   const availableMaps = [...new Set(enhancedPerformances.map(p => p.map).filter(Boolean))]
 
-  const requiresUsers = canViewDashboard || canAddPerformance || canUseOCR
+  const requiresUsers = canViewDashboard || canStaffSubmit || canUseOCR
 
   // If user has no access to any tab, render nothing
-  if (!canViewDashboard && !canAddPerformance && !canUseOCR && !canSubmitPerformance && !canViewReport) {
+      if (!canViewDashboard && !canStaffSubmit && !canUseOCR && !canSubmitPerformance && !canViewReport) {
     return null
   }
 
@@ -479,75 +479,7 @@ export default function PerformancePage() {
           <h1 className="text-2xl sm:text-3xl font-bold">Performance Tracking</h1>
           <p className="text-muted-foreground">Track and analyze match performance data</p>
         </div>
-        {(canAddPerformance && !isAnalyst && profile?.role !== 'player') && (
-          <Dialog open={addPerformanceOpen} onOpenChange={setAddPerformanceOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full sm:w-auto">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Performance
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Add Performance Data</DialogTitle>
-                <DialogDescription>
-                  Choose how you'd like to add performance data
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start">
-                      <FileText className="h-4 w-4 mr-2" />
-                      Manual Entry
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Manual Performance Entry</DialogTitle>
-                      <DialogDescription>
-                        Enter performance data manually
-                      </DialogDescription>
-                    </DialogHeader>
-                    <AddPerformance 
-                      users={users}
-                      onPerformanceAdded={() => {
-                        fetchPerformances()
-                        setAddPerformanceOpen(false)
-                      }} 
-                    />
-                  </DialogContent>
-                </Dialog>
-                
-                {canUseOCR && (
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start">
-                        <Camera className="h-4 w-4 mr-2" />
-                        Screenshot OCR
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-                      <DialogHeader>
-                        <DialogTitle>OCR Performance Extract</DialogTitle>
-                        <DialogDescription>
-                          Upload a screenshot to extract performance data automatically
-                        </DialogDescription>
-                      </DialogHeader>
-                      <OCRExtract 
-                        users={users}
-                        onPerformanceAdded={() => {
-                          fetchPerformances()
-                          setAddPerformanceOpen(false)
-                        }} 
-                      />
-                    </DialogContent>
-                  </Dialog>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+
       </div>
 
       <ResponsiveTabs 
@@ -558,6 +490,12 @@ export default function PerformancePage() {
             icon: BarChart3
           },
           {
+            value: "staff-submit",
+            label: "Submit Performance",
+            icon: Plus,
+            hidden: !canStaffSubmit
+          },
+          {
             value: "report",
             label: "Report",
             icon: Target,
@@ -565,7 +503,7 @@ export default function PerformancePage() {
           },
           {
             value: "submit",
-            label: "Submit",
+            label: "Player Submit",
             icon: Gamepad2,
             hidden: !canSubmitPerformance
           }
@@ -696,12 +634,7 @@ export default function PerformancePage() {
                     ? "No performances match your current filters. Try adjusting the filters above."
                     : "Start tracking performance by adding your first match data."}
                 </p>
-                {(canAddPerformance && !isAnalyst) && (
-                  <Button onClick={() => setAddPerformanceOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add First Performance
-                  </Button>
-                )}
+
               </CardContent>
             </Card>
           ) : (
@@ -865,6 +798,12 @@ export default function PerformancePage() {
             />
           )}
         </TabsContent>
+
+        {canStaffSubmit && (
+          <TabsContent value="staff-submit">
+            <StreamlinedPerformanceSubmit onPerformanceAdded={fetchPerformances} />
+          </TabsContent>
+        )}
 
         {canViewReport && (
           <TabsContent value="report">
