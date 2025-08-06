@@ -29,6 +29,11 @@ import {
   Trophy,
   RefreshCw
 } from 'lucide-react'
+import { 
+  PerformanceAnalyticsSection,
+  TeamAnalyticsSection,
+  TrendAnalyticsSection
+} from '@/components/analytics/analytics-sections'
 
 interface AnalyticsStats {
   totalMatches: number
@@ -770,46 +775,31 @@ export default function AnalyticsPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="performance">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">Performance Analytics</h3>
-                <p className="text-muted-foreground">
-                  Detailed performance metrics and trends coming soon
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="performance" className="space-y-6">
+          <PerformanceAnalyticsSection 
+            profile={profile}
+            selectedTimeframe={selectedTimeframe}
+            selectedTeam={selectedTeam}
+            selectedMap={selectedMap}
+          />
         </TabsContent>
 
-        <TabsContent value="teams">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">Team Analytics</h3>
-                <p className="text-muted-foreground">
-                  Team performance comparison and analysis coming soon
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="teams" className="space-y-6">
+          <TeamAnalyticsSection 
+            profile={profile}
+            selectedTimeframe={selectedTimeframe}
+            selectedTeam={selectedTeam}
+            selectedMap={selectedMap}
+          />
         </TabsContent>
 
-        <TabsContent value="trends">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <TrendingUp className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <h3 className="text-lg font-semibold mb-2">Trend Analysis</h3>
-                <p className="text-muted-foreground">
-                  Historical trends and predictive analytics coming soon
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="trends" className="space-y-6">
+          <TrendAnalyticsSection 
+            profile={profile}
+            selectedTimeframe={selectedTimeframe}
+            selectedTeam={selectedTeam}
+            selectedMap={selectedMap}
+          />
         </TabsContent>
       </ResponsiveTabs>
     </div>
