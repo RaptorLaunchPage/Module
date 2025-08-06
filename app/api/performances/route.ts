@@ -61,12 +61,12 @@ export async function GET(request: NextRequest) {
     }
 
     const { userData, userSupabase, error, status } = await getUserFromRequest(request)
-    if (error) {
-      return NextResponse.json({ error }, { status })
+    if (error || !userSupabase) {
+      return NextResponse.json({ error: error || 'Service unavailable' }, { status: status || 500 })
     }
 
     // First check if performances table exists and is accessible
-    const { data: testQuery, error: testError } = await userSupabase!
+    const { data: testQuery, error: testError } = await userSupabase
       .from("performances")
       .select("id")
       .limit(1)
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Try a simplified query first without relationships
-    let query = userSupabase!
+    let query = userSupabase
       .from("performances")
       .select("*")
 
@@ -133,8 +133,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { userData, userSupabase, error, status } = await getUserFromRequest(request)
-    if (error) {
-      return NextResponse.json({ error }, { status })
+    if (error || !userSupabase) {
+      return NextResponse.json({ error: error || 'Service unavailable' }, { status: status || 500 })
     }
 
     const performanceData = await request.json()
@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert performance data
-    const { data: newPerformance, error: insertError } = await userSupabase!
+    const { data: newPerformance, error: insertError } = await userSupabase
       .from('performances')
       .insert({
         player_id: performanceData.player_id || userData!.id,
@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
 
     // Auto-create match attendance (Scrims session)
     try {
-      await createMatchAttendance(userSupabase!, newPerformance, userData!)
+      await createMatchAttendance(userSupabase, newPerformance, userData!)
     } catch (attendanceError) {
       console.warn('Failed to create match attendance:', attendanceError)
       // Don't fail the performance submission if attendance creation fails
