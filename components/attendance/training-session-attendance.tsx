@@ -99,6 +99,11 @@ export function TrainingSessionAttendance() {
 
   const loadTrainingSessions = async () => {
     try {
+      if (!profile?.team_id) {
+        setSessions([])
+        return
+      }
+
       // Get practice sessions for the current week
       const today = new Date()
       const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()))
@@ -119,7 +124,7 @@ export function TrainingSessionAttendance() {
       console.error('Error loading training sessions:', error)
       toast({
         title: "Error",
-        description: "Failed to load training sessions",
+        description: error instanceof Error ? error.message : "Failed to load training sessions",
         variant: "destructive"
       })
     }

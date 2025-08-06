@@ -94,10 +94,10 @@ export async function GET(request: NextRequest) {
     if (userData!.role === 'player') {
       // Players see their team's sessions with their own attendance
       if (!userData!.team_id) {
-        return NextResponse.json(
-          { error: 'Player not assigned to a team' },
-          { status: 400 }
-        )
+        return NextResponse.json({
+          sessions: [],
+          message: 'Player not assigned to a team. Please contact your administrator.'
+        })
       }
       sessionsQuery = sessionsQuery
         .eq('team_id', userData!.team_id)

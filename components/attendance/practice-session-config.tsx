@@ -25,7 +25,8 @@ import {
   Loader2,
   Plus,
   Pencil,
-  Trash2
+  Trash2,
+  Edit
 } from "lucide-react"
 
 interface PracticeSessionConfig {
@@ -87,13 +88,14 @@ export function PracticeSessionConfig({ userProfile, teams }: PracticeSessionCon
         const data = await response.json()
         setConfigs(data.configs || [])
       } else {
-        throw new Error('Failed to load configurations')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || `Server error: ${response.status}`)
       }
     } catch (error) {
       console.error('Error loading practice configurations:', error)
       toast({
         title: "Error",
-        description: "Failed to load practice session configurations",
+        description: error instanceof Error ? error.message : "Failed to load practice session configurations",
         variant: "destructive"
       })
     } finally {
@@ -420,11 +422,35 @@ export function PracticeSessionConfig({ userProfile, teams }: PracticeSessionCon
                                 {getSessionIcon(subtype)}
                                 <span className="text-sm font-medium">{subtype}</span>
                               </div>
-                              {teamConfig ? (
-                                <Badge variant="outline" className="text-xs">Custom</Badge>
-                              ) : (
-                                <Badge variant="secondary" className="text-xs">Default</Badge>
-                              )}
+                              <div className="flex items-center gap-1">
+                                {teamConfig ? (
+                                  <Badge variant="outline" className="text-xs">Custom</Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-xs">Default</Badge>
+                                )}
+                                {(['admin', 'manager'].includes(userProfile?.role)) && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0"
+                                    onClick={() => {
+                                      const configToEdit = teamConfig || {
+                                        id: `new-${team.id}-${subtype}`,
+                                        team_id: team.id,
+                                        session_subtype: subtype,
+                                        start_time: globalDefault?.start_time || defaultTimings[subtype].start,
+                                        end_time: globalDefault?.end_time || defaultTimings[subtype].end,
+                                        cutoff_time: globalDefault?.cutoff_time || defaultTimings[subtype].cutoff,
+                                        is_active: true,
+                                        created_by: userProfile?.id
+                                      }
+                                      setEditingConfig(configToEdit)
+                                    }}
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                             
                             <div className="text-xs space-y-1">

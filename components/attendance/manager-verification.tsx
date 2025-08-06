@@ -113,7 +113,7 @@ export function ManagerVerification() {
       console.error('Error loading pending attendances:', error)
       toast({
         title: "Error",
-        description: "Failed to load pending attendances",
+        description: error instanceof Error ? error.message : "Failed to load pending attendances",
         variant: "destructive"
       })
     } finally {

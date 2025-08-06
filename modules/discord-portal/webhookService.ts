@@ -229,12 +229,12 @@ export async function deleteWebhook(id: string): Promise<{ success: boolean; err
  */
 export async function validateWebhookUrl(url: string): Promise<WebhookValidationResponse> {
   try {
-    // Basic URL format validation
-    const urlPattern = /^https:\/\/discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w-]+$/
+    // Basic URL format validation - more flexible pattern
+    const urlPattern = /^https:\/\/discord(?:app)?\.com\/api\/webhooks\/\d+\/[\w\-._~!*'();:@&=+$,\/?#[\]]+$/
     if (!urlPattern.test(url)) {
       return {
         valid: false,
-        error: 'Invalid Discord webhook URL format'
+        error: 'Invalid Discord webhook URL format. Please ensure you\'re using a valid Discord webhook URL.'
       }
     }
 
