@@ -73,6 +73,72 @@ BEGIN
     END IF;
 END $$;
 
+-- Add source column to attendances table for tracking how attendance was marked
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'attendances' 
+        AND column_name = 'source'
+    ) THEN
+        ALTER TABLE public.attendances 
+        ADD COLUMN source text DEFAULT 'manual'
+        CHECK (source = ANY (ARRAY['manual'::text, 'auto'::text, 'system'::text]));
+    END IF;
+END $$;
+
+-- Add session_id column to attendances table for linking to sessions
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'attendances' 
+        AND column_name = 'session_id'
+    ) THEN
+        ALTER TABLE public.attendances 
+        ADD COLUMN session_id uuid DEFAULT NULL,
+        ADD CONSTRAINT attendances_session_id_fkey 
+        FOREIGN KEY (session_id) REFERENCES public.sessions(id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
+-- Update attendance status constraint to match current code expectations
+-- Drop existing constraint and create new one with lowercase values
+DO $$
+BEGIN
+    -- Drop existing constraint if it exists
+    IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'attendances_status_check' 
+        AND table_name = 'attendances'
+    ) THEN
+        ALTER TABLE public.attendances DROP CONSTRAINT attendances_status_check;
+    END IF;
+    
+    -- Add updated constraint
+    ALTER TABLE public.attendances 
+    ADD CONSTRAINT attendances_status_check 
+    CHECK (status = ANY (ARRAY['present'::text, 'absent'::text, 'late'::text, 'auto'::text]));
+END $$;
+
+-- Update session_time constraint to match current code expectations  
+DO $$
+BEGIN
+    -- Drop existing constraint if it exists
+    IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'attendances_session_time_check' 
+        AND table_name = 'attendances'
+    ) THEN
+        ALTER TABLE public.attendances DROP CONSTRAINT attendances_session_time_check;
+    END IF;
+    
+    -- Add updated constraint
+    ALTER TABLE public.attendances 
+    ADD CONSTRAINT attendances_session_time_check 
+    CHECK (session_time = ANY (ARRAY['Morning'::text, 'Evening'::text, 'Night'::text, 'Match'::text, 'Scrims'::text]));
+END $$;
+
 -- Add name and description columns to sessions table for daily session manager
 DO $$ 
 BEGIN
@@ -111,6 +177,12 @@ ON public.sessions(date, team_id);
 
 CREATE INDEX IF NOT EXISTS idx_slots_date_team 
 ON public.slots(date, team_id);
+
+CREATE INDEX IF NOT EXISTS idx_attendances_session_id 
+ON public.attendances(session_id);
+
+CREATE INDEX IF NOT EXISTS idx_attendances_source 
+ON public.attendances(source);
 
 -- Add RLS policies for new columns if needed
 -- (Existing RLS policies should cover the new columns)
@@ -165,16 +237,72 @@ $$;
 -- Grant execute permission on the function
 GRANT EXECUTE ON FUNCTION generate_daily_practice_sessions(date) TO authenticated;
 
+-- Create function to auto-mark absence after cutoff time
+CREATE OR REPLACE FUNCTION auto_mark_absent_after_cutoff()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    -- Auto-mark players as absent for sessions where cutoff time has passed
+    -- and they haven't marked attendance yet
+    INSERT INTO public.attendances (
+        player_id,
+        team_id,
+        session_id,
+        date,
+        session_time,
+        status,
+        source,
+        marked_by
+    )
+    SELECT DISTINCT
+        u.id as player_id,
+        s.team_id,
+        s.id as session_id,
+        s.date,
+        s.session_subtype as session_time,
+        'absent' as status,
+        'system' as source,
+        NULL as marked_by
+    FROM public.sessions s
+    JOIN public.users u ON u.team_id = s.team_id
+    WHERE s.date = CURRENT_DATE
+    AND s.cutoff_time < CURRENT_TIME
+    AND u.role = 'player'
+    AND u.status = 'Active'
+    AND NOT EXISTS (
+        SELECT 1 FROM public.attendances a
+        WHERE a.player_id = u.id
+        AND a.date = s.date
+        AND (a.session_id = s.id OR a.session_time = s.session_subtype)
+    );
+END;
+$$;
+
+-- Grant execute permission on the function
+GRANT EXECUTE ON FUNCTION auto_mark_absent_after_cutoff() TO authenticated;
+
 -- Add comments for documentation
 COMMENT ON COLUMN public.attendances.training_details IS 'JSON data for training session details including mode, hours, screenshots, etc.';
 COMMENT ON COLUMN public.attendances.verification_status IS 'Status of manager verification for training attendance';
 COMMENT ON COLUMN public.attendances.manager_notes IS 'Notes added by manager during verification process';
 COMMENT ON COLUMN public.attendances.verified_by IS 'User ID of manager who verified the attendance';
 COMMENT ON COLUMN public.attendances.verified_at IS 'Timestamp when attendance was verified';
+COMMENT ON COLUMN public.attendances.source IS 'How the attendance was marked: manual, auto, or system';
+COMMENT ON COLUMN public.attendances.session_id IS 'Link to the specific session for this attendance record';
 COMMENT ON COLUMN public.sessions.name IS 'Custom name for the session';
 COMMENT ON COLUMN public.sessions.max_participants IS 'Maximum number of participants allowed in the session';
 
 -- Update any existing data if needed
--- (No data updates required for this implementation)
+-- Convert old status values to new lowercase format
+UPDATE public.attendances 
+SET status = CASE 
+    WHEN status = 'Present' THEN 'present'
+    WHEN status = 'Absent' THEN 'absent'
+    WHEN status = 'Auto (Match)' THEN 'auto'
+    ELSE LOWER(status)
+END
+WHERE status IN ('Present', 'Absent', 'Auto (Match)');
 
 COMMIT;

@@ -428,7 +428,7 @@ export function PracticeSessionConfig({ userProfile, teams }: PracticeSessionCon
                                 ) : (
                                   <Badge variant="secondary" className="text-xs">Default</Badge>
                                 )}
-                                {(['admin', 'manager'].includes(userProfile?.role)) && (
+                                {(['admin', 'manager', 'coach'].includes(userProfile?.role)) && (
                                   <Button
                                     variant="ghost"
                                     size="sm"

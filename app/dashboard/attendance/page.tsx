@@ -458,7 +458,7 @@ export default function AttendancePage() {
             </TabsContent>
           )}
 
-          {['admin', 'manager'].includes(userRole) && (
+          {['admin', 'manager', 'coach'].includes(userRole) && (
             <TabsContent value="config">
               <PracticeSessionConfig 
                 userProfile={profile}

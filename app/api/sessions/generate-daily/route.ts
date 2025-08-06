@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
-    // Only admins and managers can trigger session generation
-    if (!['admin', 'manager'].includes(userData!.role)) {
+    // Only admins, managers, and coaches can trigger session generation
+    if (!['admin', 'manager', 'coach'].includes(userData!.role)) {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }
@@ -135,8 +135,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
-    // Only admins and managers can view session generation status
-    if (!['admin', 'manager'].includes(userData!.role)) {
+    // Only admins, managers, and coaches can view session generation status
+    if (!['admin', 'manager', 'coach'].includes(userData!.role)) {
       return NextResponse.json(
         { error: 'Insufficient permissions' },
         { status: 403 }

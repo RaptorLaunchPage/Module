@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
-import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -54,7 +53,7 @@ const TIME_SLOTS = [
 ]
 
 export function DailySessionManager() {
-  const { profile } = useAuth()
+  const { profile, getToken } = useAuth()
   const { toast } = useToast()
   const [teams, setTeams] = useState<Team[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
@@ -86,19 +85,23 @@ export function DailySessionManager() {
 
   const fetchTeams = async () => {
     try {
-      let query = supabase.from("teams").select("*").order("name")
+      const token = await getToken()
+      let url = '/api/teams'
       
-      // Coaches can only manage their own team
-      if (userRole === 'coach' && profile?.team_id) {
-        query = query.eq("id", profile.team_id)
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch teams')
       }
 
-      const { data, error } = await query
-      if (error) throw error
+      const data = await response.json()
+      const teams = Array.isArray(data) ? data : data.teams || []
       
-      setTeams(data || [])
-      if (data && data.length > 0 && !newSessionData.team_id) {
-        setNewSessionData(prev => ({ ...prev, team_id: data[0].id }))
+      setTeams(teams)
+      if (teams.length > 0 && !newSessionData.team_id) {
+        setNewSessionData(prev => ({ ...prev, team_id: teams[0].id }))
       }
     } catch (error) {
       console.error("Error fetching teams:", error)
@@ -112,22 +115,24 @@ export function DailySessionManager() {
 
   const fetchSessions = async () => {
     try {
+      const token = await getToken()
       const dateStr = format(selectedDate, 'yyyy-MM-dd')
-      let query = supabase
-        .from("sessions")
-        .select("*, team:team_id(id, name, tier)")
-        .eq("date", dateStr)
-        .order("start_time")
+      let url = `/api/sessions?date=${dateStr}`
       
-      // Coaches only see their team's sessions
       if (userRole === 'coach' && profile?.team_id) {
-        query = query.eq("team_id", profile.team_id)
+        url += `&team_id=${profile.team_id}`
       }
 
-      const { data, error } = await query
-      if (error) throw error
-      
-      setSessions(data || [])
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch sessions')
+      }
+
+      const data = await response.json()
+      setSessions(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching sessions:", error)
       toast({
@@ -177,10 +182,15 @@ export function DailySessionManager() {
         return
       }
 
-      const { data, error } = await supabase
-        .from("sessions")
-        .insert({
-          name: newSessionData.name,
+      const token = await getToken()
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: newSessionData.name,
           description: newSessionData.description,
           date: format(newSessionData.date, 'yyyy-MM-dd'),
           start_time: newSessionData.start_time,
@@ -190,9 +200,12 @@ export function DailySessionManager() {
           max_participants: newSessionData.max_participants || null,
           is_mandatory: newSessionData.is_mandatory
         })
-        .select()
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create session')
+      }
 
       toast({
         title: "Success",
@@ -229,12 +242,16 @@ export function DailySessionManager() {
     if (!confirm("Are you sure you want to delete this session?")) return
 
     try {
-      const { error } = await supabase
-        .from("sessions")
-        .delete()
-        .eq("id", sessionId)
+      const token = await getToken()
+      const response = await fetch(`/api/sessions?id=${sessionId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete session')
+      }
 
       toast({
         title: "Success",
@@ -257,11 +274,20 @@ export function DailySessionManager() {
       setFormLoading(true)
       const targetDate = format(selectedDate, 'yyyy-MM-dd')
       
-      const { error } = await supabase.rpc('generate_daily_practice_sessions', {
-        target_date: targetDate
+      const token = await getToken()
+      const response = await fetch('/api/sessions/generate-daily', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ date: targetDate })
       })
 
-      if (error) throw error
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate sessions')
+      }
 
       toast({
         title: "Success",
