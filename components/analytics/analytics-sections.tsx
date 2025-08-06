@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useAuthV2 as useAuth } from '@/hooks/use-auth-v2'
 import { 
   Target, 
   Users, 
@@ -20,7 +21,8 @@ import {
   ArrowDown,
   Minus,
   RefreshCw,
-  Calendar
+  Calendar,
+  Download
 } from 'lucide-react'
 import {
   PerformanceTrendChart,
@@ -30,6 +32,12 @@ import {
   KillDistributionChart,
   MetricCard
 } from './advanced-charts'
+import { 
+  PDFExporter, 
+  preparePerformanceDataForPDF, 
+  prepareTeamDataForPDF, 
+  prepareTrendDataForPDF 
+} from '@/lib/pdf-export'
 
 interface AnalyticsSectionProps {
   profile: any
@@ -45,6 +53,7 @@ export function PerformanceAnalyticsSection({
   selectedTeam, 
   selectedMap 
 }: AnalyticsSectionProps) {
+  const { getToken } = useAuth()
   const [performanceData, setPerformanceData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -62,7 +71,7 @@ export function PerformanceAnalyticsSection({
     setError(null)
 
     try {
-      const token = await fetch('/api/auth/session').then(r => r.json()).then(d => d.session?.access_token)
+      const token = await getToken()
       if (!token) throw new Error('No auth token')
 
       const params = new URLSearchParams({
@@ -95,6 +104,24 @@ export function PerformanceAnalyticsSection({
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleExportPDF = async () => {
+    if (!performanceData || !profile) return
+
+    try {
+      const exportData = preparePerformanceDataForPDF(
+        performanceData,
+        profile,
+        selectedTimeframe
+      )
+      
+      const exporter = new PDFExporter()
+      await exporter.exportAnalytics(exportData)
+    } catch (error) {
+      console.error('PDF export failed:', error)
+      setError('Failed to export PDF')
     }
   }
 
@@ -139,6 +166,15 @@ export function PerformanceAnalyticsSection({
               : 'Detailed player and team performance insights'
             }
           </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {performanceData && (
+            <Button onClick={handleExportPDF} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+          )}
         </div>
         
         {/* Player Selection for Coaches/Managers/Admins */}
@@ -287,6 +323,7 @@ export function TeamAnalyticsSection({
   selectedTeam, 
   selectedMap 
 }: AnalyticsSectionProps) {
+  const { getToken } = useAuth()
   const [teamData, setTeamData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -302,7 +339,7 @@ export function TeamAnalyticsSection({
     setError(null)
 
     try {
-      const token = await fetch('/api/auth/session').then(r => r.json()).then(d => d.session?.access_token)
+      const token = await getToken()
       if (!token) throw new Error('No auth token')
 
       const params = new URLSearchParams({
@@ -329,6 +366,24 @@ export function TeamAnalyticsSection({
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleExportTeamPDF = async () => {
+    if (!teamData || !profile) return
+
+    try {
+      const exportData = prepareTeamDataForPDF(
+        teamData,
+        profile,
+        selectedTimeframe
+      )
+      
+      const exporter = new PDFExporter()
+      await exporter.exportAnalytics(exportData)
+    } catch (error) {
+      console.error('PDF export failed:', error)
+      setError('Failed to export PDF')
     }
   }
 
@@ -361,11 +416,22 @@ export function TeamAnalyticsSection({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold">Team Performance Comparison</h2>
-        <p className="text-muted-foreground">
-          Compare team performance metrics and identify top performers
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-semibold">Team Performance Comparison</h2>
+          <p className="text-muted-foreground">
+            Compare team performance metrics and identify top performers
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {teamData && (
+            <Button onClick={handleExportTeamPDF} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Top Performers Cards */}
@@ -498,6 +564,7 @@ export function TrendAnalyticsSection({
   selectedTeam, 
   selectedMap 
 }: AnalyticsSectionProps) {
+  const { getToken } = useAuth()
   const [trendData, setTrendData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -513,7 +580,7 @@ export function TrendAnalyticsSection({
     setError(null)
 
     try {
-      const token = await fetch('/api/auth/session').then(r => r.json()).then(d => d.session?.access_token)
+      const token = await getToken()
       if (!token) throw new Error('No auth token')
 
       const params = new URLSearchParams({
@@ -540,6 +607,24 @@ export function TrendAnalyticsSection({
       setError(err.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleExportTrendPDF = async () => {
+    if (!trendData || !profile) return
+
+    try {
+      const exportData = prepareTrendDataForPDF(
+        trendData,
+        profile,
+        selectedTimeframe
+      )
+      
+      const exporter = new PDFExporter()
+      await exporter.exportAnalytics(exportData)
+    } catch (error) {
+      console.error('PDF export failed:', error)
+      setError('Failed to export PDF')
     }
   }
 
@@ -572,11 +657,22 @@ export function TrendAnalyticsSection({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold">Performance Trends & Analysis</h2>
-        <p className="text-muted-foreground">
-          Historical performance trends and predictive insights
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-semibold">Performance Trends & Analysis</h2>
+          <p className="text-muted-foreground">
+            Historical performance trends and predictive insights
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {trendData && (
+            <Button onClick={handleExportTrendPDF} variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Trend Summary Cards */}
