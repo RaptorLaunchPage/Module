@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
-import { supabase } from "@/lib/supabase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -52,7 +51,7 @@ interface PendingAttendance {
 }
 
 export function ManagerVerification() {
-  const { profile } = useAuth()
+  const { profile, getToken } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [pendingAttendances, setPendingAttendances] = useState<PendingAttendance[]>([])
@@ -81,34 +80,18 @@ export function ManagerVerification() {
   const loadPendingAttendances = async () => {
     setLoading(true)
     try {
-      let query = supabase
-        .from('attendances')
-        .select(`
-          *,
-          users!inner(name, email),
-          sessions!inner(title, session_subtype, date)
-        `)
-        .eq('source', 'manual')
-        .order('created_at', { ascending: false })
+      const token = await getToken()
+      const response = await fetch('/api/attendances/verification', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
 
-      // Filter based on role
-      if (profile.role === 'coach' && profile.team_id) {
-        query = query.eq('team_id', profile.team_id)
-      } else if (profile.role === 'manager' && profile.team_id) {
-        query = query.eq('team_id', profile.team_id)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to load pending attendances')
       }
-      // Admin can see all
 
-      const { data, error } = await query
-
-      if (error) throw error
-
-      // Filter for pending verification status
-      const pending = data?.filter(attendance => 
-        attendance.training_details?.verification_status === 'pending'
-      ) || []
-
-      setPendingAttendances(pending)
+      const data = await response.json()
+      setPendingAttendances(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error loading pending attendances:', error)
       toast({
@@ -124,30 +107,30 @@ export function ManagerVerification() {
   const handleVerification = async (attendanceId: string, action: 'approved' | 'denied') => {
     setProcessingId(attendanceId)
     try {
-      const attendance = pendingAttendances.find(a => a.id === attendanceId)
-      if (!attendance) throw new Error("Attendance record not found")
+      const token = await getToken()
+      const response = await fetch('/api/attendances/verification', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          attendance_id: attendanceId,
+          action: action,
+          manager_notes: managerNotes[attendanceId] || ''
+        })
+      })
 
-      const updatedTrainingDetails = {
-        ...attendance.training_details,
-        verification_status: action,
-        manager_notes: managerNotes[attendanceId] || '',
-        verified_by: profile.id,
-        verified_at: new Date().toISOString()
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update attendance verification')
       }
 
-      const { error } = await supabase
-        .from('attendances')
-        .update({
-          training_details: updatedTrainingDetails,
-          status: action === 'approved' ? 'present' : 'absent'
-        })
-        .eq('id', attendanceId)
-
-      if (error) throw error
+      const result = await response.json()
 
       toast({
         title: `Attendance ${action}`,
-        description: `Training attendance has been ${action} successfully.`,
+        description: result.message || `Training attendance has been ${action} successfully.`,
         duration: 3000
       })
 

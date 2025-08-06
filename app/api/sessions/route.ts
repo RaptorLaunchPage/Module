@@ -131,10 +131,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
-    // Only admins and managers can create sessions
-    if (!['admin', 'manager'].includes(userData!.role)) {
+    // Only admins, managers, and coaches can create sessions
+    if (!['admin', 'manager', 'coach'].includes(userData!.role)) {
       return NextResponse.json(
-        { error: 'Only administrators and managers can create sessions' },
+        { error: 'Only administrators, managers, and coaches can create sessions' },
         { status: 403 }
       )
     }
@@ -157,6 +157,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Team ID, session type, and date are required' },
         { status: 400 }
+      )
+    }
+
+    // Coaches can only create sessions for their own team
+    if (userData!.role === 'coach' && userData!.team_id !== team_id) {
+      return NextResponse.json(
+        { error: 'Coaches can only create sessions for their own team' },
+        { status: 403 }
       )
     }
 
@@ -211,10 +219,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
-    // Only admins and managers can update sessions
-    if (!['admin', 'manager'].includes(userData!.role)) {
+    // Only admins, managers, and coaches can update sessions
+    if (!['admin', 'manager', 'coach'].includes(userData!.role)) {
       return NextResponse.json(
-        { error: 'Only administrators and managers can update sessions' },
+        { error: 'Only administrators, managers, and coaches can update sessions' },
         { status: 403 }
       )
     }
@@ -238,6 +246,14 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(
         { error: 'Session ID is required' },
         { status: 400 }
+      )
+    }
+
+    // Coaches can only update sessions for their own team
+    if (userData!.role === 'coach' && team_id && userData!.team_id !== team_id) {
+      return NextResponse.json(
+        { error: 'Coaches can only update sessions for their own team' },
+        { status: 403 }
       )
     }
 
@@ -293,10 +309,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
-    // Only admins and managers can delete sessions
-    if (!['admin', 'manager'].includes(userData!.role)) {
+    // Only admins, managers, and coaches can delete sessions
+    if (!['admin', 'manager', 'coach'].includes(userData!.role)) {
       return NextResponse.json(
-        { error: 'Only administrators and managers can delete sessions' },
+        { error: 'Only administrators, managers, and coaches can delete sessions' },
         { status: 403 }
       )
     }
@@ -309,6 +325,29 @@ export async function DELETE(request: NextRequest) {
         { error: 'Session ID is required' },
         { status: 400 }
       )
+    }
+
+    // For coaches, check if the session belongs to their team before deleting
+    if (userData!.role === 'coach') {
+      const { data: sessionData, error: sessionError } = await userSupabase!
+        .from('sessions')
+        .select('team_id')
+        .eq('id', sessionId)
+        .single()
+
+      if (sessionError || !sessionData) {
+        return NextResponse.json(
+          { error: 'Session not found' },
+          { status: 404 }
+        )
+      }
+
+      if (sessionData.team_id !== userData!.team_id) {
+        return NextResponse.json(
+          { error: 'Coaches can only delete sessions for their own team' },
+          { status: 403 }
+        )
+      }
     }
 
     const { error: deleteError } = await userSupabase!

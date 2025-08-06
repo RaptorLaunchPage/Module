@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     // Check if practice_configs table exists, if not create dummy data
     let query = userSupabase!
-      .from('practice_configs')
+      .from('practice_session_config')
       .select(`
         *,
         teams:team_id(name)
@@ -161,10 +161,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
-    // Only admins and managers can create configurations
-    if (!['admin', 'manager'].includes(userData!.role)) {
+    // Only admins, managers, and coaches can create configurations
+    if (!['admin', 'manager', 'coach'].includes(userData!.role)) {
       return NextResponse.json(
-        { error: 'Only administrators and managers can create configurations' },
+        { error: 'Only administrators, managers, and coaches can create configurations' },
         { status: 403 }
       )
     }
@@ -186,8 +186,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Coaches can only create configurations for their own team
+    if (userData!.role === 'coach' && team_id && userData!.team_id !== team_id) {
+      return NextResponse.json(
+        { error: 'Coaches can only create configurations for their own team' },
+        { status: 403 }
+      )
+    }
+
     const { data, error: insertError } = await userSupabase!
-      .from('practice_configs')
+      .from('practice_session_config')
       .insert({
         team_id,
         session_subtype,
@@ -233,10 +241,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
-    // Only admins and managers can update configurations
-    if (!['admin', 'manager'].includes(userData!.role)) {
+    // Only admins, managers, and coaches can update configurations
+    if (!['admin', 'manager', 'coach'].includes(userData!.role)) {
       return NextResponse.json(
-        { error: 'Only administrators and managers can update configurations' },
+        { error: 'Only administrators, managers, and coaches can update configurations' },
         { status: 403 }
       )
     }
@@ -259,8 +267,16 @@ export async function PUT(request: NextRequest) {
       )
     }
 
+    // Coaches can only update configurations for their own team
+    if (userData!.role === 'coach' && team_id && userData!.team_id !== team_id) {
+      return NextResponse.json(
+        { error: 'Coaches can only update configurations for their own team' },
+        { status: 403 }
+      )
+    }
+
     const { data, error: updateError } = await userSupabase!
-      .from('practice_configs')
+      .from('practice_session_config')
       .update({
         team_id,
         session_subtype,
@@ -307,10 +323,10 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error }, { status })
     }
 
-    // Only admins and managers can delete configurations
-    if (!['admin', 'manager'].includes(userData!.role)) {
+    // Only admins, managers, and coaches can delete configurations
+    if (!['admin', 'manager', 'coach'].includes(userData!.role)) {
       return NextResponse.json(
-        { error: 'Only administrators and managers can delete configurations' },
+        { error: 'Only administrators, managers, and coaches can delete configurations' },
         { status: 403 }
       )
     }
@@ -325,8 +341,31 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
+    // For coaches, check if the configuration belongs to their team before deleting
+    if (userData!.role === 'coach') {
+      const { data: configData, error: configError } = await userSupabase!
+        .from('practice_session_config')
+        .select('team_id')
+        .eq('id', configId)
+        .single()
+
+      if (configError || !configData) {
+        return NextResponse.json(
+          { error: 'Configuration not found' },
+          { status: 404 }
+        )
+      }
+
+      if (configData.team_id !== userData!.team_id) {
+        return NextResponse.json(
+          { error: 'Coaches can only delete configurations for their own team' },
+          { status: 403 }
+        )
+      }
+    }
+
     const { error: deleteError } = await userSupabase!
-      .from('practice_configs')
+      .from('practice_session_config')
       .delete()
       .eq('id', configId)
 
