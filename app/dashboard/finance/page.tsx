@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
 import { 
-  DollarSign, 
+  IndianRupee, 
   TrendingUp, 
   TrendingDown, 
   Plus, 
@@ -629,7 +629,7 @@ export default function FinancePage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-4">
-          <DollarSign className="h-16 w-16 text-red-500 mx-auto" />
+                          <IndianRupee className="h-16 w-16 text-red-500 mx-auto" />
           <div>
             <h3 className="text-xl font-semibold text-white">Access Denied</h3>
             <p className="text-gray-600">You don't have permission to access financial data.</p>

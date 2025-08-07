@@ -207,7 +207,6 @@ export default function PerformancePage() {
   const canUseOCR = performancePermissions.canCreate && ['admin', 'manager', 'coach'].includes(userRole)
   const canSubmitPerformance = userRole === 'player'
   const canStaffSubmit = ['admin', 'manager', 'coach'].includes(userRole)
-  const canViewReport = performancePermissions.canView
 
   // Auto-select team for players and reset player filter when team changes
   useEffect(() => {
@@ -396,7 +395,7 @@ export default function PerformancePage() {
   const requiresUsers = canViewDashboard || canStaffSubmit || canUseOCR
 
   // If user has no access to any tab, render nothing
-      if (!canViewDashboard && !canStaffSubmit && !canUseOCR && !canSubmitPerformance && !canViewReport) {
+      if (!canViewDashboard && !canStaffSubmit && !canUseOCR && !canSubmitPerformance) {
     return null
   }
 
@@ -496,18 +495,12 @@ export default function PerformancePage() {
             hidden: !canStaffSubmit
           },
           {
-            value: "report",
-            label: "Report",
-            icon: Target,
-            hidden: !canViewReport
-          },
-          {
             value: "submit",
             label: "Player Submit",
             icon: Gamepad2,
             hidden: !canSubmitPerformance
           }
-        ]}
+        ].filter(tab => !tab.hidden)}
         defaultValue="dashboard"
         variant="default"
         size="md"
@@ -802,12 +795,6 @@ export default function PerformancePage() {
         {canStaffSubmit && (
           <TabsContent value="staff-submit">
             <StreamlinedPerformanceSubmit onPerformanceAdded={fetchPerformances} />
-          </TabsContent>
-        )}
-
-        {canViewReport && (
-          <TabsContent value="report">
-            <PerformanceReportSimple />
           </TabsContent>
         )}
 

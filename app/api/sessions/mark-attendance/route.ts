@@ -85,6 +85,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Ensure session has a valid date
+    if (!session.date) {
+      console.warn('Session missing date, using current date')
+      session.date = new Date().toISOString().split('T')[0] // YYYY-MM-DD format
+    }
+
     // Determine who is marking attendance
     let targetPlayerId = userData!.id
     let source = 'manual'

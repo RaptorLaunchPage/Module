@@ -387,7 +387,11 @@ class OptimizedDataService {
     const totalWinnings = winnings.reduce((sum, w) => sum + (w.amount_won || 0), 0)
     
     const activeTeams = teams.filter(t => t.status === 'active').length
-    const activePlayers = users.filter(u => u.role === 'player' && u.status === 'active').length
+    // Count all players who are not explicitly inactive (includes null status as active)
+    const activePlayers = users.filter(u => 
+      u.role === 'player' && 
+      (u.status === 'active' || u.status === 'Active' || u.status === null || u.status === '')
+    ).length
 
     // Calculate today's and week's matches
     const today = new Date()

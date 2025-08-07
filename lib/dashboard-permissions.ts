@@ -70,7 +70,7 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     id: 'finance',
     title: 'Finance',
     description: 'Financial management and tracking',
-    icon: 'DollarSign',
+    icon: 'IndianRupee',
     path: '/dashboard/finance',
     allowedRoles: ['admin', 'manager'],
     showInNavigation: true,

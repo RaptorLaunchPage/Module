@@ -589,42 +589,88 @@ export default function SlotsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Team</TableHead>
-                  <TableHead>Organizer</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Time Range</TableHead>
-                  <TableHead>Slots</TableHead>
-                  <TableHead>Rate/Slot</TableHead>
-                  <TableHead>Total Cost</TableHead>
-                  <TableHead>Matches</TableHead>
-                  {canManage && <TableHead>Actions</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {slots.map((slot) => (
-                  <TableRow key={slot.id}>
-                    <TableCell className="font-medium">{slot.team?.name || "N/A"}</TableCell>
-                    <TableCell>{slot.organizer}</TableCell>
-                    <TableCell>{format(new Date(slot.date), "PPP")}</TableCell>
-                    <TableCell>{slot.time_range}</TableCell>
-                    <TableCell>{slot.number_of_slots || 1}</TableCell>
-                    <TableCell>₹{slot.slot_rate || 0}</TableCell>
-                    <TableCell className="font-bold">₹{(slot.number_of_slots || 1) * (slot.slot_rate || 0)}</TableCell>
-                    <TableCell>{slot.match_count || 0}</TableCell>
-                    {canManage && (
-                      <TableCell>
+            {/* Mobile Card Layout for small screens */}
+            <div className="block lg:hidden space-y-4">
+              {slots.map((slot) => (
+                <Card key={slot.id} className="border border-border/50">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-semibold text-lg">{slot.team?.name || "N/A"}</h3>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          <div><strong>Organizer:</strong> {slot.organizer}</div>
+                          <div><strong>Date:</strong> {format(new Date(slot.date), "PPP")}</div>
+                        </div>
+                      </div>
+                      {canManage && (
                         <Button size="sm" variant="destructive" onClick={() => handleDeleteSlot(slot.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </TableCell>
-                    )}
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <strong>Time:</strong> {slot.time_range}
+                      </div>
+                      <div>
+                        <strong>Slots:</strong> {slot.number_of_slots || 1}
+                      </div>
+                      <div>
+                        <strong>Rate/Slot:</strong> ₹{slot.slot_rate || 0}
+                      </div>
+                      <div>
+                        <strong>Matches:</strong> {slot.match_count || 0}
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-border/50">
+                      <div className="text-lg font-bold">
+                        Total Cost: ₹{(slot.number_of_slots || 1) * (slot.slot_rate || 0)}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Desktop Table Layout for larger screens */}
+            <div className="hidden lg:block overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Team</TableHead>
+                    <TableHead>Organizer</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Time Range</TableHead>
+                    <TableHead>Slots</TableHead>
+                    <TableHead>Rate/Slot</TableHead>
+                    <TableHead>Total Cost</TableHead>
+                    <TableHead>Matches</TableHead>
+                    {canManage && <TableHead>Actions</TableHead>}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {slots.map((slot) => (
+                    <TableRow key={slot.id}>
+                      <TableCell className="font-medium">{slot.team?.name || "N/A"}</TableCell>
+                      <TableCell>{slot.organizer}</TableCell>
+                      <TableCell>{format(new Date(slot.date), "PPP")}</TableCell>
+                      <TableCell>{slot.time_range}</TableCell>
+                      <TableCell>{slot.number_of_slots || 1}</TableCell>
+                      <TableCell>₹{slot.slot_rate || 0}</TableCell>
+                      <TableCell className="font-bold">₹{(slot.number_of_slots || 1) * (slot.slot_rate || 0)}</TableCell>
+                      <TableCell>{slot.match_count || 0}</TableCell>
+                      {canManage && (
+                        <TableCell>
+                          <Button size="sm" variant="destructive" onClick={() => handleDeleteSlot(slot.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
             {slots.length === 0 && <div className="text-center py-8 text-muted-foreground">No slots booked yet.</div>}
           </CardContent>
         </Card>
