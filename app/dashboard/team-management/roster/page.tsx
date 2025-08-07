@@ -58,18 +58,42 @@ export default function RosterPage() {
       if (profile?.role === "coach") {
         query = query.eq("coach_id", profile.id)
       } else if (profile?.role === "player") {
-        query = query.eq("id", profile.team_id!)
+        if (!profile.team_id) {
+          toast({
+            title: "Team Assignment Required",
+            description: "You need to be assigned to a team to view roster data.",
+            variant: "destructive",
+          })
+          setTeams([])
+          setLoading(false)
+          return
+        }
+        query = query.eq("id", profile.team_id)
       }
       // No filtering for admin/manager - they see all teams
 
       const { data, error } = await query
-      if (error) throw error
+      if (error) {
+        console.error("Teams fetch error:", error)
+        toast({
+          title: "Error Loading Teams",
+          description: error.message || "Failed to fetch teams data.",
+          variant: "destructive",
+        })
+        return
+      }
+      
       setTeams(data || [])
       if (data && data.length > 0 && !selectedTeamId) {
         setSelectedTeamId(data[0].id) // Auto-select first team
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching teams:", error)
+      toast({
+        title: "Connection Error",
+        description: "Unable to connect to the database. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
@@ -102,15 +126,28 @@ export default function RosterPage() {
     try {
       // Fetch all users who are players and not already in a roster (or not in the current selected team's roster)
       const { data, error } = await supabase.from("users").select("*").eq("role", "player")
-      if (error) throw error
+      if (error) {
+        console.error("Players fetch error:", error)
+        toast({
+          title: "Error Loading Players",
+          description: error.message || "Failed to fetch player data.",
+          variant: "destructive",
+        })
+        return
+      }
 
       // Filter out players already in the current roster
       const currentRosterUserIds = new Set(roster.map((entry) => entry.user_id))
       const filteredPlayers = data?.filter((player) => !currentRosterUserIds.has(player.id)) || []
 
       setAvailablePlayers(filteredPlayers)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching available players:", error)
+      toast({
+        title: "Connection Error",
+        description: "Unable to fetch player data. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 

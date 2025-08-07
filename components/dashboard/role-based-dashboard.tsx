@@ -9,7 +9,7 @@ import {
   BarChart3, 
   Target, 
   Users, 
-  DollarSign, 
+  IndianRupee, 
   CalendarCheck,
   TrendingUp,
   Award,
@@ -75,7 +75,7 @@ const DASHBOARD_WIDGETS: DashboardWidget[] = [
     id: 'financial-overview',
     title: 'Financial Overview',
     description: 'Total revenue and expenses',
-    icon: DollarSign,
+    icon: IndianRupee,
     allowedRoles: ['admin', 'manager'],
     priority: 3,
     action: {
@@ -243,7 +243,7 @@ const QUICK_ACTIONS: Record<UserRole, Array<{
     {
       label: 'Financial Reports',
       href: '/dashboard/finance',
-      icon: DollarSign,
+      icon: IndianRupee,
       description: 'View financial data'
     },
     {

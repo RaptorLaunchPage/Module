@@ -70,6 +70,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // First, let's get all attendance records to debug
+    let debugQuery = userSupabase!
+      .from('attendances')
+      .select('id, training_details')
+      .limit(5)
+
+    const { data: debugData } = await debugQuery
+    console.log('Debug - Sample attendance records:', debugData)
+
     let query = userSupabase!
       .from('attendances')
       .select(`
@@ -98,10 +107,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    console.log(`Found ${data?.length || 0} attendance records with training_details`)
+    
     // Filter for pending verification status
     const pending = data?.filter(attendance => 
       attendance.training_details?.verification_status === 'pending'
     ) || []
+
+    console.log(`Found ${pending.length} pending verification records`)
 
     return NextResponse.json(pending)
 

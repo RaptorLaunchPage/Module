@@ -13,9 +13,14 @@ import GlobalLoading from "@/components/ui/global-loading"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Raptor Esports CRM",
-  description: "Professional esports team management system",
-  generator: 'v0.dev'
+  title: "Raptor Esports Hub",
+  description: "Official management hub for Raptor Esports - Professional esports team management system",
+  generator: 'Raptor Esports Hub v1.0',
+  keywords: ['Raptor Esports', 'esports', 'team management', 'gaming', 'tournament'],
+  authors: [{ name: 'Raptor Esports' }],
+  creator: 'Raptor Esports',
+  publisher: 'Raptor Esports',
+  applicationName: 'Raptor Esports Hub'
 }
 
 export default function RootLayout({
@@ -27,7 +32,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.className} bg-transparent`}>
         <LoadingErrorBoundary>
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
             <GlobalLoadingProvider>
               <AuthProviderV2>
                 <RouteGuardV2>

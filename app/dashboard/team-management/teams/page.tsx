@@ -197,7 +197,7 @@ export default function TeamsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreateOrUpdateTeam} className="grid gap-4 md:grid-cols-2">
+            <form onSubmit={handleCreateOrUpdateTeam} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="teamName">Team Name</Label>
                 <Input
@@ -277,53 +277,100 @@ export default function TeamsPage() {
           <CardDescription>Overview of all registered esports teams.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Tier</TableHead>
-                <TableHead>Coach</TableHead>
-                <TableHead>Status</TableHead>
-                {(canManage || canEditOwnTeam) && <TableHead>Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {visibleTeams.map((team) => (
-                <TableRow key={team.id}>
-                  <TableCell className="font-medium">{team.name}</TableCell>
-                  <TableCell>{team.tier}</TableCell>
-                  <TableCell>
-                    {(() => {
-                      const coach = coaches.find(c => c.id === team.coach_id)
-                      return coach?.name || coach?.email || "N/A"
-                    })()}
-                  </TableCell>
-                  <TableCell>{team.status}</TableCell>
-                  {(canManage || (canEditOwnTeam && team.coach_id === profile.id)) && (
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {canManage && (
-                          <>
+          {/* Mobile Card Layout for small screens */}
+          <div className="block lg:hidden space-y-4">
+            {visibleTeams.map((team) => {
+              const coach = coaches.find(c => c.id === team.coach_id)
+              return (
+                <Card key={team.id} className="border border-border/50">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-semibold text-lg">{team.name}</h3>
+                        <div className="flex gap-4 text-sm text-muted-foreground mt-1">
+                          <span><strong>Tier:</strong> {team.tier}</span>
+                          <span><strong>Status:</strong> {team.status}</span>
+                        </div>
+                      </div>
+                      {(canManage || (canEditOwnTeam && team.coach_id === profile.id)) && (
+                        <div className="flex gap-2">
+                          {canManage && (
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => startEditing(team)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="destructive" onClick={() => handleDeleteTeam(team.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          {canEditOwnTeam && team.coach_id === profile.id && !canManage && (
                             <Button size="sm" variant="outline" onClick={() => startEditing(team)}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" variant="destructive" onClick={() => handleDeleteTeam(team.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                        {canEditOwnTeam && team.coach_id === profile.id && !canManage && (
-                          <Button size="sm" variant="outline" onClick={() => startEditing(team)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  )}
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-sm">
+                      <strong>Coach:</strong> {coach?.name || coach?.email || "N/A"}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+
+          {/* Desktop Table Layout for larger screens */}
+          <div className="hidden lg:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead>Coach</TableHead>
+                  <TableHead>Status</TableHead>
+                  {(canManage || canEditOwnTeam) && <TableHead>Actions</TableHead>}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {visibleTeams.map((team) => (
+                  <TableRow key={team.id}>
+                    <TableCell className="font-medium">{team.name}</TableCell>
+                    <TableCell>{team.tier}</TableCell>
+                    <TableCell>
+                      {(() => {
+                        const coach = coaches.find(c => c.id === team.coach_id)
+                        return coach?.name || coach?.email || "N/A"
+                      })()}
+                    </TableCell>
+                    <TableCell>{team.status}</TableCell>
+                    {(canManage || (canEditOwnTeam && team.coach_id === profile.id)) && (
+                      <TableCell>
+                        <div className="flex gap-2">
+                          {canManage && (
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => startEditing(team)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" variant="destructive" onClick={() => handleDeleteTeam(team.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          {canEditOwnTeam && team.coach_id === profile.id && !canManage && (
+                            <Button size="sm" variant="outline" onClick={() => startEditing(team)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           {visibleTeams.length === 0 && <div className="text-center py-8 text-muted-foreground">No teams found.</div>}
         </CardContent>
       </Card>

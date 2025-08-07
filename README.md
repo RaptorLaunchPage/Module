@@ -1,232 +1,210 @@
 # Raptor Esports Hub
 
-A comprehensive esports team management platform built with Next.js, TypeScript, and Supabase. Designed for professional esports organizations to manage teams, track performance, handle finances, and integrate with Discord.
+Welcome to the **Raptor Esports Hub** - a comprehensive team management system designed specifically for Raptor Esports. This application provides a centralized platform for managing teams, tracking performance, monitoring attendance, and coordinating esports activities.
 
 ## 🚀 Features
 
-### Core Features
-- **Authentication & User Management**: Secure sign-up/sign-in with email and Discord OAuth
-- **Role-Based Access Control**: Admin, Manager, Coach, Analyst, Player, and Pending Player roles
-- **Team Management**: Complete roster management, team assignments, and member tracking
-- **Performance Tracking**: Match results, statistics, and analytics dashboard
-- **Financial Management**: Expense tracking, tournament winnings, and ROI calculations
-- **Attendance System**: Practice session tracking and attendance monitoring
-- **Discord Integration**: Webhook management and automated notifications
+### Dashboard & Analytics
+- **Role-based dashboards** with customized views for Admin, Manager, Coach, Analyst, and Player roles
+- **Real-time statistics** showing team performance, player metrics, and organizational data
+- **Advanced analytics** with charts and performance tracking
+- **PDF export functionality** for reports and analytics
 
-### Advanced Features
-- **Agreement Management**: Role-based user agreements with version control
-- **Profile System**: Comprehensive user profiles with onboarding flow
-- **Analytics Dashboard**: Role-specific dashboards with detailed insights
-- **Session Management**: Secure token handling with auto-refresh
-- **Responsive Design**: Modern glassmorphic UI with dark theme
-- **Real-time Updates**: Live data synchronization across components
+### Team Management
+- **Team roster management** with player assignments and role tracking
+- **Responsive design** that adapts to different screen sizes
+- **Tournament slot booking** and scheduling
+- **Team performance monitoring**
 
-## 🏗️ Tech Stack
+### Performance Tracking
+- **Match performance submission** for players and staff
+- **OCR integration** for automatic screenshot processing
+- **Performance analytics** with detailed metrics and trends
+- **Smart slot selection** for tournament management
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS, shadcn/ui
-- **Backend**: Supabase (PostgreSQL, Auth, Real-time)
-- **Authentication**: Supabase Auth with Discord OAuth
-- **State Management**: React Context with custom hooks
-- **UI Components**: Custom components with glassmorphic design
-- **Icons**: Lucide React
-- **Deployment**: Vercel-ready configuration
+### Attendance System
+- **Training session attendance** tracking
+- **Verification system** for training activities
+- **Daily practice session** monitoring
+- **Attendance heatmaps** and statistics
 
-## 📋 Prerequisites
+### User Management
+- **Role-based access control** with granular permissions
+- **Profile management** with gaming details and preferences
+- **Onboarding system** for new players
+- **User search and management** tools
 
-- Node.js 18+ and npm/pnpm
-- Supabase account and project
-- Discord application (for OAuth)
+### Discord Integration
+- **Webhook management** for automated notifications
+- **Performance report sharing** to Discord channels
+- **Attendance summaries** and team updates
+- **Bot integration** for enhanced team communication
 
-## ⚙️ Environment Setup
+## 🛠 Technology Stack
 
-Create a `.env.local` file in the root directory:
+- **Frontend**: Next.js 14 with TypeScript
+- **Styling**: Tailwind CSS with custom components
+- **UI Components**: Radix UI components
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: Supabase Auth
+- **Charts**: Recharts for analytics visualization
+- **PDF Generation**: jsPDF with autoTable
+- **OCR**: Tesseract.js for image text extraction
+- **Package Manager**: pnpm
 
-```env
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+## 🏗 Project Structure
 
-# App Configuration
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-
-# Discord OAuth (Optional)
-NEXT_PUBLIC_DISCORD_CLIENT_ID=your_discord_client_id
+```
+raptor-esports-hub/
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── auth/              # Authentication pages
+│   ├── dashboard/         # Main dashboard pages
+│   └── onboarding/        # User onboarding
+├── components/            # React components
+│   ├── analytics/         # Analytics components
+│   ├── attendance/        # Attendance tracking
+│   ├── dashboard/         # Dashboard components
+│   ├── performance/       # Performance tracking
+│   ├── profile/           # User profile components
+│   └── ui/               # Reusable UI components
+├── lib/                  # Utility libraries
+├── hooks/                # Custom React hooks
+├── scripts/              # Database scripts
+└── database/             # Database schemas
 ```
 
-## 🚀 Quick Start
+## 🚀 Getting Started
 
-1. **Clone and Install**
+### Prerequisites
+
+- Node.js 18+ 
+- pnpm (recommended) or npm
+- Supabase account and project
+
+### Installation
+
+1. **Clone the repository**
    ```bash
    git clone <repository-url>
    cd raptor-esports-hub
-   npm install
    ```
 
-2. **Database Setup**
+2. **Install dependencies**
    ```bash
-   # Run the database setup script
-   npx supabase db reset --local
-   
-   # Or run the SQL files manually in Supabase
-   # - SUPABASE_TRYOUTS_SETUP_FIXED.sql
-   # - AGREEMENT_ENFORCEMENT_SETUP.sql (if using agreements)
-   # - EMERGENCY_AGREEMENT_FIX.sql (if needed)
+   pnpm install
    ```
 
-3. **Development Server**
+3. **Environment Setup**
+   Create a `.env.local` file with the following variables:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_SITE_URL=http://localhost:3000
+   RAPTOR_BOT_API_KEY=your_discord_bot_api_key
+   ```
+
+4. **Database Setup**
+   Run the database migration scripts in order:
    ```bash
-   npm run dev
+   # Run scripts in the scripts/ directory in numerical order
+   # Or import the database schema from database/ directory
    ```
 
-4. **Access the Application**
-   - Navigate to `http://localhost:3000`
-   - Create an account or sign in
-   - Complete onboarding if you're a new user
-
-## 🗄️ Database Structure
-
-### Core Tables
-- `users` - User profiles and roles
-- `teams` - Team information and management
-- `user_agreements` - Agreement tracking and versions
-- `sessions` - Practice sessions and events
-- `attendances` - Attendance tracking
-- `expenses` - Financial expense records
-- `winnings` - Tournament prize tracking
-- `discord_logs` - Discord integration logs
-
-### Key Features
-- Row Level Security (RLS) enabled
-- Role-based access control
-- Foreign key constraints
-- Automated timestamps
-- Data validation
-
-## 🔐 Authentication Flow
-
-1. **User Registration**: Email or Discord OAuth
-2. **Profile Creation**: Automatic profile creation with `pending_player` role
-3. **Onboarding**: New users complete profile setup
-4. **Role Assignment**: Admins can assign appropriate roles
-5. **Agreement Acceptance**: Role-specific agreements (if enabled)
-6. **Dashboard Access**: Role-based dashboard with appropriate permissions
-
-## 👥 Role System
-
-- **Admin**: Full system access and user management
-- **Manager**: Team and financial management
-- **Coach**: Team performance and roster management
-- **Analyst**: Performance analytics and reporting
-- **Player**: Personal performance tracking and team view
-- **Pending Player**: Limited access until onboarding completion
-
-## 📱 Key Pages
-
-- `/` - Landing page with authentication
-- `/auth/login` - Sign in page
-- `/auth/signup` - Registration page
-- `/onboarding` - New user profile setup
-- `/dashboard` - Role-based main dashboard
-- `/dashboard/performance` - Performance tracking
-- `/dashboard/team-management` - Team management tools
-- `/dashboard/finance` - Financial management
-- `/dashboard/analytics` - Analytics and reporting
-- `/dashboard/user-management` - User administration
-- `/agreement-review` - Agreement acceptance
-
-## 🔧 Configuration
-
-### Discord Integration
-1. Create a Discord application at https://discord.com/developers/applications
-2. Add redirect URI: `{SITE_URL}/auth/confirm`
-3. Configure OAuth2 scopes: `identify`, `email`
-
-### Supabase Setup
-1. Create a new Supabase project
-2. Run the provided SQL scripts
-3. Configure authentication providers
-4. Set up Row Level Security policies
-
-## 🚀 Deployment
-
-The application is configured for Vercel deployment:
-
-1. **Vercel Setup**
+5. **Run the development server**
    ```bash
-   npm i -g vercel
-   vercel --prod
+   pnpm dev
    ```
 
-2. **Environment Variables**
-   - Configure all environment variables in Vercel dashboard
-   - Update `NEXT_PUBLIC_SITE_URL` to your domain
+6. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
 
-3. **Database Migration**
-   - Ensure all SQL scripts are run in production Supabase
+## 📊 Database Schema
 
-## 🛠️ Development
+The application uses a comprehensive database schema including:
 
-### Key Scripts
-```bash
-npm run dev          # Development server
-npm run build        # Production build
-npm run start        # Production server
-npm run lint         # ESLint checking
-npm run type-check   # TypeScript checking
-```
+- **Users**: Player profiles and authentication
+- **Teams**: Team information and assignments
+- **Performances**: Match performance data
+- **Attendances**: Training and session attendance
+- **Sessions**: Practice and training sessions
+- **Slots**: Tournament slots and scheduling
+- **Rosters**: Team roster management
 
-### Project Structure
-```
-├── app/                 # Next.js app directory
-├── components/          # Reusable UI components
-├── hooks/              # Custom React hooks
-├── lib/                # Utility functions and configurations
-├── modules/            # Feature-specific modules
-├── public/             # Static assets
-└── database/           # Database scripts and schemas
-```
+## 🔧 Recent Updates & Fixes
+
+### ✅ Completed Improvements
+
+- **Fixed overview statistics** - Now properly displays team counts, player stats, and webhook data
+- **Enhanced role-based access** - Players have streamlined interface, admins/managers have full access
+- **Improved responsiveness** - Team management and all modules now work on mobile devices
+- **Fixed visibility issues** - Switched to dark theme to resolve text contrast problems
+- **Updated branding** - Changed from generic branding to "Raptor Esports Hub" throughout
+- **Currency localization** - Changed dollar symbols to rupee (₹) symbols
+- **Enhanced error handling** - Better error messages and loading states
+- **PDF export fixes** - Resolved PDF generation issues with better error handling
+- **Performance submission fixes** - Fixed date constraint violations in attendance
+- **Removed unnecessary tabs** - Cleaned up report tabs and unused sections
+- **Training verification** - Enhanced attendance verification system
+
+### 🎯 Role-Specific Features
+
+#### Admin/Manager
+- Full access to all modules and data
+- User management and role assignment
+- Financial tracking and analytics
+- Discord webhook configuration
+- Team and tournament management
+
+#### Coach
+- Team-specific data access
+- Player performance tracking
+- Attendance monitoring
+- Training session management
+
+#### Analyst
+- Performance analytics and reporting
+- Statistical analysis tools
+- Trend monitoring
+- Data export capabilities
+
+#### Player
+- Personal performance tracking
+- Team information access
+- Training attendance marking
+- Simplified dashboard interface
 
 ## 🔒 Security Features
 
-- JWT token management with auto-refresh
-- Row Level Security in database
-- Role-based access control
-- Session timeout handling
-- CSRF protection
-- Input validation and sanitization
+- **Row Level Security (RLS)** on all database tables
+- **Role-based access control** with granular permissions
+- **Secure authentication** via Supabase Auth
+- **API route protection** with middleware
+- **Session management** with automatic token refresh
 
-## 📊 Performance Features
+## 📱 Responsive Design
 
-- Optimized data loading with caching
-- Lazy loading of components
-- Image optimization
-- Bundle splitting
-- Server-side rendering where appropriate
+The application is fully responsive and works seamlessly on:
+- **Desktop** - Full feature access with optimized layouts
+- **Tablet** - Adaptive layouts with touch-friendly interfaces
+- **Mobile** - Streamlined interfaces with card-based layouts for better usability
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## 📄 License
+## 📝 License
 
-This project is proprietary software for Raptor Esports organization.
+This project is proprietary software developed for Raptor Esports.
 
-## 🐛 Troubleshooting
+## 🏆 About Raptor Esports
 
-### Common Issues
-- **Authentication loops**: Clear browser storage and check environment variables
-- **Database errors**: Verify Supabase configuration and SQL script execution
-- **Permission denied**: Check user roles and RLS policies
-- **Redirect issues**: Verify SITE_URL configuration
-
-### Support
-For issues and support, please create an issue in the repository or contact the development team.
+Raptor Esports is a competitive gaming organization focused on excellence in esports competitions. This hub serves as the central management system for all team operations, performance tracking, and organizational activities.
 
 ---
 
-Built with ❤️ for the Raptor Esports community
+**Built with ❤️ for Raptor Esports**

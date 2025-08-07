@@ -18,7 +18,7 @@ import {
   TrendingUp, 
   Activity, 
   Calendar,
-  DollarSign,
+  IndianRupee,
   BarChart3,
   Download,
   RefreshCw,
@@ -92,7 +92,7 @@ interface QuickAction {
 }
 
 export default function OptimizedDashboardPage() {
-  const { profile, user } = useAuth()
+  const { profile, user, getToken } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [topPerformers, setTopPerformers] = useState<{
     topTeam: TeamPerformance | null
@@ -149,7 +149,7 @@ export default function OptimizedDashboardPage() {
       actions.push(
         { title: 'Team Management', description: 'Manage all teams', href: '/dashboard/team-management', icon: Users, color: 'bg-purple-500' },
         { title: 'User Management', description: 'Manage users and roles', href: '/dashboard/user-management', icon: Shield, color: 'bg-red-500' },
-        { title: 'Finance Overview', description: 'Track expenses and winnings', href: '/dashboard/finance', icon: DollarSign, color: 'bg-green-500' },
+        { title: 'Finance Overview', description: 'Track expenses and winnings', href: '/dashboard/finance', icon: IndianRupee, color: 'bg-green-500' },
         { title: 'Analytics', description: 'View comprehensive reports', href: '/dashboard/analytics', icon: BarChart3, color: 'bg-blue-500' }
       )
     }
@@ -201,17 +201,36 @@ export default function OptimizedDashboardPage() {
 
   const loadEnhancedAdminStats = async (baseStats: any): Promise<DashboardStats> => {
     try {
+      // Get auth token for API calls
+      const token = await getToken()
+      if (!token) {
+        console.warn('No auth token available for enhanced stats')
+        return normalizeStats(baseStats)
+      }
+
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+
       const [teamsResponse, attendanceResponse, webhooksResponse, logsResponse] = await Promise.all([
-        fetch('/api/teams'),
-        fetch('/api/sessions/daily-practice'),
-        fetch('/api/discord-portal/webhooks'),
-        fetch('/api/discord-portal/logs')
+        fetch('/api/teams', { headers }),
+        fetch('/api/sessions/daily-practice', { headers }),
+        fetch('/api/discord-portal/webhooks', { headers }),
+        fetch('/api/discord-portal/logs', { headers })
       ])
 
       // Calculate total teams
-      const teamsData = teamsResponse.ok ? await teamsResponse.json() : []
+      let teamsData = []
+      if (teamsResponse.ok) {
+        teamsData = await teamsResponse.json()
+        console.log('Teams API response:', teamsData)
+      } else {
+        console.warn('Teams API failed:', teamsResponse.status, await teamsResponse.text())
+      }
       const totalTeams = Array.isArray(teamsData) ? teamsData.length : 0
       const activeTeams = Array.isArray(teamsData) ? teamsData.filter(t => t.status === 'active').length : 0
+      console.log(`Teams stats: total=${totalTeams}, active=${activeTeams}`)
 
       // Calculate attendance rate
       let overallAttendanceRate = 0
@@ -255,18 +274,18 @@ export default function OptimizedDashboardPage() {
         kdRatio: baseStats.kdRatio || 0,
         totalExpense: baseStats.totalExpense || 0,
         totalProfitLoss: baseStats.totalProfitLoss || 0,
-        activeTeams: baseStats.activeTeams || 0,
-        activePlayers: baseStats.activePlayers || 0,
+        activeTeams: Math.max(activeTeams, baseStats.activeTeams || 0),
+        activePlayers: Math.max(baseStats.activePlayers || 0, 0),
         todayMatches: baseStats.todayMatches || 0,
         weekMatches: baseStats.weekMatches || 0,
         avgPlacement: baseStats.avgPlacement || 0,
-        totalTeams,
+        totalTeams: Math.max(totalTeams, baseStats.totalTeams || 0),
         overallMatches: baseStats.totalMatches || 0,
         roi,
         overallAttendanceRate,
         totalWinnings: Math.max(0, baseStats.totalProfitLoss || 0),
-        activeWebhooks,
-        totalDiscordMessages
+        activeWebhooks: Math.max(activeWebhooks, 0),
+        totalDiscordMessages: Math.max(totalDiscordMessages, 0)
       }
     } catch (error) {
       console.warn('Failed to load enhanced admin stats:', error)
@@ -713,7 +732,7 @@ export default function OptimizedDashboardPage() {
               <CardHeader>
                 <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-green-500/20">
-                    <DollarSign className="h-6 w-6 text-white" />
+                    <IndianRupee className="h-6 w-6 text-white" />
                   </div>
                   Financial Overview
                 </CardTitle>
@@ -728,7 +747,7 @@ export default function OptimizedDashboardPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-emerald-100 text-sm font-medium">Total Winnings</p>
-                      <p className="text-2xl font-bold">${formatNumber(stats?.totalWinnings || 0)}</p>
+                                              <p className="text-2xl font-bold">₹{formatNumber(stats?.totalWinnings || 0)}</p>
                       <p className="text-emerald-200 text-xs">Prize money earned</p>
                     </div>
                     <Trophy className="h-8 w-8 text-emerald-200" />
@@ -741,10 +760,10 @@ export default function OptimizedDashboardPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-red-100 text-sm font-medium">Total Expenses</p>
-                      <p className="text-2xl font-bold">${formatNumber(stats?.totalExpense || 0)}</p>
+                                              <p className="text-2xl font-bold">₹{formatNumber(stats?.totalExpense || 0)}</p>
                       <p className="text-red-200 text-xs">Operational costs</p>
                     </div>
-                    <DollarSign className="h-8 w-8 text-red-200" />
+                    <IndianRupee className="h-8 w-8 text-red-200" />
                   </div>
                 </CardContent>
               </Card>
@@ -992,82 +1011,85 @@ export default function OptimizedDashboardPage() {
             </Card>
           )}
 
-          {/* Recent Activity Section */}
-          <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
-            <CardHeader>
-              <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-500/20">
-                  <Clock className="h-6 w-6 text-white" />
-                </div>
-                Recent Activity
-              </CardTitle>
-              <CardDescription className="text-white/70">
-                Latest match results and performance entries
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {recentPerformances.length > 0 ? (
-                <div className="space-y-3">
-                  {recentPerformances.slice(0, 5).map((perf, index) => (
-                    <div key={perf.id} className="flex items-center justify-between p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg">
-                      <div>
-                        <p className="font-medium text-white text-sm">{perf.map || 'Unknown Map'}</p>
-                        <p className="text-xs text-white/60 mt-1">
-                          Placement: #{perf.placement || 'N/A'} • {perf.kills || 0} kills • {formatNumber(perf.damage || 0)} damage
-                        </p>
+          {/* Recent Activity Section - Hidden for players */}
+          {!isPlayer && (
+            <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-orange-500/20">
+                    <Clock className="h-6 w-6 text-white" />
+                  </div>
+                  Recent Activity
+                </CardTitle>
+                <CardDescription className="text-white/70">
+                  Latest match results and performance entries
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {recentPerformances.length > 0 ? (
+                  <div className="space-y-3">
+                    {recentPerformances.slice(0, 5).map((perf, index) => (
+                      <div key={perf.id} className="flex items-center justify-between p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg">
+                        <div>
+                          <p className="font-medium text-white text-sm">{perf.map || 'Unknown Map'}</p>
+                          <p className="text-xs text-white/60 mt-1">
+                            Placement: #{perf.placement || 'N/A'} • {perf.kills || 0} kills • {formatNumber(perf.damage || 0)} damage
+                          </p>
+                        </div>
+                        <Badge variant={perf.placement === 1 ? 'default' : 'secondary'}>
+                          {perf.placement === 1 ? '🥇 Win' : `#${perf.placement || 'N/A'}`}
+                        </Badge>
                       </div>
-                      <Badge variant={perf.placement === 1 ? 'default' : 'secondary'}>
-                        {perf.placement === 1 ? '🥇 Win' : `#${perf.placement || 'N/A'}`}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Activity className="h-12 w-12 mx-auto mb-4 text-white/40" />
-                  <p className="text-white/60">No recent activity</p>
-                  <p className="text-white/40 text-sm mt-1">Your latest matches will appear here</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Activity className="h-12 w-12 mx-auto mb-4 text-white/40" />
+                    <p className="text-white/60">No recent activity</p>
+                    <p className="text-white/40 text-sm mt-1">Your latest matches will appear here</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}  {/* End of metrics conditional */}
 
 
 
-      {/* Main Content Tabs */}
-      <ResponsiveTabs 
-        tabs={[
-          {
-            value: "overview",
-            label: "Overview",
-            icon: BarChart3
-          },
-          {
-            value: "performance",
-            label: "Performance",
-            icon: Target
-          },
-          {
-            value: "analytics",
-            label: "Analytics",
-            icon: TrendingUp,
-            hidden: !canAccessAnalytics
-          },
-          {
-            value: "management",
-            label: "Management",
-            icon: Users,
-            hidden: !(canAccessFinance || canAccessUsers)
-          }
-        ]}
-        defaultValue="overview"
-        variant="default"
-        size="md"
-        responsiveMode="auto"
-        className="space-y-4"
-      >
+      {/* Main Content Tabs - Hidden for players */}
+      {!isPlayer ? (
+        <ResponsiveTabs 
+          tabs={[
+            {
+              value: "overview",
+              label: "Overview",
+              icon: BarChart3
+            },
+            {
+              value: "performance",
+              label: "Performance",
+              icon: Target
+            },
+            {
+              value: "analytics",
+              label: "Analytics",
+              icon: TrendingUp,
+              hidden: !canAccessAnalytics
+            },
+            {
+              value: "management",
+              label: "Management",
+              icon: Users,
+              hidden: !(canAccessFinance || canAccessUsers)
+            }
+          ].filter(tab => !tab.hidden)}
+          defaultValue="overview"
+          variant="default"
+          size="md"
+          responsiveMode="auto"
+          className="space-y-4"
+        >
 
         <TabsContent value="overview" className="space-y-6">
           <Card className="bg-black/20 backdrop-blur-lg border border-white/10 shadow-xl">
@@ -1142,7 +1164,26 @@ export default function OptimizedDashboardPage() {
           </div>
         </TabsContent>
 
-      </ResponsiveTabs>
+        </ResponsiveTabs>
+      ) : (
+        /* Player Dashboard Content */
+        <div className="space-y-6">
+          <Card className="bg-black/20 backdrop-blur-lg border border-white/10 shadow-xl">
+            <CardContent className="p-8 text-center">
+              <div className="mb-4">
+                <User className="h-16 w-16 mx-auto text-white/60" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Welcome to Raptor Esports Hub</h3>
+              <p className="text-white/70 mb-6">
+                Your player dashboard shows your core statistics and performance metrics above.
+              </p>
+              <p className="text-white/60 text-sm">
+                Use the navigation menu to access detailed performance tracking, team information, and other player-specific features.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

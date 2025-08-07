@@ -41,12 +41,12 @@ export class PDFExporter {
 
   private addHeader(title: string, subtitle?: string) {
     // Add logo area (placeholder)
-    this.doc.setFillColor(59, 130, 246) // Blue color
-    this.doc.rect(20, 10, 50, 15, 'F')
+    this.doc.setFillColor(220, 38, 38) // Red color for Raptor Esports
+    this.doc.rect(20, 10, 60, 15, 'F')
     this.doc.setTextColor(255, 255, 255)
     this.doc.setFontSize(10)
-    this.doc.text('RAPTORS', 22, 20)
-    this.doc.text('ESPORTS', 22, 23)
+    this.doc.text('RAPTOR', 22, 18)
+    this.doc.text('ESPORTS HUB', 22, 22)
 
     // Reset text color
     this.doc.setTextColor(0, 0, 0)
@@ -174,48 +174,67 @@ export class PDFExporter {
   }
 
   async exportAnalytics(exportData: ExportData): Promise<void> {
-    // Add header
-    this.addHeader(exportData.title, exportData.subtitle)
-    
-    // Add user info
-    this.addUserInfo(exportData.userInfo)
+    try {
+      console.log('Starting PDF export...', exportData.title)
+      
+      // Validate input data
+      if (!exportData || !exportData.title) {
+        throw new Error('Invalid export data: missing title')
+      }
+      
+      // Add header
+      this.addHeader(exportData.title, exportData.subtitle)
+      
+      // Add user info
+      this.addUserInfo(exportData.userInfo)
 
-    // Process each section
-    for (const section of exportData.sections) {
-      this.addSectionTitle(section.title)
-      
-      // Add chart if available
-      if (section.chartElement) {
-        await this.addChart(section.chartElement)
+      // Process each section
+      for (const section of exportData.sections) {
+        this.addSectionTitle(section.title)
+        
+        // Add chart if available
+        if (section.chartElement) {
+          try {
+            await this.addChart(section.chartElement)
+          } catch (chartError) {
+            console.warn('Failed to add chart:', chartError)
+            // Continue without chart
+          }
+        }
+        
+        // Add table data
+        if (section.data && section.data.length > 0) {
+          this.addTable(section.data, section.headers)
+        }
+        
+        // Check if we need a new page for next section
+        if (this.currentY > 250) {
+          this.doc.addPage()
+          this.currentY = 20
+        }
       }
-      
-      // Add table data
-      if (section.data && section.data.length > 0) {
-        this.addTable(section.data, section.headers)
+
+      // Add footer with page numbers
+      const pageCount = this.doc.getNumberOfPages()
+      for (let i = 1; i <= pageCount; i++) {
+        this.doc.setPage(i)
+        this.doc.setFontSize(8)
+        this.doc.text(
+          `Page ${i} of ${pageCount}`,
+          this.doc.internal.pageSize.width - 40,
+          this.doc.internal.pageSize.height - 10
+        )
       }
-      
-      // Check if we need a new page for next section
-      if (this.currentY > 250) {
-        this.doc.addPage()
-        this.currentY = 20
-      }
+
+      // Save the PDF
+      const filename = `${exportData.title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`
+      console.log('Saving PDF:', filename)
+      this.doc.save(filename)
+      console.log('PDF export completed successfully')
+    } catch (error) {
+      console.error('PDF export error:', error)
+      throw new Error(`PDF export failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
-
-    // Add footer with page numbers
-    const pageCount = this.doc.getNumberOfPages()
-    for (let i = 1; i <= pageCount; i++) {
-      this.doc.setPage(i)
-      this.doc.setFontSize(8)
-      this.doc.text(
-        `Page ${i} of ${pageCount}`,
-        this.doc.internal.pageSize.width - 40,
-        this.doc.internal.pageSize.height - 10
-      )
-    }
-
-    // Save the PDF
-    const filename = `${exportData.title.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`
-    this.doc.save(filename)
   }
 }
 
