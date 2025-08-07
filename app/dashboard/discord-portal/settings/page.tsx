@@ -78,6 +78,10 @@ export default function DiscordSettingsPage() {
   const fetchSettings = async () => {
     try {
       const token = await getToken()
+      if (!token) {
+        throw new Error('No authentication token available')
+      }
+      
       const response = await fetch('/api/discord-portal/settings', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -86,19 +90,26 @@ export default function DiscordSettingsPage() {
         const data = await response.json()
         const settingsMap: Record<string, boolean> = {}
         
-        data.forEach((setting: AutomationSetting) => {
-          settingsMap[setting.setting_key] = setting.setting_value
-        })
+        // Handle if data is an array or object
+        if (Array.isArray(data)) {
+          data.forEach((setting: AutomationSetting) => {
+            settingsMap[setting.setting_key] = setting.setting_value
+          })
+        } else {
+          console.warn('Settings data is not an array:', data)
+        }
         
         setSettings(settingsMap)
       } else {
-        throw new Error('Failed to fetch settings')
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Settings API error:', response.status, errorData)
+        throw new Error(errorData.error || `API Error: ${response.status}`)
       }
     } catch (error) {
       console.error('Error fetching settings:', error)
       toast({
         title: "Error",
-        description: "Failed to load automation settings",
+        description: error instanceof Error ? error.message : "Failed to load automation settings",
         variant: "destructive",
       })
     } finally {

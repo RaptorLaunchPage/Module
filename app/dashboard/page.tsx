@@ -479,7 +479,7 @@ export default function OptimizedDashboardPage() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
             <p className="text-muted-foreground">
-              Welcome back, {profile?.name || 'User'}! 
+              Welcome back, {profile?.name || profile?.display_name || user?.email?.split('@')[0] || 'User'}! 
               <Badge variant="outline" className="ml-2">{roleInfo.label}</Badge>
             </p>
           </div>
@@ -506,7 +506,7 @@ export default function OptimizedDashboardPage() {
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
             <p className="text-muted-foreground">
-              Welcome back, {profile?.name || user?.email || 'User'}!
+              Welcome back, {profile?.name || profile?.display_name || user?.email?.split('@')[0] || 'User'}!
             </p>
           </div>
           <Button onClick={handleRefresh} variant="outline">
@@ -537,7 +537,7 @@ export default function OptimizedDashboardPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {profile?.name || 'User'}! 
+            Welcome back, {profile?.name || profile?.display_name || user?.email?.split('@')[0] || 'User'}! 
             <Badge variant="outline" className="ml-2">{roleInfo.label}</Badge>
           </p>
         </div>

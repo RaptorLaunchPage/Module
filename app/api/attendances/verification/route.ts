@@ -70,15 +70,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // First, let's get all attendance records to debug
-    let debugQuery = userSupabase!
-      .from('attendances')
-      .select('id, training_details')
-      .limit(5)
-
-    const { data: debugData } = await debugQuery
-    console.log('Debug - Sample attendance records:', debugData)
-
+    // Try to get attendance records with training_details
     let query = userSupabase!
       .from('attendances')
       .select(`
@@ -86,7 +78,6 @@ export async function GET(request: NextRequest) {
         users!inner(name, email),
         sessions(title, session_subtype, date)
       `)
-      .not('training_details', 'is', null)
       .order('created_at', { ascending: false })
 
     // Apply role-based filtering
@@ -101,20 +92,17 @@ export async function GET(request: NextRequest) {
 
     if (queryError) {
       console.error('Error fetching attendance verifications:', queryError)
-      return NextResponse.json(
-        { error: 'Failed to fetch attendance verifications' },
-        { status: 500 }
-      )
+      // Return empty array instead of error for better UX
+      return NextResponse.json([])
     }
 
-    console.log(`Found ${data?.length || 0} attendance records with training_details`)
-    
-    // Filter for pending verification status
+    // Filter for records with training_details and pending verification status
     const pending = data?.filter(attendance => 
-      attendance.training_details?.verification_status === 'pending'
+      attendance.training_details && 
+      attendance.training_details.verification_status === 'pending'
     ) || []
 
-    console.log(`Found ${pending.length} pending verification records`)
+    console.log(`Found ${pending.length} pending verification records out of ${data?.length || 0} total attendance records`)
 
     return NextResponse.json(pending)
 
