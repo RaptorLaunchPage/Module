@@ -78,10 +78,6 @@ export default function TeamTierManagementPage() {
     fetchTierDefaults()
   }, [profile])
 
-  useEffect(() => {
-    if (!form.teamId || !form.month) return
-    prefillFromFinance(form.teamId, form.month)
-  }, [form.teamId, form.month])
 
   async function prefillFromFinance(teamId: string, month: string) {
     try {
@@ -174,6 +170,11 @@ export default function TeamTierManagementPage() {
     trialWeeksUsed: 0,
     tournamentWinnings: 0,
   })
+
+  useEffect(() => {
+    if (!form.teamId || !form.month) return
+    prefillFromFinance(form.teamId, form.month)
+  }, [form.teamId, form.month])
 
   function startNew(teamId?: string) {
     setForm({
