@@ -17,6 +17,7 @@ import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { MoreVertical } from 'lucide-react'
 import { dataService } from '@/lib/optimized-data-service'
+import { computeMonthlyOutcome, type MonthlyInput } from '@/lib/team-logic'
 
 const TIERS = ['godtier','T1','T2','T3','T4']
 const TRIAL_PHASES = ['none','trial','extended']
@@ -135,11 +136,118 @@ export default function TeamTierManagementPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to fetch monthly stats')
-      setRows(data || [])
+
+      if (Array.isArray(data) && data.length > 0) {
+        setRows(data)
+      } else {
+        // Fallback: compute monthly outcomes from finance data for all visible teams
+        const computed = await computeMonthlyFromFinance()
+        setRows(computed)
+      }
     } catch (e: any) {
       toast({ title: 'Error', description: e.message || 'Failed to fetch monthly stats', variant: 'destructive' })
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function computeMonthlyFromFinance(): Promise<MonthlyRow[]> {
+    try {
+      // Load all expenses and winnings (RBAC allows admin/manager to see all)
+      const [allExpenses, allWinnings] = await Promise.all([
+        dataService.getExpenses(),
+        dataService.getWinnings()
+      ])
+      const monthPrefix = filterMonth + '-'
+
+      const tierMap: Record<string, number> = {}
+      tierDefaults.forEach(td => { tierMap[td.tier] = td.default_slot_rate })
+
+      const teamMap = new Map<string, Team>()
+      teams.forEach(t => teamMap.set(t.id, t))
+
+      // Group by team
+      const byTeam: Record<string, { played: number; won: number; slotCostAvg: number; prizeAvg: number; prizeTotal: number }> = {}
+
+      // Expenses -> slots played and average cost
+      const expThisMonth = allExpenses.filter(e => (e.slot as any)?.date?.startsWith(monthPrefix))
+      const teamToCosts: Record<string, number[]> = {}
+      expThisMonth.forEach(e => {
+        const tid = e.team_id
+        const slots = e.slot?.number_of_slots || 0
+        if (!byTeam[tid]) byTeam[tid] = { played: 0, won: 0, slotCostAvg: 0, prizeAvg: 0, prizeTotal: 0 }
+        byTeam[tid].played += slots
+        if (!teamToCosts[tid]) teamToCosts[tid] = []
+        if (e.slot?.slot_rate) teamToCosts[tid].push(e.slot.slot_rate)
+      })
+      Object.keys(teamToCosts).forEach(tid => {
+        const arr = teamToCosts[tid]
+        if (arr.length > 0) byTeam[tid].slotCostAvg = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+      })
+
+      // Winnings -> wins count and average prize
+      const winThisMonth = allWinnings.filter(w => (w.slot as any)?.date?.startsWith(monthPrefix))
+      const teamToPrizes: Record<string, number[]> = {}
+      winThisMonth.forEach(w => {
+        const tid = w.team_id
+        if (!byTeam[tid]) byTeam[tid] = { played: 0, won: 0, slotCostAvg: 0, prizeAvg: 0, prizeTotal: 0 }
+        byTeam[tid].won += 1
+        if (!teamToPrizes[tid]) teamToPrizes[tid] = []
+        teamToPrizes[tid].push(w.amount_won || 0)
+        byTeam[tid].prizeTotal += w.amount_won || 0
+      })
+      Object.keys(teamToPrizes).forEach(tid => {
+        const arr = teamToPrizes[tid]
+        if (arr.length > 0) byTeam[tid].prizeAvg = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+      })
+
+      // Compute outcomes per team
+      const computed: MonthlyRow[] = []
+      for (const [teamId, agg] of Object.entries(byTeam)) {
+        const team = teamMap.get(teamId)
+        if (!team) continue
+        const input: MonthlyInput = {
+          teamId,
+          teamName: team.name,
+          month: filterMonth,
+          currentTier: (team.tier as any) || 'T4',
+          slotsPlayed: agg.played,
+          slotsWon: agg.won,
+          slotPricePerSlot: agg.prizeAvg || 0,
+          slotCostPerSlot: agg.slotCostAvg || 0,
+          tournamentWinnings: agg.prizeTotal || 0,
+          trialPhase: 'none'
+        }
+        const outcome = computeMonthlyOutcome({ ...input, tierRates: tierMap as any })
+        computed.push({
+          id: undefined,
+          team_id: teamId,
+          month: filterMonth,
+          current_tier: input.currentTier,
+          slots_played: input.slotsPlayed,
+          slots_won: input.slotsWon,
+          slot_price_per_slot: input.slotPricePerSlot,
+          trial_phase: input.trialPhase,
+          trial_weeks_used: 0,
+          tournament_winnings: input.tournamentWinnings || 0,
+          win_percentage: outcome.winPercentage,
+          updated_tier: outcome.updatedTier,
+          status_update: outcome.statusUpdate,
+          sponsorship_status: outcome.sponsorshipStatus,
+          trial_extension_granted: outcome.trial.extensionGranted,
+          trial_extension_weeks: outcome.trial.extensionWeeks,
+          monthly_prize_pool: outcome.incentives.monthlyPrizePool,
+          monthly_cost: outcome.incentives.monthlyCost + outcome.incentives.nextMonthTierCost,
+          surplus: outcome.incentives.surplus,
+          org_share: outcome.incentives.orgShare,
+          team_share: outcome.incentives.teamShare,
+          split_rule: outcome.incentives.splitRule
+        })
+      }
+      // If nothing computed, return empty
+      return computed.sort((a, b) => b.win_percentage - a.win_percentage)
+    } catch (e) {
+      return []
     }
   }
 
