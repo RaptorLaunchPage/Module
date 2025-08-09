@@ -249,8 +249,12 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Error inserting performance:', insertError)
+      const message = insertError.message || ''
+      const migrationHint = message.includes('attendances') && message.includes('date')
+        ? 'Attendance trigger mismatch detected. Please apply scripts/15-fix-auto-attendance-trigger.sql to update triggers.'
+        : ''
       return NextResponse.json(
-        { error: `Failed to submit performance: ${insertError.message}` },
+        { error: `Failed to submit performance: ${message}. ${migrationHint}`.trim() },
         { status: 500 }
       )
     }
