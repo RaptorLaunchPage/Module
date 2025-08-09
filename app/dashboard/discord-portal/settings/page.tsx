@@ -16,6 +16,11 @@ interface AutomationSetting {
   team_id?: string
 }
 
+interface TeamOption {
+  id: string
+  name: string
+}
+
 const AUTOMATION_SETTINGS = [
   {
     key: 'auto_slot_create',
@@ -65,55 +70,97 @@ export default function DiscordSettingsPage() {
   const [settings, setSettings] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [resolvedTeamId, setResolvedTeamId] = useState<string | null>(null)
+  const [isGlobalContext, setIsGlobalContext] = useState<boolean>(false)
+  const [availableTeams, setAvailableTeams] = useState<TeamOption[]>([])
 
   const userRole = profile?.role as UserRole
   const permissions = DashboardPermissions.getPermissions(userRole)
 
   useEffect(() => {
     if (profile && permissions.manageDiscordPortal) {
-      fetchSettings()
+      resolveContextAndFetch()
     }
   }, [profile, permissions.manageDiscordPortal])
 
-  const fetchSettings = async () => {
+  async function resolveContextAndFetch() {
     try {
+      setLoading(true)
       const token = await getToken()
       if (!token) {
-        throw new Error('No authentication token available')
+        toast({ title: 'Error', description: 'Not authenticated', variant: 'destructive' })
+        return
       }
-      
-      const response = await fetch('/api/discord-portal/settings', {
+
+      // Admins: default to global settings (no team required)
+      if (userRole === 'admin') {
+        setIsGlobalContext(true)
+        setResolvedTeamId(null)
+        await fetchSettings({ token, isGlobal: true })
+        return
+      }
+
+      // Non-admins: prefer user's team; otherwise pick first accessible team
+      if (profile?.team_id) {
+        setIsGlobalContext(false)
+        setResolvedTeamId(profile.team_id)
+        await fetchSettings({ token, teamId: profile.team_id })
+        return
+      }
+
+      // Fetch accessible teams and choose first
+      const teamsRes = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+      const teamsData = teamsRes.ok ? await teamsRes.json() : []
+      const teams: TeamOption[] = Array.isArray(teamsData) ? teamsData : []
+      setAvailableTeams(teams)
+
+      if (teams.length > 0) {
+        setIsGlobalContext(false)
+        setResolvedTeamId(teams[0].id)
+        await fetchSettings({ token, teamId: teams[0].id })
+      } else {
+        // No accessible team; show empty state but avoid error toast
+        setIsGlobalContext(false)
+        setResolvedTeamId(null)
+        setSettings({})
+      }
+    } catch (error) {
+      console.error('Failed resolving settings context:', error)
+      toast({ title: 'Error', description: 'Failed to load settings', variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchSettings = async ({ token, teamId, isGlobal = false }: { token: string, teamId?: string, isGlobal?: boolean }) => {
+    try {
+      const params = new URLSearchParams()
+      if (isGlobal) params.append('global', 'true')
+      if (teamId) params.append('teamId', teamId)
+
+      const response = await fetch(`/api/discord-portal/settings${params.toString() ? `?${params}` : ''}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
 
       if (response.ok) {
         const data = await response.json()
+        const list = Array.isArray(data) ? data : Array.isArray(data?.settings) ? data.settings : []
         const settingsMap: Record<string, boolean> = {}
-        
-        // Handle if data is an array or object
-        if (Array.isArray(data)) {
-          data.forEach((setting: AutomationSetting) => {
-            settingsMap[setting.setting_key] = setting.setting_value
-          })
-        } else {
-          console.warn('Settings data is not an array:', data)
-        }
-        
+        list.forEach((setting: AutomationSetting) => {
+          settingsMap[setting.setting_key] = setting.setting_value
+        })
         setSettings(settingsMap)
       } else {
         const errorData = await response.json().catch(() => ({}))
-        console.error('Settings API error:', response.status, errorData)
         throw new Error(errorData.error || `API Error: ${response.status}`)
       }
     } catch (error) {
       console.error('Error fetching settings:', error)
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to load automation settings",
-        variant: "destructive",
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to load automation settings',
+        variant: 'destructive',
       })
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -121,7 +168,7 @@ export default function DiscordSettingsPage() {
     try {
       setSaving(true)
       const token = await getToken()
-      
+
       const response = await fetch('/api/discord-portal/settings', {
         method: 'PUT',
         headers: {
@@ -129,27 +176,23 @@ export default function DiscordSettingsPage() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          setting_key: key,
-          setting_value: value
+          settingKey: key,
+          enabled: value,
+          teamId: isGlobalContext ? undefined : resolvedTeamId || undefined,
+          isGlobal: isGlobalContext
         })
       })
 
       if (response.ok) {
         setSettings(prev => ({ ...prev, [key]: value }))
-        toast({
-          title: "Success",
-          description: "Automation setting updated",
-        })
+        toast({ title: 'Success', description: 'Automation setting updated' })
       } else {
-        throw new Error('Failed to update setting')
+        const error = await response.json().catch(() => ({}))
+        throw new Error(error.error || 'Failed to update setting')
       }
     } catch (error) {
       console.error('Error updating setting:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update automation setting",
-        variant: "destructive",
-      })
+      toast({ title: 'Error', description: 'Failed to update automation setting', variant: 'destructive' })
     } finally {
       setSaving(false)
     }

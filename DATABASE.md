@@ -420,3 +420,28 @@ All tables implement RLS policies:
 ---
 
 **Database Schema Version**: 2025.01 - Production Ready ✅
+
+### **team_monthly_stats**
+Monthly snapshot for tiering and incentives.
+```sql
+- id: uuid (PK)
+- team_id: uuid (FK -> teams.id)
+- month: text (YYYY-MM, unique with team)
+- current_tier: text
+- slots_played: int, slots_won: int
+- slot_price_per_slot: int, slot_cost_per_slot: int
+- trial_phase: text, trial_weeks_used: int
+- tournament_winnings: int
+- win_percentage: numeric
+- updated_tier: text
+- status_update: text (promoted|retained|demoted|exited)
+- sponsorship_status: text (trial|sponsored|exited|none)
+- trial_extension_granted: boolean, trial_extension_weeks: int
+- monthly_prize_pool: int, monthly_cost: int, surplus: int
+- org_share: int, team_share: int, split_rule: text
+- recalculated_at, created_by, created_at, updated_at
+```
+
+RLS:
+- admin/manager: full access
+- coach: read own team only

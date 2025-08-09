@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Database } from "@/lib/supabase"
 import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
+import { TierIncentives } from '@/components/team-management/tier-incentives'
 
 type Team = Database["public"]["Tables"]["teams"]["Row"]
 type Slot = Database["public"]["Tables"]["slots"]["Row"] & { team: Team | null }
@@ -351,6 +352,7 @@ export default function SlotsPage() {
         <TabsTrigger value="booking" className="flex-1 min-w-0 text-xs sm:text-sm">Slot Booking</TabsTrigger>
         <TabsTrigger value="list" className="flex-1 min-w-0 text-xs sm:text-sm">Booked Slots</TabsTrigger>
         {canManageSettings && <TabsTrigger value="settings" className="flex-1 min-w-0 text-xs sm:text-sm">Tier Settings</TabsTrigger>}
+        {canManageSettings && <TabsTrigger value="tiers" className="flex-1 min-w-0 text-xs sm:text-sm">Tier & Incentives</TabsTrigger>}
       </TabsList>
 
       <TabsContent value="booking">
@@ -719,6 +721,11 @@ export default function SlotsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+      )}
+      {canManageSettings && (
+        <TabsContent value="tiers">
+          <TierIncentives />
         </TabsContent>
       )}
     </Tabs>

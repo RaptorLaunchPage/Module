@@ -47,6 +47,9 @@ export default function WebhooksPage() {
   const { toast } = useToast()
   const [webhooks, setWebhooks] = useState<DiscordWebhook[]>([])
   const [teams, setTeams] = useState<Team[]>([])
+  const [autoTeamId, setAutoTeamId] = useState<string>('all')
+  const [autoSettings, setAutoSettings] = useState<Record<string, boolean>>({})
+  const [autoLoading, setAutoLoading] = useState<boolean>(false)
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingWebhook, setEditingWebhook] = useState<DiscordWebhook | null>(null)
@@ -60,6 +63,17 @@ export default function WebhooksPage() {
   const [validating, setValidating] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
+  const AUTOMATION_SETTINGS = [
+    { key: 'auto_slot_create', label: 'Slot Creation' },
+    { key: 'auto_roster_update', label: 'Roster Updates' },
+    { key: 'auto_performance_alerts', label: 'Performance Alerts' },
+    { key: 'auto_attendance_alerts', label: 'Attendance Alerts' },
+    { key: 'auto_daily_summary', label: 'Daily Summary' },
+    { key: 'auto_weekly_digest', label: 'Weekly Digest' },
+    { key: 'auto_system_alerts', label: 'System Alerts' },
+    { key: 'auto_data_cleanup', label: 'Data Cleanup' },
+  ] as const
+
   const permissions = DashboardPermissions.getPermissions(profile?.role)
 
   useEffect(() => {
@@ -67,6 +81,13 @@ export default function WebhooksPage() {
       loadData()
     }
   }, [profile])
+
+  useEffect(() => {
+    // Auto-select first team for team webhooks if empty
+    if (formData.type === 'team' && !formData.team_id && teams.length > 0) {
+      setFormData(prev => ({ ...prev, team_id: teams[0].id }))
+    }
+  }, [formData.type, teams])
 
   const loadData = async () => {
     setLoading(true)
@@ -90,6 +111,11 @@ export default function WebhooksPage() {
       if (teamsRes.ok) {
         const teamsData = await teamsRes.json()
         setTeams(teamsData || [])  // API returns array directly, not nested in .teams
+        // Initialize automation to first team if available
+        if (teamsData?.length && autoTeamId === 'all') {
+          setAutoTeamId(teamsData[0].id)
+          await fetchAutomationSettings(teamsData[0].id)
+        }
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -100,6 +126,55 @@ export default function WebhooksPage() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function fetchAutomationSettings(teamId?: string) {
+    try {
+      setAutoLoading(true)
+      const token = await getToken()
+      const params = new URLSearchParams()
+      if (teamId) params.append('teamId', teamId)
+      const res = await fetch(`/api/discord-portal/settings?${params}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (res.ok) {
+        const data = await res.json()
+        const list = Array.isArray(data) ? data : Array.isArray(data?.settings) ? data.settings : []
+        const map: Record<string, boolean> = {}
+        list.forEach((s: any) => { map[s.setting_key] = !!s.setting_value })
+        setAutoSettings(map)
+      } else {
+        setAutoSettings({})
+      }
+    } finally {
+      setAutoLoading(false)
+    }
+  }
+
+  async function toggleAutomation(key: string, enabled: boolean) {
+    try {
+      const token = await getToken()
+      if (autoTeamId === 'all') {
+        // Apply to all teams sequentially
+        for (const t of teams) {
+          await fetch('/api/discord-portal/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ settingKey: key, enabled, teamId: t.id, isGlobal: false })
+          })
+        }
+        toast({ title: 'Updated', description: 'Applied to all teams' })
+      } else {
+        const res = await fetch('/api/discord-portal/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ settingKey: key, enabled, teamId: autoTeamId, isGlobal: false })
+        })
+        if (!res.ok) throw new Error('Failed to update setting')
+        toast({ title: 'Updated', description: 'Automation setting updated' })
+      }
+      setAutoSettings(prev => ({ ...prev, [key]: enabled }))
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to update automation', variant: 'destructive' })
     }
   }
 
@@ -304,7 +379,47 @@ export default function WebhooksPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 space-y-6">
+      {/* Automation Management */}
+      {permissions.manageDiscordPortal && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Automation</span>
+              <div className="flex items-center gap-2">
+                <Label>Team</Label>
+                <Select value={autoTeamId} onValueChange={async (val) => { setAutoTeamId(val); if (val !== 'all') await fetchAutomationSettings(val) }}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Select team" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Teams</SelectItem>
+                    {teams.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardTitle>
+            <CardDescription>Manage automation per team or apply to all teams</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {AUTOMATION_SETTINGS.map(s => (
+                <div key={s.key} className="flex items-center justify-between p-3 rounded border">
+                  <div className="space-y-1">
+                    <div className="font-medium">{s.label}</div>
+                    <div className="text-xs text-muted-foreground">{s.key}</div>
+                  </div>
+                  <Switch checked={!!autoSettings[s.key]} disabled={autoLoading} onCheckedChange={(v) => toggleAutomation(s.key, v)} />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Existing Webhooks UI */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold mb-2">Discord Webhooks</h1>

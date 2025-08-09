@@ -433,6 +433,33 @@ interface Performance {
 }
 ```
 
+## Team Monthly Stats
+
+- Endpoint: `GET /api/teams/monthly?month=YYYY-MM&teamId=uuid`
+  - Auth: Bearer token
+  - RBAC: admin/manager (all teams), coach (own team only)
+  - Response: `team_monthly_stats[]`
+
+- Endpoint: `POST /api/teams/monthly`
+  - Auth: Bearer token
+  - RBAC: admin/manager only
+  - Body:
+    ```json
+    {
+      "teamId": "uuid",
+      "month": "YYYY-MM",
+      "currentTier": "T1|T2|T3|T4|godtier",
+      "slotsPlayed": 0,
+      "slotsWon": 0,
+      "slotPricePerSlot": 0,
+      "slotCostPerSlot": 0,
+      "trialPhase": "none|trial|extended",
+      "trialWeeksUsed": 0,
+      "tournamentWinnings": 0
+    }
+    ```
+  - Response: `{ data, outcome }` where `outcome` contains tier/status and incentive distribution.
+
 ---
 
 For additional support or questions about the API, please contact the development team.

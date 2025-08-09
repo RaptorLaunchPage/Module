@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 
 /**
  * Specialized hook to detect OAuth sessions immediately on page load
- * This handles the case where Discord OAuth redirects to homepage but session isn't immediately detected
+ * Avoids extra redirects by deferring to unified post-auth redirect
  */
 export function useOAuthSessionDetector() {
   const router = useRouter()
@@ -15,7 +15,7 @@ export function useOAuthSessionDetector() {
   const isChecking = useRef(false)
 
   useEffect(() => {
-    // Only run on homepage and auth/confirm pages
+    // Only run on homepage to detect OAuth returns
     if (!['/'].includes(pathname)) {
       return
     }
@@ -29,33 +29,19 @@ export function useOAuthSessionDetector() {
     const checkOAuthSession = async () => {
       try {
         isChecking.current = true
-        console.log('🔍 OAuth Session Detector: Checking for immediate session...')
-
-        // Get current session
         const { data: { session }, error } = await supabase.auth.getSession()
-        
         if (error) {
-          console.error('❌ OAuth Session Detector: Error getting session:', error)
+          console.error('OAuth Session Detector: Error getting session:', error)
           return
         }
 
         if (session?.user) {
-          const provider = session.user.app_metadata?.provider || 'email'
-          console.log(`✅ OAuth Session Detector: Found ${provider} session immediately!`)
-          
-          // If we're on homepage with a session, this is likely Discord OAuth
-          if (pathname === '/') {
-            console.log('🔄 OAuth Session Detector: Redirecting to auth/confirm for proper handling')
-            
-            // Redirect to auth/confirm to let the normal flow handle it
-            router.replace('/auth/confirm')
-            return
-          }
-        } else {
-          console.log('ℹ️ OAuth Session Detector: No immediate session found')
+          // Do not redirect to /auth/confirm; let usePostAuthRedirect on the homepage handle it
+          // This prevents a visible intermediate verification screen
+          return
         }
       } catch (error) {
-        console.error('❌ OAuth Session Detector: Exception:', error)
+        console.error('OAuth Session Detector: Exception:', error)
       } finally {
         hasChecked.current = true
         isChecking.current = false
@@ -64,13 +50,8 @@ export function useOAuthSessionDetector() {
 
     // Check immediately and also after a short delay
     checkOAuthSession()
-    
-    // Also check after a short delay in case session takes time to be available
     const timeoutId = setTimeout(checkOAuthSession, 500)
-    
-    return () => {
-      clearTimeout(timeoutId)
-    }
+    return () => clearTimeout(timeoutId)
   }, [pathname, router])
 
   // Reset when pathname changes

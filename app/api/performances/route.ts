@@ -249,8 +249,12 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       console.error('Error inserting performance:', insertError)
+      const message = insertError.message || ''
+      const migrationHint = message.includes('attendances') && message.includes('date')
+        ? 'Attendance trigger mismatch detected. Please apply scripts/15-fix-auto-attendance-trigger.sql to update triggers.'
+        : ''
       return NextResponse.json(
-        { error: `Failed to submit performance: ${insertError.message}` },
+        { error: `Failed to submit performance: ${message}. ${migrationHint}`.trim() },
         { status: 500 }
       )
     }
@@ -306,9 +310,9 @@ async function createMatchAttendance(userSupabase: any, performance: any, userDa
         session_type: 'tournament',
         session_subtype: 'Scrims',
         date: currentDate,
-        start_time: '18:00:00', // Default match time
+        start_time: '18:00:00',
         end_time: '22:00:00',
-        cutoff_time: null, // No cutoff for match sessions
+        cutoff_time: null,
         title: sessionTitle,
         is_mandatory: false,
         created_by: userData.id
@@ -324,7 +328,7 @@ async function createMatchAttendance(userSupabase: any, performance: any, userDa
   }
 
   // Check if attendance already exists
-  const { data: existingAttendance, error: attendanceCheckError } = await userSupabase
+  const { data: existingAttendance } = await userSupabase
     .from('attendances')
     .select('id')
     .eq('session_id', sessionId)
@@ -332,31 +336,24 @@ async function createMatchAttendance(userSupabase: any, performance: any, userDa
     .single()
 
   if (!existingAttendance) {
-    // Create attendance record with all required fields
+    // Create attendance record with schema-compliant fields
     const attendanceData = {
       player_id: performance.player_id,
       team_id: performance.team_id,
-      date: currentDate,
-      session_time: 'Scrims', // Keep for compatibility
       session_id: sessionId,
-      status: 'auto', // Use lowercase status as per schema
+      status: 'present',
       source: 'auto',
-      marked_by: userData.id,
+      slot_id: performance.slot ?? null,
       created_at: new Date().toISOString()
     }
 
-    console.log('Creating attendance with data:', attendanceData)
-
-    const { data: newAttendance, error: attendanceCreateError } = await userSupabase
+    const { error: attendanceCreateError } = await userSupabase
       .from('attendances')
       .insert(attendanceData)
       .select()
 
     if (attendanceCreateError) {
-      console.error('Attendance creation error:', attendanceCreateError)
       throw new Error(`Failed to create attendance: ${attendanceCreateError.message}`)
     }
-
-    console.log('Successfully created attendance:', newAttendance)
   }
 }
