@@ -90,7 +90,8 @@ export default function DiscordLogsPage() {
 
       if (response.ok) {
         const data = await response.json()
-        setLogs(data)
+        const arr = Array.isArray(data) ? data : Array.isArray(data?.logs) ? data.logs : []
+        setLogs(arr)
       } else {
         throw new Error('Failed to fetch logs')
       }
