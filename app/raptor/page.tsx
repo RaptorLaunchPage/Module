@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import anime from 'animejs'
 import styles from './raptor.module.css'
+import Hero from './components/Hero'
+import MouseTrail from './components/MouseTrail'
 
 const TABS = [
   'About Us', 'Sponsorship', 'Tier System', 'Incentives',
@@ -74,6 +76,7 @@ export default function RaptorLanding() {
   return (
     <div className={styles.world}>
       <AmbientBackground />
+      <MouseTrail />
 
       <nav className={styles.navBar}>
         <div className={styles.navInner}>
@@ -92,6 +95,8 @@ export default function RaptorLanding() {
       </nav>
 
       <div ref={sceneRef} className={styles.sceneContainer}>
+        {/* Hero scene overlays behind sections for now */}
+        <Hero />
         {TABS.map((t, i) => (
           <section key={t} className={`${styles.scene} ${i === 0 ? styles.sceneActive : ''}`}>
             <Placeholder title={t} index={i} />

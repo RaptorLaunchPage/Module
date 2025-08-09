@@ -33,19 +33,27 @@ export default function Hero() {
     const el = logoRef.current
     if (!el) return
     function onDown(e: PointerEvent) {
+      const target = logoRef.current
+      if (!target) return
       setDragging(true)
-      const rect = el.getBoundingClientRect()
+      const rect = target.getBoundingClientRect()
       offset.current.x = e.clientX - rect.left
       offset.current.y = e.clientY - rect.top
-      el.setPointerCapture(e.pointerId)
+      try { target.setPointerCapture(e.pointerId) } catch {}
     }
     function onMove(e: PointerEvent) {
-      if (!dragging) return
-      anime.set(el, { translateX: e.clientX - offset.current.x - window.innerWidth / 2 + rectHalf(el).w, translateY: e.clientY - offset.current.y - window.innerHeight / 2 + rectHalf(el).h })
+      const target = logoRef.current
+      if (!dragging || !target) return
+      const half = rectHalf(target)
+      // position relative to viewport center
+      const tx = e.clientX - offset.current.x - window.innerWidth / 2 + half.w
+      const ty = e.clientY - offset.current.y - window.innerHeight / 2 + half.h
+      anime.set(target, { translateX: tx, translateY: ty })
     }
     function onUp(e: PointerEvent) {
+      const target = logoRef.current
       setDragging(false)
-      try { el.releasePointerCapture(e.pointerId) } catch {}
+      try { target?.releasePointerCapture(e.pointerId) } catch {}
     }
     el.addEventListener('pointerdown', onDown)
     window.addEventListener('pointermove', onMove)
