@@ -20,6 +20,8 @@ import {
 } from "lucide-react"
 import { DashboardPermissions } from "@/lib/dashboard-permissions"
 import DiscordSettingsPage from '@/app/dashboard/discord-portal/settings/page'
+import WebhooksPage from '@/app/dashboard/discord-portal/webhooks/page'
+import DiscordLogsPage from '@/app/dashboard/discord-portal/logs/page'
 
 interface CommunicationStats {
   totalMessages: number
@@ -252,37 +254,8 @@ export default function CommunicationPage() {
         </div>
       </div>
 
-      <ResponsiveTabs 
-        tabs={[
-          {
-            value: "overview",
-            label: "Overview",
-            icon: Activity
-          },
-          {
-            value: "webhooks",
-            label: "Webhooks",
-            icon: Webhook
-          },
-          {
-            value: "logs",
-            label: "Message Logs",
-            icon: MessageSquare
-          },
-          {
-            value: "settings",
-            label: "Settings",
-            icon: Settings
-          }
-        ]}
-        defaultValue="overview"
-        variant="default"
-        size="md"
-        responsiveMode="auto"
-        className="space-y-6"
-      >
-
-        <TabsContent value="overview" className="space-y-6">
+      {/* Overview */}
+      <div className="space-y-6">
           {/* Custom Date Range */}
           {selectedTimePeriod === "custom" && (
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
@@ -306,7 +279,7 @@ export default function CommunicationPage() {
               </div>
             </div>
           )}
-
+ 
       {/* Stats Overview or No Data State */}
       {!dataFetched || (dataFetched && !stats) || (stats && stats.totalMessages === 0) ? (
         <Card className="mb-8">
@@ -319,17 +292,13 @@ export default function CommunicationPage() {
               Start by setting up webhooks and sending your first Discord notification.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button asChild>
-                <a href="/dashboard/discord-portal/webhooks">
-                  <Webhook className="h-4 w-4 mr-2" />
-                  Setup Webhooks
-                </a>
+              <Button onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}>
+                <Webhook className="h-4 w-4 mr-2" />
+                Go to Webhooks
               </Button>
-              <Button variant="outline" asChild>
-                <a href="/dashboard/discord-portal/settings">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Configure Settings
-                </a>
+              <Button variant="outline" onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })}>
+                <Settings className="h-4 w-4 mr-2" />
+                Go to Settings
               </Button>
             </div>
           </CardContent>
@@ -350,7 +319,7 @@ export default function CommunicationPage() {
             </p>
           </CardContent>
         </Card>
-
+ 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -365,7 +334,7 @@ export default function CommunicationPage() {
             </p>
           </CardContent>
         </Card>
-
+ 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -378,7 +347,7 @@ export default function CommunicationPage() {
             <p className="text-xs text-muted-foreground">Need attention</p>
           </CardContent>
         </Card>
-
+ 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -396,179 +365,34 @@ export default function CommunicationPage() {
       </div>
       )}  {/* End of stats conditional */}
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Webhook className="h-5 w-5" />
-              Webhook Management
-            </CardTitle>
-            <CardDescription>
-              Configure Discord webhooks for your teams
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <a href="/dashboard/discord-portal/webhooks">
-                <Plus className="mr-2 h-4 w-4" />
-                Manage Webhooks
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
+      {/* Inline Webhooks Section */}
+      <div className="mt-10" id="webhooks">
+        <WebhooksPage />
+      </div>
 
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              Message Logs
-            </CardTitle>
-            <CardDescription>
-              View communication history and retry failed messages
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild variant="outline" className="w-full">
-              <a href="/dashboard/discord-portal/logs">
-                <Clock className="mr-2 h-4 w-4" />
-                View Logs
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
+      {/* Inline Logs Section */}
+      <div className="mt-10" id="logs">
+        <DiscordLogsPage />
+      </div>
 
-        <Card className="hover:shadow-md transition-shadow">
+      {/* Inline Settings Section */}
+      <div className="mt-10" id="settings">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Settings className="h-5 w-5" />
-              Automation Settings
+              Portal Settings
             </CardTitle>
             <CardDescription>
-              Configure automatic notifications for your team
+              Configure automation, digest schedules, and notification preferences
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild variant="outline" className="w-full">
-              <a href="/dashboard/discord-portal/settings">
-                <Settings className="mr-2 h-4 w-4" />
-                Configure
-              </a>
-            </Button>
+            <DiscordSettingsPage />
           </CardContent>
         </Card>
       </div>
-
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Recent Message Types
-          </CardTitle>
-          <CardDescription>
-            Breakdown of message types sent recently
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {stats?.messageTypeStats && Object.keys(stats.messageTypeStats).length > 0 ? (
-            <div className="space-y-3">
-              {Object.entries(stats.messageTypeStats)
-                .sort(([,a], [,b]) => b - a)
-                .slice(0, 5)
-                .map(([type, count]) => (
-                  <div key={type} className="flex items-center justify-between">
-                    <span className="text-sm font-medium capitalize">
-                      {type.replace(/_/g, ' ')}
-                    </span>
-                    <Badge variant="secondary">{count}</Badge>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <MessageSquare className="h-8 w-8 mx-auto mb-2" />
-              <p>No recent messages</p>
-              <p className="text-sm">Messages will appear here once you start sending notifications</p>
-            </div>
-          )}
-          </CardContent>
-        </Card>
-        </TabsContent>
-
-        <TabsContent value="webhooks" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Webhook className="h-5 w-5" />
-                Webhook Configuration
-              </CardTitle>
-              <CardDescription>
-                Manage Discord webhooks for different channels and teams
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Button 
-                  onClick={() => window.open('/dashboard/discord-portal/webhooks', '_self')}
-                  className="mb-4"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Manage Webhooks
-                </Button>
-                <p className="text-muted-foreground">
-                  Configure Discord webhooks to enable message sending
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="logs" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Message Logs
-              </CardTitle>
-              <CardDescription>
-                View detailed logs of all Discord messages sent
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Button 
-                  onClick={() => window.open('/dashboard/discord-portal/logs', '_self')}
-                  className="mb-4"
-                >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  View Message Logs
-                </Button>
-                <p className="text-muted-foreground">
-                  Access detailed message history and delivery status
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="settings" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Portal Settings
-              </CardTitle>
-              <CardDescription>
-                Configure automation, digest schedules, and notification preferences
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DiscordSettingsPage />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </ResponsiveTabs>
+      </div>
     </div>
   )
 }
