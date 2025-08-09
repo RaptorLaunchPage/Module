@@ -106,6 +106,7 @@ export default function CommunicationPage() {
         fetch('/api/discord-portal/webhooks', {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
+        // For overview stats, fetch logs across all teams (server will scope non-admin to own team)
         fetch(`/api/discord-portal/logs?${logsParams}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })

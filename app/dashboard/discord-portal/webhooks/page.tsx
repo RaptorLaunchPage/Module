@@ -68,6 +68,13 @@ export default function WebhooksPage() {
     }
   }, [profile])
 
+  useEffect(() => {
+    // Auto-select first team for team webhooks if empty
+    if (formData.type === 'team' && !formData.team_id && teams.length > 0) {
+      setFormData(prev => ({ ...prev, team_id: teams[0].id }))
+    }
+  }, [formData.type, teams])
+
   const loadData = async () => {
     setLoading(true)
     try {

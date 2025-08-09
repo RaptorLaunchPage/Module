@@ -64,15 +64,42 @@ export default function DiscordLogsPage() {
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [teamId, setTeamId] = useState<string | 'all'>('all')
+  const [teams, setTeams] = useState<{ id: string, name: string }[]>([])
 
   const userRole = profile?.role as UserRole
   const permissions = DashboardPermissions.getPermissions(userRole)
 
   useEffect(() => {
     if (profile && permissions.viewDiscordPortal) {
+      bootstrap()
+    }
+  }, [profile, permissions.viewDiscordPortal])
+
+  async function bootstrap() {
+    try {
+      const token = await getToken()
+      const teamsRes = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+      const data = teamsRes.ok ? await teamsRes.json() : []
+      const arr = Array.isArray(data) ? data : []
+      setTeams(arr)
+      // Default team for non-admins
+      if (profile?.role !== 'admin') {
+        const defaultTeam = profile?.team_id || arr[0]?.id
+        if (defaultTeam) setTeamId(defaultTeam)
+      }
+      // Fetch logs after teams ready
+      fetchLogs()
+    } catch (e) {
       fetchLogs()
     }
-  }, [profile, permissions.viewDiscordPortal, statusFilter, typeFilter])
+  }
+
+  useEffect(() => {
+    if (profile && permissions.viewDiscordPortal) {
+      fetchLogs()
+    }
+  }, [statusFilter, typeFilter, teamId])
 
   const fetchLogs = async () => {
     setLoading(true)
@@ -82,6 +109,7 @@ export default function DiscordLogsPage() {
       
       if (statusFilter !== 'all') params.append('status', statusFilter)
       if (typeFilter !== 'all') params.append('messageType', typeFilter)
+      if (teamId !== 'all') params.append('teamId', teamId)
       params.append('limit', '50')
 
       const response = await fetch(`/api/discord-portal/logs?${params}`, {
@@ -214,7 +242,7 @@ export default function DiscordLogsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -241,6 +269,21 @@ export default function DiscordLogsPage() {
                   <SelectItem value="all">All Types</SelectItem>
                   {Object.entries(MESSAGE_TYPE_LABELS).map(([key, label]) => (
                     <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Team</label>
+              <Select value={teamId} onValueChange={setTeamId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Teams" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Teams</SelectItem>
+                  {teams.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
