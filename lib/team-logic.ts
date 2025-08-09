@@ -16,6 +16,8 @@ export interface MonthlyInput {
   tournamentWinnings?: number // optional gross for the month
   trialPhase: TrialPhase
   trialWeeksUsed?: number // 0-2 for initial, up to 3 if extended
+  tierRates?: Partial<Record<Tier, number>> // default slot cost per month for tier
+  estimatedNextMonthTierCost?: number // override if known
 }
 
 export interface MonthlyOutcome {
@@ -30,6 +32,7 @@ export interface MonthlyOutcome {
   incentives: {
     monthlyPrizePool: number
     monthlyCost: number
+    nextMonthTierCost: number
     surplus: number
     orgShare: number
     teamShare: number
@@ -57,31 +60,10 @@ export function computeMonthlyOutcome(input: MonthlyInput): MonthlyOutcome {
   // Incentives baseline (surplus-based)
   const monthlyPrizePool = (input.slotPricePerSlot || 0) * slotsWon
   const monthlyCost = (input.slotCostPerSlot || 0) * slotsPlayed
-  const surplus = monthlyPrizePool - monthlyCost
 
   // Tournament override if > 20000
   const tournament = input.tournamentWinnings || 0
   const tournamentOverride = tournament > 20000
-
-  let splitRule: MonthlyOutcome['incentives']['splitRule'] = 'surplus_30_70'
-  let orgShare = 0
-  let teamShare = 0
-
-  if (tournamentOverride) {
-    splitRule = 'tournament_override_50_50'
-    const org = Math.round(tournament * 0.5)
-    const team = tournament - org
-    orgShare = org
-    teamShare = team
-  } else if (surplus > 0) {
-    const org = Math.round(surplus * 0.3)
-    const team = surplus - org
-    orgShare = org
-    teamShare = team
-  } else {
-    orgShare = 0
-    teamShare = 0
-  }
 
   // Tier and status updates
   let updatedTier: Tier = input.currentTier
@@ -112,7 +94,6 @@ export function computeMonthlyOutcome(input: MonthlyInput): MonthlyOutcome {
     } else {
       // < 35%
       if (input.trialPhase === 'trial') {
-        // can still consider extension if org wants; spec says grant extension only for 35-50
         sponsorshipStatus = 'exited'
         statusUpdate = 'exited'
       } else {
@@ -142,6 +123,34 @@ export function computeMonthlyOutcome(input: MonthlyInput): MonthlyOutcome {
     }
   }
 
+  // Compute next month tier cost
+  const nextRateFromMap = input.tierRates?.[updatedTier]
+  const nextMonthTierCost = typeof input.estimatedNextMonthTierCost === 'number'
+    ? input.estimatedNextMonthTierCost
+    : (typeof nextRateFromMap === 'number' ? nextRateFromMap : input.slotCostPerSlot) * slotsPlayed
+
+  // Compute surplus with next-month tier upgrade cost included
+  let splitRule: MonthlyOutcome['incentives']['splitRule'] = 'surplus_30_70'
+  const grossSurplus = monthlyPrizePool - (monthlyCost + nextMonthTierCost)
+  let orgShare = 0
+  let teamShare = 0
+
+  if (tournamentOverride) {
+    splitRule = 'tournament_override_50_50'
+    const org = Math.round(tournament * 0.5)
+    const team = tournament - org
+    orgShare = org
+    teamShare = team
+  } else if (grossSurplus > 0) {
+    const org = Math.round(grossSurplus * 0.3)
+    const team = grossSurplus - org
+    orgShare = org
+    teamShare = team
+  } else {
+    orgShare = 0
+    teamShare = 0
+  }
+
   return {
     winPercentage: Number(winPercentage.toFixed(2)),
     updatedTier,
@@ -154,7 +163,8 @@ export function computeMonthlyOutcome(input: MonthlyInput): MonthlyOutcome {
     incentives: {
       monthlyPrizePool,
       monthlyCost,
-      surplus,
+      nextMonthTierCost,
+      surplus: grossSurplus,
       orgShare,
       teamShare,
       splitRule,

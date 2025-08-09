@@ -16,6 +16,7 @@ import type { Database } from '@/lib/supabase'
 import { DashboardPermissions, type UserRole } from '@/lib/dashboard-permissions'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { MoreVertical } from 'lucide-react'
+import { dataService } from '@/lib/optimized-data-service'
 
 const TIERS = ['godtier','T1','T2','T3','T4']
 const TRIAL_PHASES = ['none','trial','extended']
@@ -76,6 +77,45 @@ export default function TeamTierManagementPage() {
     if (!profile) return
     fetchTierDefaults()
   }, [profile])
+
+  useEffect(() => {
+    if (!form.teamId || !form.month) return
+    prefillFromFinance(form.teamId, form.month)
+  }, [form.teamId, form.month])
+
+  async function prefillFromFinance(teamId: string, month: string) {
+    try {
+      const [expenses, winnings] = await Promise.all([
+        dataService.getExpenses({ teamId }),
+        dataService.getWinnings({ teamId })
+      ])
+      // Filter by month
+      const monthPrefix = month + '-'
+      const expThisMonth = expenses.filter(e => (e.slot as any)?.date?.startsWith(monthPrefix))
+      const winThisMonth = winnings.filter(w => (w.slot as any)?.date?.startsWith(monthPrefix))
+
+      const slotsPlayed = expThisMonth.reduce((sum, e) => sum + (e.slot?.number_of_slots || 0), 0)
+      const slotsWon = winThisMonth.length // assuming each winning corresponds to a won slot
+      const slotCostPer = expThisMonth.length > 0 ? Math.round(
+        expThisMonth.reduce((sum, e) => sum + (e.slot?.slot_rate || 0), 0) / expThisMonth.length
+      ) : form.slotCostPerSlot
+      const slotPrizePer = winThisMonth.length > 0 ? Math.round(
+        winThisMonth.reduce((sum, w) => sum + (w.amount_won || 0), 0) / Math.max(1, slotsWon)
+      ) : form.slotPricePerSlot
+      const tournamentWinnings = winThisMonth.reduce((sum, w) => sum + (w.amount_won || 0), 0)
+
+      setForm(f => ({
+        ...f,
+        slotsPlayed: slotsPlayed || f.slotsPlayed,
+        slotsWon: slotsWon || f.slotsWon,
+        slotCostPerSlot: slotCostPer,
+        slotPricePerSlot: slotPrizePer,
+        tournamentWinnings
+      }))
+    } catch (e) {
+      // non-fatal; keep manual entry
+    }
+  }
 
   async function fetchTeams() {
     try {

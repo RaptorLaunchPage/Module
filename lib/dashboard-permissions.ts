@@ -67,16 +67,6 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     mobileOrder: 6
   },
   {
-    id: 'team-monthly',
-    title: 'Tier & Incentives',
-    description: 'Monthly tiering and incentives management',
-    icon: 'IndianRupee',
-    path: '/dashboard/team-management/tiers',
-    allowedRoles: ['admin', 'manager'],
-    showInNavigation: true,
-    mobileOrder: 6
-  },
-  {
     id: 'finance',
     title: 'Finance',
     description: 'Financial management and tracking',

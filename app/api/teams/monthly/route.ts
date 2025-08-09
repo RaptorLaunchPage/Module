@@ -68,8 +68,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'teamId and month are required' }, { status: 400 })
     }
 
+    // Fetch tier defaults to estimate next month tier cost
+    const tierRates: Record<string, number> = {}
+    const { data: tierRows } = await supabase.from('tier_defaults').select('tier, default_slot_rate')
+    tierRows?.forEach((r: any) => { tierRates[r.tier] = r.default_slot_rate })
+
     // Compute
-    const outcome = computeMonthlyOutcome(input)
+    const outcome = computeMonthlyOutcome({ ...input, tierRates })
 
     // Persist upsert
     const payload = {
@@ -94,6 +99,7 @@ export async function POST(request: NextRequest) {
       surplus: outcome.incentives.surplus,
       org_share: outcome.incentives.orgShare,
       team_share: outcome.incentives.teamShare,
+      next_month_tier_cost: outcome.incentives.nextMonthTierCost,
       split_rule: outcome.incentives.splitRule,
       recalculated_at: new Date().toISOString(),
       created_by: user.id,

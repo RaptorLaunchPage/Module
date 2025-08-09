@@ -19,6 +19,7 @@ import {
   AlertTriangle
 } from "lucide-react"
 import { DashboardPermissions } from "@/lib/dashboard-permissions"
+import DiscordSettingsPage from '@/app/dashboard/discord-portal/settings/page'
 
 interface CommunicationStats {
   totalMessages: number
@@ -563,13 +564,7 @@ export default function CommunicationPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="text-center py-8 text-muted-foreground">
-                  <Settings className="h-8 w-8 mx-auto mb-2" />
-                  <p>Settings panel coming soon</p>
-                  <p className="text-sm">Configure automation and digest settings</p>
-                </div>
-              </div>
+              <DiscordSettingsPage />
             </CardContent>
           </Card>
         </TabsContent>

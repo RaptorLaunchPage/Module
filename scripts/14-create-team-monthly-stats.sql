@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS team_monthly_stats (
   surplus INTEGER NOT NULL DEFAULT 0,
   org_share INTEGER NOT NULL DEFAULT 0,
   team_share INTEGER NOT NULL DEFAULT 0,
+  next_month_tier_cost INTEGER NOT NULL DEFAULT 0,
   split_rule TEXT NOT NULL DEFAULT 'surplus_30_70',
   recalculated_at TIMESTAMPTZ DEFAULT NOW(),
   created_by UUID REFERENCES users(id),
