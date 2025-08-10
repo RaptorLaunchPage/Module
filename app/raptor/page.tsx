@@ -5,6 +5,8 @@ import anime from 'animejs'
 import styles from './raptor.module.css'
 import Hero from './components/Hero'
 import MouseTrail from './components/MouseTrail'
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
 
 const TABS = [
   'About Us', 'Sponsorship', 'Tier System', 'Incentives',
@@ -77,6 +79,7 @@ export default function RaptorLanding() {
     <div className={styles.world}>
       <AmbientBackground />
       <MouseTrail />
+      <PublicNavigation />
 
       <nav className={styles.navBar}>
         <div className={styles.navInner}>
@@ -104,7 +107,7 @@ export default function RaptorLanding() {
         ))}
       </div>
 
-      <footer className={styles.footer}>Raptor Esports — Public Preview</footer>
+      <PublicFooter />
     </div>
   )
 }

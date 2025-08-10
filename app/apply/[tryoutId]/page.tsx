@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { VideoBackground } from "@/components/video-background"
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
 import { 
   UserPlus, 
   Clock, 
@@ -72,15 +74,19 @@ export default function TryoutApplicationPage() {
   if (loading) {
     return (
       <VideoBackground>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-black/60 backdrop-blur-md border border-white/20 shadow-xl">
-            <CardContent className="flex items-center justify-center p-8">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                <p className="text-white">Loading tryout details...</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+          <PublicNavigation />
+          <div className="flex-1 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md bg-black/60 backdrop-blur-md border border-white/20 shadow-xl">
+              <CardContent className="flex items-center justify-center p-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                  <p className="text-white">Loading tryout details...</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <PublicFooter />
         </div>
       </VideoBackground>
     )
@@ -89,19 +95,23 @@ export default function TryoutApplicationPage() {
   if (submitted) {
     return (
       <VideoBackground>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-black/60 backdrop-blur-md border border-white/20 shadow-xl">
-            <CardContent className="p-8 text-center">
-              <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-400" />
-              <h3 className="text-lg font-semibold mb-2 text-white">Application Submitted!</h3>
-              <p className="text-white/80 mb-4">
-                Thank you for applying to Raptors Main - July 2025. We'll review your application and get back to you soon.
-              </p>
-              <p className="text-sm text-white/60">
-                Keep an eye on your email and Discord for updates.
-              </p>
-            </CardContent>
-          </Card>
+        <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+          <PublicNavigation />
+          <div className="flex-1 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md bg-black/60 backdrop-blur-md border border-white/20 shadow-xl">
+              <CardContent className="p-8 text-center">
+                <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-400" />
+                <h3 className="text-lg font-semibold mb-2 text-white">Application Submitted!</h3>
+                <p className="text-white/80 mb-4">
+                  Thank you for applying to Raptors Main - July 2025. We'll review your application and get back to you soon.
+                </p>
+                <p className="text-sm text-white/60">
+                  Keep an eye on your email and Discord for updates.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+          <PublicFooter />
         </div>
       </VideoBackground>
     )
@@ -109,12 +119,15 @@ export default function TryoutApplicationPage() {
 
   return (
     <VideoBackground>
-      {/* Ambient glowing dots */}
-      <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
-      <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
-      
-      <div className="min-h-screen py-12">
-        <div className="container mx-auto px-4">
+      <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+        <PublicNavigation />
+        
+        <div className="flex-1 py-12">
+          {/* Ambient glowing dots */}
+          <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+          <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+          
+          <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             {/* Header Card */}
             <Card className="mb-8 bg-black/60 backdrop-blur-md border border-white/20 shadow-xl">
@@ -250,7 +263,9 @@ export default function TryoutApplicationPage() {
               </Card>
             </form>
           </div>
+          </div>
         </div>
+        <PublicFooter />
       </div>
     </VideoBackground>
   )

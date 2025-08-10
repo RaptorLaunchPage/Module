@@ -24,7 +24,10 @@ const PUBLIC_ROUTES = [
   '/apply',
   '/agreement-review',
   '/onboarding',
-  '/raptor'
+  '/raptor',
+  '/error',
+  '/not-found',
+  '/global-error'
 ]
 
 // API routes and static assets
