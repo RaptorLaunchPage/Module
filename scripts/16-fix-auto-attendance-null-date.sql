@@ -51,34 +51,71 @@ BEGIN
     END IF;
     
     -- Insert attendance record using the legacy session_time approach
-    -- Check for duplicates manually since there's no unique constraint
-    IF NOT EXISTS (
-        SELECT 1 FROM public.attendances 
-        WHERE player_id = NEW.player_id 
-        AND date = attendance_date 
-        AND session_time = 'Match'
-        AND team_id = attendance_team_id
-    ) THEN
-        INSERT INTO public.attendances (
-            player_id, 
-            team_id, 
-            date, 
-            session_time, 
-            status, 
-            source, 
-            marked_by, 
-            slot_id
-        )
-        VALUES (
-            NEW.player_id,
-            attendance_team_id,
-            attendance_date,
-            'Match',
-            'auto',     -- Valid status according to actual schema
-            'auto',     -- Track that this was auto-generated
-            NULL,       -- No specific user marked this
-            NEW.slot
-        );
+    -- For match attendance, we want each performance to create its own attendance record
+    -- Check for duplicates based on slot_id when available, or by performance_id equivalent
+    
+    -- For slot-based performances (most common case)
+    IF NEW.slot IS NOT NULL THEN
+        -- Each slot should have its own attendance record per player
+        IF NOT EXISTS (
+            SELECT 1 FROM public.attendances 
+            WHERE player_id = NEW.player_id 
+            AND slot_id = NEW.slot
+            AND session_time = 'Match'
+        ) THEN
+            INSERT INTO public.attendances (
+                player_id, 
+                team_id, 
+                date, 
+                session_time, 
+                status, 
+                source, 
+                marked_by, 
+                slot_id
+            )
+            VALUES (
+                NEW.player_id,
+                attendance_team_id,
+                attendance_date,
+                'Match',
+                'auto',     -- Valid status according to actual schema
+                'auto',     -- Track that this was auto-generated
+                NULL,       -- No specific user marked this
+                NEW.slot
+            );
+        END IF;
+    ELSE
+        -- For performances without slots, create attendance but avoid duplicates on same day
+        -- This is the fallback case for legacy data
+        IF NOT EXISTS (
+            SELECT 1 FROM public.attendances 
+            WHERE player_id = NEW.player_id 
+            AND date = attendance_date 
+            AND session_time = 'Match'
+            AND team_id = attendance_team_id
+            AND slot_id IS NULL
+        ) THEN
+            INSERT INTO public.attendances (
+                player_id, 
+                team_id, 
+                date, 
+                session_time, 
+                status, 
+                source, 
+                marked_by, 
+                slot_id
+            )
+            VALUES (
+                NEW.player_id,
+                attendance_team_id,
+                attendance_date,
+                'Match',
+                'auto',     -- Valid status according to actual schema
+                'auto',     -- Track that this was auto-generated
+                NULL,       -- No specific user marked this
+                NULL
+            );
+        END IF;
     END IF;
     
     RETURN NEW;

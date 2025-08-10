@@ -7,6 +7,8 @@ Error: null value in column "date" of relation "attendances" violates not-null c
 Error: there is no unique or exclusion constraint matching the ON CONFLICT specification
 ```
 
+**Additional Issue Discovered**: After the initial fix, only the first performance submission per day was creating attendance records. Multiple performances on the same day weren't showing up in the scrim attendance tab.
+
 ## Root Cause
 The error occurs because:
 
@@ -25,6 +27,25 @@ A new function has been created in `/workspace/scripts/16-fix-auto-attendance-nu
 3. Performs manual duplicate checking instead of relying on non-existent unique constraints
 4. Uses 'auto' status (which is valid according to the actual schema constraints)
 5. Properly handles the 'source' column to track auto-generated attendance
+
+## Updated Solution (v2)
+The function has been updated to handle **multiple match performances per day**:
+
+### Key Changes in v2:
+1. **Slot-based duplicate prevention**: For performances with slots, each slot gets its own attendance record
+2. **Multiple performances per day**: Players can now have multiple match attendance records on the same day
+3. **Proper scrim tab display**: All match performances will now appear in the scrim attendance tab
+4. **Fallback for legacy data**: Handles performances without slots appropriately
+
+### Technical Implementation:
+- **With slot**: Checks for duplicates by `(player_id, slot_id, session_time)`
+- **Without slot**: Checks for duplicates by `(player_id, date, session_time, team_id, slot_id IS NULL)`
+
+This ensures:
+- Each performance gets its own attendance record
+- Multiple scrims/matches per day are properly tracked
+- No duplicate attendance for the same performance
+- Scrim attendance tab shows all match activities
 
 ## How to Apply the Fix
 
@@ -49,20 +70,22 @@ supabase db push
 ## Verification
 After applying the fix:
 
-1. Try submitting a performance entry through the player submission form
-2. The error should no longer occur
-3. Check the `attendances` table to verify automatic attendance records are being created correctly
+1. Try submitting multiple performance entries for the same day
+2. Check that each performance creates its own attendance record
+3. Verify all match performances appear in the scrim attendance tab
+4. Confirm the "All Sessions" tab shows the attendance records properly
 
 ## Technical Details
 The new function `create_auto_attendance_fixed()`:
 - Safely handles null slot dates by falling back to CURRENT_DATE
 - Works with the actual database schema using `session_time = 'Match'`
-- Performs manual duplicate checking using `NOT EXISTS` clause
+- **NEW**: Allows multiple attendance records per day by checking slot-specific duplicates
 - Uses 'auto' status (valid according to actual schema constraints)
 - Sets source to 'auto' to track automatic creation
-- Checks for existing records by `(player_id, date, session_time, team_id)` combination
+- **NEW**: For slot-based performances, checks `(player_id, slot_id, session_time)` for duplicates
+- **NEW**: For non-slot performances, checks `(player_id, date, session_time, team_id, slot_id IS NULL)`
 - Properly validates all required fields before insertion
 
 ## Files Modified
-- `/workspace/scripts/16-fix-auto-attendance-null-date.sql` (new fix script)
+- `/workspace/scripts/16-fix-auto-attendance-null-date.sql` - Updated to handle multiple performances per day
 - This fix replaces the previous functions and triggers
