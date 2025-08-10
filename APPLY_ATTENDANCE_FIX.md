@@ -1,9 +1,10 @@
 # Fix for Player Submission Button Database Error
 
 ## Issue
-When players submit performance data, the system returns this error:
+When players submit performance data, the system returns these errors:
 ```
 Error: null value in column "date" of relation "attendances" violates not-null constraint
+Error: there is no unique or exclusion constraint matching the ON CONFLICT specification
 ```
 
 ## Root Cause
@@ -13,15 +14,17 @@ The error occurs because:
 2. The function tries to create an attendance record automatically
 3. In some cases, the slot referenced in the performance doesn't have a valid date
 4. The function was trying to insert NULL into the required `date` column
-5. Additionally, the function was using invalid status values that don't match the current database constraints
+5. The database schema has been updated to use a session-based attendance model, but the trigger function was still using the old date/session_time model
+6. The unique constraints have changed from `(player_id, date, session_time)` to `(player_id, session_id)`
 
 ## Solution
-A new fixed function has been created in `/workspace/scripts/16-fix-auto-attendance-null-date.sql` that:
+A new session-based function has been created in `/workspace/scripts/16-fix-auto-attendance-null-date.sql` that:
 
 1. Always ensures a non-null date (uses slot date if available, falls back to CURRENT_DATE)
-2. Uses correct status values ('present' instead of 'auto')
-3. Properly handles the 'source' column to track auto-generated attendance
-4. Prevents duplicate entries with proper conflict handling
+2. Uses the modern session-based attendance model instead of the legacy date/session_time approach
+3. Automatically creates tournament/scrims sessions for match performances
+4. Uses the correct unique constraint `(player_id, session_id)` for conflict resolution
+5. Properly handles the 'source' column to track auto-generated attendance
 
 ## How to Apply the Fix
 
@@ -51,11 +54,13 @@ After applying the fix:
 3. Check the `attendances` table to verify automatic attendance records are being created correctly
 
 ## Technical Details
-The new function `create_auto_attendance_fixed()`:
+The new function `create_match_attendance_from_performance()`:
 - Safely handles null slot dates by falling back to CURRENT_DATE
-- Uses 'present' status (valid according to new constraints)
+- Uses the session-based attendance model with proper session creation/lookup
+- Automatically creates tournament/scrims sessions for each team/date combination
+- Uses 'present' status (valid according to current constraints)
 - Sets source to 'auto' to track automatic creation
-- Prevents conflicts with `ON CONFLICT DO NOTHING`
+- Prevents conflicts using the correct unique constraint `(player_id, session_id)`
 - Properly validates all required fields before insertion
 
 ## Files Modified
