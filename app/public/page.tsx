@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { VideoBackground } from "@/components/video-background"
-import { Trophy, Users, Calendar, Play, Mail } from "lucide-react"
+import { Trophy, Users, Calendar, Play, Mail, ArrowRight } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 const SECTIONS = [
@@ -40,17 +40,32 @@ export default function PublicSitePage() {
   // Counts with sensible defaults; will try to fetch live values
   const [teamsCount, setTeamsCount] = useState<number>(12)
   const [playersCount, setPlayersCount] = useState<number>(72)
+  const [showHint, setShowHint] = useState<boolean>(true)
 
   const clamp = useCallback((i: number) => Math.max(0, Math.min(SECTIONS.length - 1, i)), [])
 
-  const goTo = useCallback((i: number) => setIndex(clamp(i)), [clamp])
-  const next = useCallback(() => setIndex((i) => clamp(i + 1)), [clamp])
-  const prev = useCallback(() => setIndex((i) => clamp(i - 1)), [clamp])
+  const hideHint = useCallback(() => setShowHint(false), [])
+
+  const goTo = useCallback((i: number) => {
+    setIndex(clamp(i))
+    hideHint()
+  }, [clamp, hideHint])
+
+  const next = useCallback(() => {
+    setIndex((i) => clamp(i + 1))
+    hideHint()
+  }, [clamp, hideHint])
+
+  const prev = useCallback(() => {
+    setIndex((i) => clamp(i - 1))
+    hideHint()
+  }, [clamp, hideHint])
 
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
       if (!containerRef.current) return
       e.preventDefault()
+      hideHint()
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
         if (e.deltaY > 0) next()
         else prev()
@@ -60,6 +75,7 @@ export default function PublicSitePage() {
       }
     }
     const onKey = (e: KeyboardEvent) => {
+      hideHint()
       if (e.key === "ArrowRight") next()
       if (e.key === "ArrowLeft") prev()
     }
@@ -70,7 +86,7 @@ export default function PublicSitePage() {
       container?.removeEventListener("wheel", onWheel as any)
       window.removeEventListener("keydown", onKey)
     }
-  }, [next, prev])
+  }, [next, prev, hideHint])
 
   useEffect(() => {
     const el = containerRef.current
@@ -84,6 +100,7 @@ export default function PublicSitePage() {
     const onTouchEnd = (e: TouchEvent) => {
       const dx = (e.changedTouches[0]?.clientX || 0) - startX
       const dy = (e.changedTouches[0]?.clientY || 0) - startY
+      hideHint()
       if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
         if (dx < 0) next()
         else prev()
@@ -95,7 +112,14 @@ export default function PublicSitePage() {
       el.removeEventListener("touchstart", onTouchStart)
       el.removeEventListener("touchend", onTouchEnd)
     }
-  }, [next, prev])
+  }, [next, prev, hideHint])
+
+  // Auto-hide hint after a few seconds
+  useEffect(() => {
+    if (!showHint) return
+    const t = setTimeout(() => setShowHint(false), 5000)
+    return () => clearTimeout(t)
+  }, [showHint])
 
   // Attempt to fetch live counts (will silently fall back on failure)
   useEffect(() => {
@@ -153,21 +177,21 @@ export default function PublicSitePage() {
           </div>
         </header>
 
-        {/* Slides Container */}
+        {/* Slides Container offset below header */}
         <div
-          className="absolute inset-0 flex h-full w-[1000vw] transition-transform duration-500 ease-in-out"
+          className="absolute left-0 right-0 bottom-0 top-14 flex w-[1000vw] transition-transform duration-500 ease-in-out"
           style={{ transform: translate }}
         >
           {/* 1. Home */}
           <Section>
-            <div className="flex flex-col items-center justify-center h-full text-center text-white gap-6 pt-24">
+            <div className="flex flex-col items-center justify-center h-full text-center text-white gap-6">
               <h1 className="text-4xl sm:text-6xl font-extrabold drop-shadow-lg text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-cyan-300 to-blue-400">
                 Next-Gen Esports Org — Powered by AI, Driven by Data & Passion.
               </h1>
               <p className="text-white/80 max-w-2xl">Cinematic performance. Data-backed decisions. Build your legacy with us.</p>
               <div className="flex gap-4">
                 <a href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer"
-                  className="px-5 py-2 rounded-md font-semibold bg-gradient-to-r from-indigo-400 via-pink-400 to-amber-300 text-black hover:brightness-110 transition-shadow shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                  className="px-5 py-2 rounded-md font-semibold bg-gradient-to-r from-sky-400 via-cyan-400 to-blue-500 text-white hover:brightness-110 transition-shadow shadow-[0_0_30px_rgba(255,255,255,0.2)]">
                   Join Us
                 </a>
                 <a href="/highlight"
@@ -457,11 +481,18 @@ export default function PublicSitePage() {
           </Section>
         </div>
 
+        {/* Mobile swipe hint */}
+        {showHint && (
+          <div className="md:hidden fixed bottom-16 left-1/2 -translate-x-1/2 z-30 pointer-events-none text-white/85 text-sm flex items-center gap-2">
+            <span className="bg-black/50 backdrop-blur px-3 py-1.5 rounded-full border border-white/10">Swipe</span>
+            <ArrowRight className="w-4 h-4 animate-pulse" />
+          </div>
+        )}
+
         {/* Footer */}
         <footer className="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/70 to-transparent">
           <div className="max-w-7xl mx-auto h-12 px-3 sm:px-4 flex items-center justify-between text-xs sm:text-sm text-white/70">
             <div className="flex items-center gap-4">
-              <button onClick={() => goTo(9)} className="hover:text-white">Get Sponsorship</button>
               <a href="#" className="hover:text-white">Privacy</a>
               <a href="#" className="hover:text-white">Terms</a>
               <span className="hidden sm:inline">© {new Date().getFullYear()} Raptor Esports. All rights reserved.</span>
