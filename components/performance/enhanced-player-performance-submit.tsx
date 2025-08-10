@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SmartSlotSelector } from "./smart-slot-selector"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, AlertCircle, Clock } from "lucide-react"
+import { CheckCircle, AlertCircle, Clock, Users } from "lucide-react"
 
 const MAPS = ["Erangle", "Miramar", "Sanhok", "Vikendi", "Rondo"]
 
@@ -45,6 +45,8 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
     assists: "",
     damage: "",
     survival_time: "",
+    player_id: "", // For staff to select player
+    team_id: "", // For staff to select team
   })
   const [team, setTeam] = useState<any>(null)
   const [selectedSlot, setSelectedSlot] = useState<SlotWithMatches | null>(null)
@@ -52,16 +54,45 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
   const [existingPerformances, setExistingPerformances] = useState<ExistingPerformance[]>([])
   const [slotsLoading, setSlotsLoading] = useState(false)
   const [lastError, setLastError] = useState<string | null>(null)
+  
+  // For staff members
+  const [teams, setTeams] = useState<any[]>([])
+  const [players, setPlayers] = useState<any[]>([])
+  const isStaff = profile?.role && ['admin', 'manager', 'coach'].includes(profile.role)
+  const isPlayer = profile?.role === 'player'
 
-  // Fetch team data
+  // Fetch initial data based on role
   useEffect(() => {
-    if (!profile?.team_id) return
-    const fetchTeam = async () => {
-      const { data: teamData } = await supabase.from("teams").select("*").eq("id", profile.team_id).single()
-      setTeam(teamData || null)
+    const fetchInitialData = async () => {
+      if (isPlayer && profile?.team_id) {
+        // For players - just fetch their team
+        const { data: teamData } = await supabase.from("teams").select("*").eq("id", profile.team_id).single()
+        setTeam(teamData || null)
+        setFormData(prev => ({ 
+          ...prev, 
+          player_id: profile.id || "",
+          team_id: profile.team_id || ""
+        }))
+      } else if (isStaff) {
+        // For staff - fetch teams and players based on permissions
+        if (profile?.role === 'coach' && profile?.team_id) {
+          // Coaches see their team only
+          const { data: teamData } = await supabase.from("teams").select("*").eq("id", profile.team_id).single()
+          setTeams(teamData ? [teamData] : [])
+          const { data: playersData } = await supabase.from("users").select("*").eq("team_id", profile.team_id).eq("role", "player")
+          setPlayers(playersData || [])
+        } else if (['admin', 'manager'].includes(profile?.role || '')) {
+          // Admins and managers see all teams
+          const { data: teamsData } = await supabase.from("teams").select("*").order("name")
+          setTeams(teamsData || [])
+        }
+      }
     }
-    fetchTeam()
-  }, [profile.team_id])
+    
+    if (profile) {
+      fetchInitialData()
+    }
+  }, [profile, isPlayer, isStaff])
 
   // Fetch slot details and existing performances when slot is selected
   useEffect(() => {
