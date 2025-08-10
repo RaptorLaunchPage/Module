@@ -151,12 +151,14 @@ export default function SignUpPage() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
           <CardHeader className="text-center relative">
-            <Link href="/" className="absolute left-4 top-4">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
-                <Home className="h-4 w-4 mr-2" />
-                Home
+            <div className="absolute left-4 top-4">
+              <Button asChild variant="ghost" size="sm" className="text-white hover:bg-white/10">
+                <Link href="/">
+                  <Home className="h-4 w-4 mr-2" />
+                  Home
+                </Link>
               </Button>
-            </Link>
+            </div>
             <CardTitle className="text-2xl text-white font-semibold">Join Raptor Esports</CardTitle>
             <CardDescription className="text-slate-200">
               Create your account to get started
@@ -251,7 +253,7 @@ export default function SignUpPage() {
               
               <Button 
                 type="submit" 
-                className="w-full bg-primary hover:bg-primary/90 text-white font-medium"
+                className="w-full bg-gradient-to-r from-sky-400 via-cyan-400 to-blue-500 text-white hover:brightness-110 font-medium"
                 disabled={loading || discordLoading}
               >
                 {loading ? (

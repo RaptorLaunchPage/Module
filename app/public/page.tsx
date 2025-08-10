@@ -40,7 +40,7 @@ export default function PublicSitePage() {
   // Counts with sensible defaults; will try to fetch live values
   const [teamsCount, setTeamsCount] = useState<number>(12)
   const [playersCount, setPlayersCount] = useState<number>(72)
-  const [showHint, setShowHint] = useState<boolean>(true)
+  const [showHint, setShowHint] = useState<boolean>(false)
 
   const clamp = useCallback((i: number) => Math.max(0, Math.min(SECTIONS.length - 1, i)), [])
 
@@ -91,6 +91,16 @@ export default function PublicSitePage() {
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
+
+    // Observe vertical scroll near bottom to show hint
+    const handleScroll = () => {
+      const scrolledToBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 24
+      if (scrolledToBottom) {
+        setShowHint(true)
+      }
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+
     let startX = 0
     let startY = 0
     const onTouchStart = (e: TouchEvent) => {
@@ -109,12 +119,13 @@ export default function PublicSitePage() {
     el.addEventListener("touchstart", onTouchStart)
     el.addEventListener("touchend", onTouchEnd)
     return () => {
+      window.removeEventListener('scroll', handleScroll)
       el.removeEventListener("touchstart", onTouchStart)
       el.removeEventListener("touchend", onTouchEnd)
     }
   }, [next, prev, hideHint])
 
-  // Auto-hide hint after a few seconds
+  // Auto-hide hint after a few seconds once shown
   useEffect(() => {
     if (!showHint) return
     const t = setTimeout(() => setShowHint(false), 5000)
