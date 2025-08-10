@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { VideoBackground } from "@/components/video-background"
 import { Trophy, Users, Calendar, Play, Mail } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 const SECTIONS = [
   "Home",
@@ -35,6 +36,10 @@ type SectionKey = typeof SECTIONS[number]
 export default function PublicSitePage() {
   const [index, setIndex] = useState(0)
   const containerRef = useRef<HTMLDivElement | null>(null)
+
+  // Counts with sensible defaults; will try to fetch live values
+  const [teamsCount, setTeamsCount] = useState<number>(12)
+  const [playersCount, setPlayersCount] = useState<number>(72)
 
   const clamp = useCallback((i: number) => Math.max(0, Math.min(SECTIONS.length - 1, i)), [])
 
@@ -92,6 +97,25 @@ export default function PublicSitePage() {
     }
   }, [next, prev])
 
+  // Attempt to fetch live counts (will silently fall back on failure)
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const teamsRes = await supabase.from('teams').select('*', { count: 'exact', head: true })
+        if (typeof teamsRes.count === 'number') setTeamsCount(teamsRes.count)
+      } catch {}
+      try {
+        const playersRes = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true })
+          .eq('role', 'player')
+          .eq('status', 'Active')
+        if (typeof playersRes.count === 'number') setPlayersCount(playersRes.count)
+      } catch {}
+    }
+    fetchCounts()
+  }, [])
+
   const translate = useMemo(() => `translateX(-${index * 100}%)`, [index])
 
   return (
@@ -101,7 +125,7 @@ export default function PublicSitePage() {
         <header className="fixed top-0 left-0 right-0 z-30 bg-black/55 backdrop-blur-md border-b border-white/10">
           <div className="max-w-7xl mx-auto h-14 px-3 sm:px-4 flex items-center">
             {/* Brand left with gradient */}
-            <div className="font-extrabold tracking-wide text-transparent bg-gradient-to-r from-indigo-400 via-pink-400 to-amber-300 bg-clip-text">
+            <div className="font-extrabold tracking-wide text-transparent bg-gradient-to-r from-sky-300 via-cyan-300 to-blue-400 bg-clip-text">
               RAPTOR ESPORTS
             </div>
             {/* Center nav names (no button UI) */}
@@ -128,7 +152,8 @@ export default function PublicSitePage() {
             </div>
           </div>
         </header>
-        {/* Slides Container remains unchanged below */}
+
+        {/* Slides Container */}
         <div
           className="absolute inset-0 flex h-full w-[1000vw] transition-transform duration-500 ease-in-out"
           style={{ transform: translate }}
@@ -136,10 +161,12 @@ export default function PublicSitePage() {
           {/* 1. Home */}
           <Section>
             <div className="flex flex-col items-center justify-center h-full text-center text-white gap-6 pt-24">
-              <h1 className="text-4xl sm:text-6xl font-extrabold drop-shadow-lg">Next-Gen Esports Org — Powered by AI, Driven by Data.</h1>
+              <h1 className="text-4xl sm:text-6xl font-extrabold drop-shadow-lg text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-cyan-300 to-blue-400">
+                Next-Gen Esports Org — Powered by AI, Driven by Data & Passion.
+              </h1>
               <p className="text-white/80 max-w-2xl">Cinematic performance. Data-backed decisions. Build your legacy with us.</p>
               <div className="flex gap-4">
-                <a href="https://discord.com/invite/raptor" target="_blank" rel="noreferrer"
+                <a href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer"
                   className="px-5 py-2 rounded-md font-semibold bg-gradient-to-r from-indigo-400 via-pink-400 to-amber-300 text-black hover:brightness-110 transition-shadow shadow-[0_0_30px_rgba(255,255,255,0.2)]">
                   Join Us
                 </a>
@@ -149,8 +176,8 @@ export default function PublicSitePage() {
                 </a>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-                <Stat icon={<Users className="h-5 w-5" />} label="Active Teams" value={12} />
-                <Stat icon={<Users className="h-5 w-5" />} label="Active Players" value={72} />
+                <Stat icon={<Users className="h-5 w-5" />} label="Active Teams" value={teamsCount} />
+                <Stat icon={<Users className="h-5 w-5" />} label="Active Players" value={playersCount} />
                 <Stat icon={<Calendar className="h-5 w-5" />} label="Total Matches" value={1248} />
                 <Stat icon={<Trophy className="h-5 w-5" />} label="Total WWCD" value={104} />
               </div>
@@ -158,7 +185,7 @@ export default function PublicSitePage() {
               <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-white/80">
                 <button onClick={() => goTo(1)} className="hover:text-white hover:underline underline-offset-4">About Us</button>
                 <button onClick={() => goTo(8)} className="hover:text-white hover:underline underline-offset-4">Tournaments</button>
-                <button onClick={() => goTo(2)} className="hover:text-white hover:underline underline-offset-4">Sponsorship</button>
+                <button onClick={() => goTo(9)} className="hover:text-white hover:underline underline-offset-4">Get Sponsorship</button>
               </div>
             </div>
           </Section>
@@ -423,8 +450,8 @@ export default function PublicSitePage() {
               </Card>
               <div className="mt-4 flex items-center gap-3">
                 <a className="text-white/80 hover:text-white underline underline-offset-4" href="#">Twitter</a>
-                <a className="text-white/80 hover:text-white underline underline-offset-4" href="#">Instagram</a>
-                <a className="text-white/80 hover:text-white underline underline-offset-4" href="#">Discord</a>
+                <a className="text-white/80 hover:text-white underline underline-offset-4" href="https://www.instagram.com/rexigris?igsh=MXVxMDFpMXNhYWQ1cQ==" target="_blank" rel="noreferrer">Instagram</a>
+                <a className="text-white/80 hover:text-white underline underline-offset-4" href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer">Discord</a>
               </div>
             </div>
           </Section>
@@ -434,13 +461,14 @@ export default function PublicSitePage() {
         <footer className="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/70 to-transparent">
           <div className="max-w-7xl mx-auto h-12 px-3 sm:px-4 flex items-center justify-between text-xs sm:text-sm text-white/70">
             <div className="flex items-center gap-4">
+              <button onClick={() => goTo(9)} className="hover:text-white">Get Sponsorship</button>
               <a href="#" className="hover:text-white">Privacy</a>
               <a href="#" className="hover:text-white">Terms</a>
               <span className="hidden sm:inline">© {new Date().getFullYear()} Raptor Esports. All rights reserved.</span>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <span className="hidden sm:inline">Developed by Swaraj Rathod</span>
-              <a href="https://instagram.com/swrjr" target="_blank" rel="noreferrer" aria-label="Instagram"
+              <a href="https://www.instagram.com/rexigris?igsh=MXVxMDFpMXNhYWQ1cQ==" target="_blank" rel="noreferrer" aria-label="Instagram"
                  className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/15 hover:bg-white/25">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-white/90">
                   <path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm0 2h10c1.654 0 3 1.346 3 3v10c0 1.654-1.346 3-3 3H7c-1.654 0-3-1.346-3-3V7c0-1.654 1.346-3 3-3zm11 1a1 1 0 100 2 1 1 0 000-2zM12 7a5 5 0 100 10 5 5 0 000-10z"/>
