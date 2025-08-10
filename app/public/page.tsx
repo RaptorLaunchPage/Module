@@ -21,12 +21,12 @@ const SECTIONS = [
   "Contact",
 ] as const
 
-// Public nav (reduced): Home, About Us, Tier System, Incentives, Tournaments, Contact
-const NAV: Array<{ name: string; idx: number }> = [
+// Public nav: mix of internal sections and external pages
+const NAV: Array<{ name: string; idx?: number; href?: string }> = [
   { name: "Home", idx: 0 },
-  { name: "About Us", idx: 1 },
+  { name: "About", href: "/about" },
   { name: "Tier System", idx: 3 },
-  { name: "Incentives", idx: 4 },
+  { name: "Incentives", href: "/incentives" },
   { name: "Tournaments", idx: 8 },
   { name: "Contact", idx: 9 },
 ]
@@ -165,15 +165,26 @@ export default function PublicSitePage() {
             </div>
             {/* Center nav names (no button UI) */}
             <nav className="mx-auto hidden md:flex items-center gap-3 lg:gap-4 overflow-x-auto no-scrollbar px-2">
-              {NAV.map(({ name, idx }) => (
-                <button
-                  key={name}
-                  onClick={() => goTo(idx)}
-                  className={`text-xs sm:text-sm text-white/80 hover:text-white transition-colors pb-0.5 border-b-2 ${index === idx ? "border-white" : "border-transparent hover:border-white/40"}`}
-                  aria-label={`Go to ${name}`}
-                >
-                  {name}
-                </button>
+              {NAV.map(({ name, idx, href }) => (
+                href ? (
+                  <a
+                    key={name}
+                    href={href}
+                    className={`text-xs sm:text-sm text-white/80 hover:text-white transition-colors pb-0.5 border-b-2 border-transparent hover:border-white/40`}
+                    aria-label={`Go to ${name}`}
+                  >
+                    {name}
+                  </a>
+                ) : (
+                  <button
+                    key={name}
+                    onClick={() => typeof idx === 'number' && goTo(idx)}
+                    className={`text-xs sm:text-sm text-white/80 hover:text-white transition-colors pb-0.5 border-b-2 ${index === idx ? "border-white" : "border-transparent hover:border-white/40"}`}
+                    aria-label={`Go to ${name}`}
+                  >
+                    {name}
+                  </button>
+                )
               ))}
             </nav>
             {/* Right: Dashboard button */}
@@ -218,9 +229,10 @@ export default function PublicSitePage() {
               </div>
               {/* Quick Links Row */}
               <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-white/80">
-                <button onClick={() => goTo(1)} className="hover:text-white hover:underline underline-offset-4">About Us</button>
+                <a href="/about" className="hover:text-white hover:underline underline-offset-4">About</a>
+                <a href="/incentives" className="hover:text-white hover:underline underline-offset-4">Incentives</a>
                 <button onClick={() => goTo(8)} className="hover:text-white hover:underline underline-offset-4">Tournaments</button>
-                <button onClick={() => goTo(9)} className="hover:text-white hover:underline underline-offset-4">Get Sponsorship</button>
+                <button onClick={() => goTo(9)} className="hover:text-white hover:underline underline-offset-4">Contact</button>
               </div>
             </div>
           </Section>
