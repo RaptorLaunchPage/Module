@@ -5,22 +5,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BRAND_GRAD, HEADER_BG } from "@/components/public/public-theme"
 
-// Navigation items for the unified single-page system
+// Clean navigation with fewer tabs
 const NAV_ITEMS = [
-  { name: "Home", href: "/public", section: 0 },
-  { name: "About", href: "/public", section: 1 },
-  { name: "Vision", href: "/public", section: 2 },
-  { name: "Milestones", href: "/public", section: 3 },
-  { name: "Incentives", href: "/public", section: 4 },
-  { name: "Tier System", href: "/public", section: 5 },
-  { name: "Rewards", href: "/public", section: 6 },
-  { name: "Progression", href: "/public", section: 7 },
-  { name: "Tournaments", href: "/public", section: 8 },
-  { name: "Contact", href: "/public", section: 9 },
-]
-
-// Special case for other pages that aren't part of the sliding system
-const OTHER_PAGES_NAV = [
   { name: "Home", href: "/public" },
   { name: "About", href: "/about" },
   { name: "Incentives", href: "/incentives" },
@@ -29,17 +15,6 @@ const OTHER_PAGES_NAV = [
 
 export function PublicNavigation() {
   const pathname = usePathname()
-  const isPublicPage = pathname === "/public" || pathname === "/"
-  
-  // For the public page, we'll use a simplified navigation that focuses on the main sections
-  const mainNavItems = isPublicPage ? [
-    { name: "Home", href: "/public", section: 0 },
-    { name: "About", href: "/public", section: 1 },
-    { name: "Incentives", href: "/public", section: 4 },
-    { name: "Tier System", href: "/public", section: 5 },
-    { name: "Tournaments", href: "/public", section: 8 },
-    { name: "Contact", href: "/public", section: 9 },
-  ] : OTHER_PAGES_NAV
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-30 ${HEADER_BG}`}>
@@ -51,7 +26,7 @@ export function PublicNavigation() {
         
         {/* Center nav names */}
         <nav className="mx-auto hidden md:flex items-center gap-3 lg:gap-4 overflow-x-auto no-scrollbar px-2">
-          {mainNavItems.map(({ name, href, section }) => (
+          {NAV_ITEMS.map(({ name, href }) => (
             <Link
               key={name}
               href={href}

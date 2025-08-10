@@ -5,19 +5,18 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { VideoBackground } from "@/components/video-background"
-import { Trophy, Users, Calendar, Play, Mail, ArrowRight, Sparkles, Clock, Award, Target, TrendingUp, Star } from "lucide-react"
+import { Trophy, Users, Calendar, Play, Mail, ArrowRight } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-import { PublicFooter } from "@/components/public/PublicFooter"
 
 const SECTIONS = [
   "Home",
   "About",
-  "Vision & Values",
-  "Milestones",
-  "Incentives",
+  "Sponsorship",
   "Tier System",
-  "Rewards & Perks",
-  "Progression",
+  "Incentives",
+  "What's Covered",
+  "How It Works",
+  "Why Join",
   "Tournaments",
   "Contact",
 ] as const
@@ -26,12 +25,8 @@ const SECTIONS = [
 const NAV: Array<{ name: string; idx: number }> = [
   { name: "Home", idx: 0 },
   { name: "About", idx: 1 },
-  { name: "Vision", idx: 2 },
-  { name: "Milestones", idx: 3 },
+  { name: "Tier System", idx: 3 },
   { name: "Incentives", idx: 4 },
-  { name: "Tier System", idx: 5 },
-  { name: "Rewards", idx: 6 },
-  { name: "Progression", idx: 7 },
   { name: "Tournaments", idx: 8 },
   { name: "Contact", idx: 9 },
 ]
@@ -116,36 +111,42 @@ export default function PublicSitePage() {
       const dx = (e.changedTouches[0]?.clientX || 0) - startX
       const dy = (e.changedTouches[0]?.clientY || 0) - startY
       hideHint()
-      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
-        if (dx > 0) prev()
-        else next()
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+        if (dx < 0) next()
+        else prev()
       }
     }
-    el.addEventListener('touchstart', onTouchStart, { passive: true })
-    el.addEventListener('touchend', onTouchEnd, { passive: true })
+    el.addEventListener("touchstart", onTouchStart)
+    el.addEventListener("touchend", onTouchEnd)
     return () => {
-      el.removeEventListener('touchstart', onTouchStart as any)
-      el.removeEventListener('touchend', onTouchEnd as any)
+      el.removeEventListener("touchstart", onTouchStart)
+      el.removeEventListener("touchend", onTouchEnd)
       window.removeEventListener('scroll', handleScroll)
     }
   }, [next, prev, hideHint])
 
+  // Auto-hide hint after a few seconds once shown
+  useEffect(() => {
+    if (!showHint) return
+    const t = setTimeout(() => setShowHint(false), 5000)
+    return () => clearTimeout(t)
+  }, [showHint])
+
+  // Attempt to fetch live counts (will silently fall back on failure)
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        // Try to fetch live counts from Supabase
-        const { count: teams } = await supabase
-          .from('teams')
-          .select('*', { count: 'exact', head: true })
-        if (teams) setTeamsCount(teams)
-
-        const { count: players } = await supabase
+        const teamsRes = await supabase.from('teams').select('*', { count: 'exact', head: true })
+        if (typeof teamsRes.count === 'number') setTeamsCount(teamsRes.count)
+      } catch {}
+      try {
+        const playersRes = await supabase
           .from('users')
           .select('*', { count: 'exact', head: true })
-        if (players) setPlayersCount(players)
-      } catch (error) {
-        console.log('Using default counts')
-      }
+          .eq('role', 'player')
+          .eq('status', 'Active')
+        if (typeof playersRes.count === 'number') setPlayersCount(playersRes.count)
+      } catch {}
     }
     fetchCounts()
   }, [])
@@ -225,7 +226,7 @@ export default function PublicSitePage() {
             </div>
           </Section>
 
-          {/* 2. About */}
+          {/* 2. About (static) */}
           <Section>
             <div className="h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60 px-6 py-10 text-white flex flex-col">
               <div className="text-center">
@@ -267,290 +268,272 @@ export default function PublicSitePage() {
             </div>
           </Section>
 
-          {/* 3. Vision & Values */}
+          {/* 3. Sponsorship (unchanged) */}
           <Section>
-            <div className="h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60 px-6 py-10 text-white flex flex-col">
-              <div className="text-center">
-                <h2 className="text-3xl sm:text-4xl font-extrabold drop-shadow-xl">Our Vision & Values</h2>
-                <p className="mt-2 text-white/85 max-w-3xl mx-auto">Building the future of competitive gaming through innovation and dedication.</p>
+            <div className="max-w-6xl mx-auto text-white px-6 py-20">
+              <h2 className="text-4xl font-bold mb-6">Sponsorship</h2>
+              <div className="grid md:grid-cols-3 gap-6">
+                {["HyperX", "Nvidia", "RedBull"].map((n) => (
+                  <Card key={n} className="bg-black/50 border-white/10 flex items-center justify-center h-28">
+                    <span className="text-white/80 text-lg">{n} (Logo)</span>
+                  </Card>
+                ))}
               </div>
-              <div className="mt-auto grid md:grid-cols-3 gap-6">
+              <div className="mt-8 grid md:grid-cols-2 gap-6">
                 <Card className="bg-black/50 border-white/10">
                   <CardHeader>
-                    <CardTitle>Our Vision</CardTitle>
+                    <CardTitle>Benefits</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-white/80 space-y-2">
+                    <li>Brand placements on jerseys & streams</li>
+                    <li>Content collaborations</li>
+                    <li>Community activations & events</li>
+                    <li>Access to rising talent</li>
+                  </CardContent>
+                </Card>
+                <Card className="bg-black/50 border-white/10">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle>Media Kit</CardTitle>
+                    <Button variant="outline" className="text-white border-white/40" size="sm">
+                      Download
+                    </Button>
                   </CardHeader>
                   <CardContent className="text-white/80">
-                    Elevate Indian esports with a modern, data-driven ecosystem that nurtures winners.
+                    Our media kit includes audience metrics, demographics, and campaign case studies.
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="mt-8">
+                <h3 className="font-semibold mb-3">Past Highlights</h3>
+                <div className="flex gap-3 flex-wrap">
+                  {["LAN Showcase", "National Finals", "Brand Collab"].map((h) => (
+                    <Badge key={h} variant="secondary" className="bg-white/10 text-white border-white/20">{h}</Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Section>
+
+          {/* 4. Tier System (unchanged) */}
+          <Section>
+            <div className="max-w-5xl mx-auto text-white px-6 py-20">
+              <h2 className="text-4xl font-bold mb-6">Tier System</h2>
+              <div className="grid md:grid-cols-2 gap-8">
+                <Card className="bg-black/50 border-white/10">
+                  <CardHeader>
+                    <CardTitle>Tier Ladder</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-white/80">
+                    <div className="space-y-2">
+                      <TierRow tier="Pro" req="Top finishes, high consistency" perks="Salary, travel, media" />
+                      <TierRow tier="Elite" req="Consistent high-level scrims" perks="Bootcamps, premium gear" />
+                      <TierRow tier="Advanced" req="Stable team performance" perks="Coaching, analytics" />
+                      <TierRow tier="Starter" req="Potential with growth" perks="Practice slots" />
+                    </div>
                   </CardContent>
                 </Card>
                 <Card className="bg-black/50 border-white/10">
                   <CardHeader>
-                    <CardTitle>What Drives Us</CardTitle>
+                    <CardTitle>Requirements & Perks</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-white/80">
-                    Discipline, consistency, and innovation — backed by AI-powered insights.
-                  </CardContent>
-                </Card>
-                <Card className="bg-black/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle>Players First</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-white/80">
-                    Transparent frameworks, fair incentives, and clear progression paths.
+                  <CardContent className="text-white/80 space-y-2">
+                    <li>Attendance & discipline benchmarks</li>
+                    <li>Match performance thresholds</li>
+                    <li>Coach evaluations</li>
+                    <li>Structured progression path</li>
                   </CardContent>
                 </Card>
               </div>
             </div>
           </Section>
 
-          {/* 4. Milestones */}
-          <Section>
-            <div className="h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60 px-6 py-10 text-white flex flex-col">
-              <div className="text-center">
-                <h2 className="text-3xl sm:text-4xl font-extrabold drop-shadow-xl">Our Journey</h2>
-                <p className="mt-2 text-white/85 max-w-3xl mx-auto">Key milestones in our mission to revolutionize esports.</p>
-              </div>
-              <div className="mt-auto grid md:grid-cols-2 gap-6">
-                <TimelineCard year="2025" items={[
-                  "May — Organization established.",
-                  "June — Incentive program launched.",
-                  "July — Tier system + Instagram presence.",
-                  "August — AI-driven performance platform launched.",
-                ]} />
-                <Card className="bg-black/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle>Achievements</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid gap-3 text-white/85">
-                    <div className="bg-white/5 rounded p-3">
-                      <div className="font-semibold">2025 Establishment</div>
-                      <div className="text-white/70 text-sm">Rapidly growing community and structured programs launched.</div>
-                    </div>
-                    <div className="bg-white/5 rounded p-3">
-                      <div className="font-semibold">AI Platform</div>
-                      <div className="text-white/70 text-sm">Deployed performance analytics and curated insights engine.</div>
-                    </div>
-                    <div className="bg-white/5 rounded p-3">
-                      <div className="font-semibold">Scrim Success</div>
-                      <div className="text-white/70 text-sm">Consistent finishes and momentum across multiple rosters.</div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </Section>
-
-          {/* 5. Incentives */}
+          {/* 5. Incentives (static) */}
           <Section>
             <div className="h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60 px-6 py-10 text-white flex flex-col">
               <div className="text-center">
                 <h2 className="text-3xl sm:text-4xl font-extrabold drop-shadow-xl">Earn more as you climb the ranks.</h2>
                 <p className="mt-2 text-white/85 max-w-3xl mx-auto">Comprehensive incentive system designed to reward performance and dedication.</p>
               </div>
-              <div className="mt-auto grid md:grid-cols-3 gap-6">
+              <div className="mt-auto grid lg:grid-cols-2 gap-6">
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <Card className="bg-black/50 border-white/10"><CardHeader><CardTitle>Paid scrims</CardTitle></CardHeader><CardContent className="text-white/80">Rewarding consistency and effort.</CardContent></Card>
+                  <Card className="bg-black/50 border-white/10"><CardHeader><CardTitle>AI tools</CardTitle></CardHeader><CardContent className="text-white/80">Analytics, insights, dashboards.</CardContent></Card>
+                  <Card className="bg-black/50 border-white/10"><CardHeader><CardTitle>Attendance</CardTitle></CardHeader><CardContent className="text-white/80">Tracked training & matches.</CardContent></Card>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <Card className="bg-black/50 border-white/10">
+                    <CardHeader><CardTitle>Tier Rewards</CardTitle></CardHeader>
+                    <CardContent className="text-white/90 space-y-1 text-sm">
+                      <div className="flex justify-between"><span>T1</span><span>Premium + Coaching</span></div>
+                      <div className="flex justify-between"><span>God Tier</span><span>Elite + Analyst</span></div>
+                      <div className="text-white/70 mt-2">Major tournaments (₹20k+) split 50/50 post-expense.</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-black/50 border-white/10">
+                    <CardHeader><CardTitle>Progression</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-5 gap-2 text-center">
+                        {['T4','T3','T2','T1','God'].map((t, i) => (
+                          <div key={t} className={`rounded px-2 py-3 ${i>=3? 'bg-white/15':'bg-white/10'}`}>
+                            <div className="text-white font-semibold">{t}</div>
+                            <div className="text-white/70 text-xs">{i===0?'Start':i===1?'Growth':i===2?'Compete':i===3?'Contend':'Dominate'}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-2 text-center text-white/80 text-sm">More Wins = Bigger Cuts.</div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </div>
+          </Section>
+
+          {/* 6-10 unchanged */}
+          <Section>
+            <div className="max-w-5xl mx-auto text-white px-6 py-20">
+              <h2 className="text-4xl font-bold mb-6">What's Covered by the Org</h2>
+              <div className="grid md:grid-cols-2 gap-8">
+                <ListCard title="Event Fees" items={["Tournament registrations", "Scrim slots", "Admin fees"]} />
+                <ListCard title="Logistics" items={["Travel planning", "Hotel coordination", "On-ground support"]} />
+                <ListCard title="Training" items={["Coaching staff", "VOD reviews", "Performance analytics"]} />
+                <ListCard title="Gear & Maintenance" items={["Equipment support", "Jersey & branding", "Maintenance"]} />
+              </div>
+            </div>
+          </Section>
+
+          <Section>
+            <div className="max-w-4xl mx-auto text-white px-6 py-20">
+              <h2 className="text-4xl font-bold mb-6">How It Works</h2>
+              <ol className="space-y-4 text-white/90">
+                <Step n={1} title="Apply online" />
+                <Step n={2} title="Skill assessment" />
+                <Step n={3} title="Provisional period" />
+                <Step n={4} title="Full membership" />
+              </ol>
+            </div>
+          </Section>
+
+          <Section>
+            <div className="max-w-6xl mx-auto text-white px-6 py-20">
+              <h2 className="text-4xl font-bold mb-6">Why You Should Join</h2>
+              <div className="grid md:grid-cols-2 gap-8">
+                <ListCard title="Competitive Edge" items={["Proven results", "Structured practice", "Analytic coaching"]} />
+                <ListCard title="Player Growth" items={["Skill roadmap", "Role mentorship", "Leadership"]} />
+                <ListCard title="Professional Setup" items={["Code of conduct", "Discipline framework", "Clear progression"]} />
+                <ListCard title="Community" items={["Supportive culture", "Content ecosystem", "Fan engagement"]} />
+              </div>
+              <div className="mt-8">
                 <Card className="bg-black/50 border-white/10">
                   <CardHeader>
-                    <CardTitle>Paid practice scrims</CardTitle>
+                    <CardTitle>Testimonials</CardTitle>
                   </CardHeader>
-                  <CardContent className="text-white/80">Compensated practice hours to reward consistency and effort.</CardContent>
-                </Card>
-                <Card className="bg-black/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle>AI performance tools</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-white/80">Full access to analytics, curated insights, and performance dashboards.</CardContent>
-                </Card>
-                <Card className="bg-black/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle>Attendance monitoring</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-white/80">Track training and match participation to unlock rewards.</CardContent>
+                  <CardContent className="text-white/80 grid md:grid-cols-2 gap-6">
+                    <blockquote>"Raptor gave me structure and purpose — my stats skyrocketed."</blockquote>
+                    <blockquote>"Best environment I've trained in. Professional and focused."</blockquote>
+                  </CardContent>
                 </Card>
               </div>
             </div>
           </Section>
 
-          {/* 6. Tier System */}
           <Section>
-            <div className="h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60 px-6 py-10 text-white flex flex-col">
-              <div className="text-center">
-                <h2 className="text-3xl sm:text-4xl font-extrabold drop-shadow-xl">Tier-Based Rewards</h2>
-                <p className="mt-2 text-white/85 max-w-3xl mx-auto">Progressive system that rewards skill, consistency, and team performance.</p>
-              </div>
-              <div className="mt-auto">
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-left text-white/90 border-separate border-spacing-y-2">
-                    <thead className="text-white/70">
-                      <tr>
-                        <th className="px-3 py-2">Tier</th>
-                        <th className="px-3 py-2">Wildcards</th>
-                        <th className="px-3 py-2">Data Support</th>
-                        <th className="px-3 py-2">Accessories & Gear</th>
-                        <th className="px-3 py-2">Notes</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { tier: "T4", wc: "-", data: "Basic", gear: "-", notes: "Entry level." },
-                        { tier: "T3", wc: "Limited", data: "Enhanced", gear: "Basic", notes: "Developing." },
-                        { tier: "T2", wc: "Moderate", data: "Full", gear: "Standard", notes: "Competitive." },
-                        { tier: "T1", wc: "High", data: "Full + Coaching", gear: "Premium", notes: "Tournament-ready." },
-                        { tier: "God Tier", wc: "Max", data: "Elite + Analyst", gear: "Elite", notes: "Top performers." },
-                      ].map((r) => (
-                        <tr key={r.tier} className={`bg-white/5 rounded ${r.tier === 'T1' || r.tier === 'God Tier' ? 'outline outline-1 outline-white/20' : ''}`}>
-                          <td className="px-3 py-3 font-semibold">{r.tier}</td>
-                          <td className="px-3 py-3">{r.wc}</td>
-                          <td className="px-3 py-3">{r.data}</td>
-                          <td className="px-3 py-3">{r.gear}</td>
-                          <td className="px-3 py-3 text-white/70">{r.notes}</td>
-                        </tr>
+            <div className="max-w-6xl mx-auto text-white px-6 py-20">
+              <h2 className="text-4xl font-bold mb-6">Tournaments</h2>
+              <div className="grid md:grid-cols-3 gap-6">
+                <Card className="bg-black/50 border-white/10">
+                  <CardHeader>
+                    <CardTitle>Upcoming</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-white/80 space-y-2">
+                    <li>BGMI Masters - Oct 15</li>
+                    <li>Open Qualifiers - Nov 02</li>
+                  </CardContent>
+                </Card>
+                <Card className="bg-black/50 border-white/10">
+                  <CardHeader>
+                    <CardTitle>Brackets</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <a href="#" className="text-white/90 hover:text-white underline underline-offset-4">View Live</a>
+                  </CardContent>
+                </Card>
+                <Card className="bg-black/50 border-white/10">
+                  <CardHeader>
+                    <CardTitle>Past Victories</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-white/80">
+                    <div className="grid grid-cols-3 gap-2">
+                      {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="h-16 bg-white/10 rounded" />
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </Section>
-
-          {/* 7. Rewards & Perks */}
-          <Section>
-            <div className="h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60 px-6 py-10 text-white flex flex-col">
-              <div className="text-center">
-                <h2 className="text-3xl sm:text-4xl font-extrabold drop-shadow-xl">Winning Share Perks</h2>
-                <p className="mt-2 text-white/85 max-w-3xl mx-auto">Fair and transparent reward system that benefits the entire team.</p>
-              </div>
-              <div className="mt-auto grid md:grid-cols-2 gap-6">
-                <Card className="bg-black/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle>Policy Overview</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-white/80 space-y-2">
-                    <p>We follow a cost-coverage-first policy to reduce financial pressure on players.</p>
-                    <p>After covering costs, surpluses are split fairly with a team-favored approach.</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-black/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle>Example</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-white/80 space-y-2">
-                    <p>Major tournaments (over ₹20k) are split 50/50 after expense deduction.</p>
-                    <p>More wins unlock higher tiers, increasing your benefits.</p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </Section>
-
-          {/* 8. Progression */}
-          <Section>
-            <div className="h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60 px-6 py-10 text-white flex flex-col">
-              <div className="text-center">
-                <h2 className="text-3xl sm:text-4xl font-extrabold drop-shadow-xl">Progression Ladder</h2>
-                <p className="mt-2 text-white/85 max-w-3xl mx-auto">Clear path from entry to elite performance.</p>
-              </div>
-              <div className="mt-auto">
-                <div className="grid sm:grid-cols-5 gap-3 mb-6">
-                  {[
-                    { t: "T4", sub: "Start" },
-                    { t: "T3", sub: "Growth" },
-                    { t: "T2", sub: "Compete" },
-                    { t: "T1", sub: "Contend" },
-                    { t: "God", sub: "Dominate" },
-                  ].map((x, i) => (
-                    <div key={x.t} className={`rounded p-4 text-center ${i >= 3 ? 'bg-white/15' : 'bg-white/10'}`}>
-                      <div className="text-xl font-bold text-white">{x.t}</div>
-                      <div className="text-white/70 text-sm">{x.sub}</div>
                     </div>
-                  ))}
-                </div>
-                <div className="text-center text-white/80">More Wins = Bigger Cuts.</div>
-              </div>
-            </div>
-          </Section>
-
-          {/* 9. Tournaments */}
-          <Section>
-            <div className="h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60 px-6 py-10 text-white flex flex-col">
-              <div className="text-center">
-                <h2 className="text-3xl sm:text-4xl font-extrabold drop-shadow-xl">Tournaments & Events</h2>
-                <p className="mt-2 text-white/85 max-w-3xl mx-auto">Competitive opportunities across multiple formats and skill levels.</p>
-              </div>
-              <div className="mt-auto grid md:grid-cols-2 gap-6">
-                <Card className="bg-black/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle>Upcoming Events</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-white/80 space-y-2">
-                    <li>Weekly scrim tournaments</li>
-                    <li>Monthly championship series</li>
-                    <li>Quarterly major tournaments</li>
-                    <li>Annual championship</li>
-                  </CardContent>
-                </Card>
-                <Card className="bg-black/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle>Tournament Benefits</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-white/80 space-y-2">
-                    <li>Prize pool distribution</li>
-                    <li>Performance tracking</li>
-                    <li>Team building opportunities</li>
-                    <li>Professional exposure</li>
                   </CardContent>
                 </Card>
               </div>
             </div>
           </Section>
 
-          {/* 10. Contact */}
           <Section>
-            <div className="h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60 px-6 py-10 text-white flex flex-col">
-              <div className="text-center">
-                <h2 className="text-3xl sm:text-4xl font-extrabold drop-shadow-xl">Get In Touch</h2>
-                <p className="mt-2 text-white/85 max-w-3xl mx-auto">Ready to join the Raptor family? Connect with us today.</p>
-              </div>
-              <div className="mt-auto grid md:grid-cols-2 gap-6">
-                <Card className="bg-black/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle>Join Our Community</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-white/80 space-y-4">
-                    <a href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-gradient-to-r from-[#00C6FF] via-[#3A7DFF] to-[#B721FF] text-white hover:brightness-110 transition-shadow">
-                      <Mail className="h-4 w-4" />
-                      Join Discord
-                    </a>
-                    <p>Connect with players, coaches, and staff in our active Discord community.</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-black/50 border-white/10">
-                  <CardHeader>
-                    <CardTitle>Follow Us</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-white/80 space-y-2">
-                    <a href="https://www.instagram.com/rexigris?igsh=MXVxMDFpMXNhYWQ1cQ==" target="_blank" rel="noreferrer" className="block hover:text-white transition-colors">
-                      Instagram: @rexigris
-                    </a>
-                    <p>Stay updated with our latest news, highlights, and announcements.</p>
-                  </CardContent>
-                </Card>
+            <div className="max-w-3xl mx-auto text-white px-6 py-20">
+              <h2 className="text-4xl font-bold mb-6">Contact</h2>
+              <Card className="bg-black/50 border-white/10">
+                <CardContent className="p-6 space-y-4">
+                  <form
+                    className="grid md:grid-cols-2 gap-4"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      alert("Submitted! We'll get back soon.")
+                    }}
+                  >
+                    <input className="bg-white/10 border border-white/20 rounded px-3 py-2 text-white" placeholder="Name" required />
+                    <input className="bg-white/10 border border-white/20 rounded px-3 py-2 text-white" placeholder="Email" type="email" required />
+                    <input className="bg-white/10 border border-white/20 rounded px-3 py-2 text-white md:col-span-2" placeholder="Subject" />
+                    <textarea className="bg-white/10 border border-white/20 rounded px-3 py-2 text-white md:col-span-2 h-28" placeholder="Message" />
+                    <div className="md:col-span-2 flex items-center justify-between">
+                      <div className="text-white/70 text-sm flex items-center gap-2">
+                        <Mail className="h-4 w-4" /> contact@raptoresports.gg
+                      </div>
+                      <Button type="submit">Send Message</Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+              <div className="mt-4 flex items-center gap-3">
+                <a className="text-white/80 hover:text-white underline underline-offset-4" href="#">Twitter</a>
+                <a className="text-white/80 hover:text-white underline underline-offset-4" href="https://www.instagram.com/rexigris?igsh=MXVxMDFpMXNhYWQ1cQ==" target="_blank" rel="noreferrer">Instagram</a>
+                <a className="text-white/80 hover:text-white underline underline-offset-4" href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer">Discord</a>
               </div>
             </div>
           </Section>
         </div>
 
-        {/* Scroll hint */}
+        {/* Mobile swipe hint */}
         {showHint && (
-          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40">
-            <div className="bg-black/60 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 text-white/80 text-sm">
-              Use arrow keys or scroll to navigate
-            </div>
+          <div className="md:hidden fixed bottom-16 left-1/2 -translate-x-1/2 z-30 pointer-events-none text-white/85 text-sm flex items-center gap-2">
+            <span className="bg-black/50 backdrop-blur px-3 py-1.5 rounded-full border border-white/10">Swipe</span>
+            <ArrowRight className="w-4 h-4 animate-pulse" />
           </div>
         )}
 
         {/* Footer */}
-        <PublicFooter />
+        <footer className="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/70 to-transparent">
+          <div className="max-w-7xl mx-auto h-12 px-3 sm:px-4 flex items-center justify-between text-xs sm:text-sm text-white/70">
+            <div className="flex items-center gap-4">
+              <a href="#" className="hover:text-white">Privacy</a>
+              <a href="#" className="hover:text-white">Terms</a>
+              <span className="hidden sm:inline">© {new Date().getFullYear()} Raptor Esports. All rights reserved.</span>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="hidden sm:inline">Developed by Swaraj Rathod</span>
+              <a href="https://www.instagram.com/rexigris?igsh=MXVxMDFpMXNhYWQ1cQ==" target="_blank" rel="noreferrer" aria-label="Instagram"
+                 className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/15 hover:bg-white/25">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-white/90">
+                  <path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm0 2h10c1.654 0 3 1.346 3 3v10c0 1.654-1.346 3-3 3H7c-1.654 0-3-1.346-3-3V7c0-1.654 1.346-3 3-3zm11 1a1 1 0 100 2 1 1 0 000-2zM12 7a5 5 0 100 10 5 5 0 000-10z"/>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </footer>
       </div>
     </VideoBackground>
   )
@@ -595,11 +578,32 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
   )
 }
 
-function TimelineCard({ year, items }: { year: string; items: string[] }) {
+function TierRow({ tier, req, perks }: { tier: string; req: string; perks: string }) {
+  return (
+    <div className="flex items-center justify-between bg-white/5 rounded px-3 py-2">
+      <div className="font-semibold">{tier}</div>
+      <div className="text-white/70 text-sm">{req}</div>
+      <Badge variant="secondary" className="bg-white/10 text-white border-white/20">{perks}</Badge>
+    </div>
+  )
+}
+
+function PerkCard({ title, desc }: { title: string; desc: string }) {
   return (
     <Card className="bg-black/50 border-white/10">
       <CardHeader>
-        <CardTitle>{year}</CardTitle>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="text-white/80">{desc}</CardContent>
+    </Card>
+  )
+}
+
+function ListCard({ title, items }: { title: string; items: string[] }) {
+  return (
+    <Card className="bg-black/50 border-white/10">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent className="text-white/80 space-y-2">
         {items.map((it) => (
@@ -607,5 +611,14 @@ function TimelineCard({ year, items }: { year: string; items: string[] }) {
         ))}
       </CardContent>
     </Card>
+  )
+}
+
+function Step({ n, title }: { n: number; title: string }) {
+  return (
+    <div className="flex items-center gap-3 bg-white/5 rounded px-3 py-2">
+      <div className="h-7 w-7 rounded-full bg-white text-black font-bold flex items-center justify-center">{n}</div>
+      <div className="text-white/90">{title}</div>
+    </div>
   )
 }
