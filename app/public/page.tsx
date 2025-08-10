@@ -91,11 +91,11 @@ export default function PublicSitePage() {
       <div className="relative h-screen w-full overflow-hidden" ref={containerRef}>
         {/* Slim, fixed header */}
         <header className="fixed top-0 left-0 right-0 z-30 bg-black/55 backdrop-blur-md border-b border-white/10">
-          <div className="max-w-7xl mx-auto h-14 px-4 flex items-center">
+          <div className="max-w-7xl mx-auto h-14 px-3 sm:px-4 flex items-center">
             {/* Brand left */}
             <div className="font-extrabold tracking-wide text-white">RAPTOR ESPORTS</div>
             {/* Center nav names (no button UI) */}
-            <nav className="hidden md:flex items-center gap-5 mx-auto">
+            <nav className="mx-auto hidden md:flex items-center gap-4 lg:gap-5 overflow-x-auto no-scrollbar px-2">
               {SECTIONS.map((name, i) => (
                 <button
                   key={name}
@@ -130,16 +130,13 @@ export default function PublicSitePage() {
               <h1 className="text-4xl sm:text-6xl font-extrabold drop-shadow-lg">Next-Gen Esports Org — Powered by AI, Driven by Data.</h1>
               <p className="text-white/80 max-w-2xl">Cinematic performance. Data-backed decisions. Build your legacy with us.</p>
               <div className="flex gap-4">
-                <Button asChild>
-                  <a href="https://discord.com/invite/raptor" target="_blank" rel="noreferrer" className="flex items-center gap-2">
-                    Join Us
-                  </a>
-                </Button>
-                <a
-                  href="/highlight"
-                  className="text-white/90 hover:text-white underline underline-offset-4"
-                >
-                  Watch Highlight
+                <a href="https://discord.com/invite/raptor" target="_blank" rel="noreferrer"
+                  className="px-5 py-2 rounded-md font-semibold bg-gradient-to-r from-indigo-400 via-pink-400 to-amber-300 text-black hover:brightness-110 transition-shadow shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                  Join Us
+                </a>
+                <a href="/highlight"
+                  className="px-5 py-2 rounded-md font-semibold border border-white/30 text-white/90 hover:text-white hover:bg-white/10 transition-colors">
+                  Watch Highlights
                 </a>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
@@ -426,11 +423,20 @@ export default function PublicSitePage() {
 
         {/* Footer */}
         <footer className="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/70 to-transparent">
-          <div className="max-w-7xl mx-auto h-12 px-4 flex items-center justify-between text-sm text-white/70">
-            <span>© {new Date().getFullYear()} Raptor Esports. All rights reserved.</span>
+          <div className="max-w-7xl mx-auto h-12 px-3 sm:px-4 flex items-center justify-between text-xs sm:text-sm text-white/70">
             <div className="flex items-center gap-4">
               <a href="#" className="hover:text-white">Privacy</a>
               <a href="#" className="hover:text-white">Terms</a>
+              <span className="hidden sm:inline">© {new Date().getFullYear()} Raptor Esports. All rights reserved.</span>
+            </div>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="hidden sm:inline">Developed by Swaraj Rathod</span>
+              <a href="https://instagram.com/swrjr" target="_blank" rel="noreferrer" aria-label="Instagram"
+                 className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white/15 hover:bg-white/25">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5 text-white/90">
+                  <path d="M7 2C4.243 2 2 4.243 2 7v10c0 2.757 2.243 5 5 5h10c2.757 0 5-2.243 5-5V7c0-2.757-2.243-5-5-5H7zm0 2h10c1.654 0 3 1.346 3 3v10c0 1.654-1.346 3-3 3H7c-1.654 0-3-1.346-3-3V7c0-1.654 1.346-3 3-3zm11 1a1 1 0 100 2 1 1 0 000-2zM12 7a5 5 0 100 10 5 5 0 000-10z"/>
+                </svg>
+              </a>
             </div>
           </div>
         </footer>
