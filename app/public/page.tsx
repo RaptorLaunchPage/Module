@@ -160,7 +160,7 @@ export default function PublicSitePage() {
         <header className="fixed top-0 left-0 right-0 z-30 bg-black/55 backdrop-blur-md border-b border-white/10">
           <div className="max-w-7xl mx-auto h-14 px-3 sm:px-4 flex items-center">
             {/* Brand left with gradient */}
-            <div className="font-extrabold tracking-wide text-transparent bg-gradient-to-r from-sky-300 via-cyan-300 to-blue-400 bg-clip-text">
+            <div className="font-extrabold tracking-wide text-transparent bg-gradient-to-r from-[#B6C1D1] via-[#6EE7F9] via-[#8B5CF6] to-[#22D3EE] bg-clip-text drop-shadow-xl">
               RAPTOR ESPORTS
             </div>
             {/* Center nav names (no button UI) */}
@@ -196,13 +196,13 @@ export default function PublicSitePage() {
           {/* 1. Home */}
           <Section>
             <div className="flex flex-col items-center justify-center h-full text-center text-white gap-6">
-              <h1 className="text-4xl sm:text-6xl font-extrabold drop-shadow-lg text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-cyan-300 to-blue-400">
+              <h1 className="text-4xl sm:text-6xl font-extrabold drop-shadow-xl text-transparent bg-clip-text bg-gradient-to-r from-[#B6C1D1] via-[#6EE7F9] via-[#8B5CF6] to-[#22D3EE]">
                 Next-Gen Esports Org — Powered by AI, Driven by Data & Passion.
               </h1>
               <p className="text-white/80 max-w-2xl">Cinematic performance. Data-backed decisions. Build your legacy with us.</p>
               <div className="flex gap-4">
                 <a href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer"
-                  className="px-5 py-2 rounded-md font-semibold bg-gradient-to-r from-sky-400 via-cyan-400 to-blue-500 text-white hover:brightness-110 transition-shadow shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                  className="px-5 py-2 rounded-md font-semibold bg-gradient-to-r from-[#0B1220] via-[#2563EB] via-[#60A5FA] via-[#22D3EE] to-[#0B1220] text-white hover:brightness-110 transition-shadow shadow-[0_0_30px_rgba(46,197,255,0.35)]">
                   Join Us
                 </a>
                 <a href="/highlight"

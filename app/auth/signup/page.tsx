@@ -253,7 +253,7 @@ export default function SignUpPage() {
               
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-sky-400 via-cyan-400 to-blue-500 text-white hover:brightness-110 font-medium"
+                className="w-full bg-gradient-to-r from-[#0B1220] via-[#2563EB] via-[#60A5FA] via-[#22D3EE] to-[#0B1220] text-white hover:brightness-110 font-medium"
                 disabled={loading || discordLoading}
               >
                 {loading ? (
