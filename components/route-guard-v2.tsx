@@ -12,6 +12,7 @@ interface RouteGuardV2Props {
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
   '/',
+  '/public',
   '/auth/login',
   '/auth/signup',
   '/auth/confirm',
@@ -19,7 +20,11 @@ const PUBLIC_ROUTES = [
   '/auth/reset-password',
   '/highlight',
   '/about',
-  '/incentives'
+  '/incentives',
+  '/apply',
+  '/agreement-review',
+  '/onboarding',
+  '/raptor'
 ]
 
 // API routes and static assets
