@@ -16,7 +16,8 @@ const PUBLIC_ROUTES = [
   '/auth/signup',
   '/auth/confirm',
   '/auth/forgot',
-  '/auth/reset-password'
+  '/auth/reset-password',
+  '/highlight'
 ]
 
 // API routes and static assets
