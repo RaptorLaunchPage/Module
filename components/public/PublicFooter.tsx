@@ -11,7 +11,10 @@ export function PublicFooter() {
         <a href="#" className="hover:text-white">Terms</a>
         <span className="hidden sm:inline">© {new Date().getFullYear()} Raptor Esports. All rights reserved.</span>
       </div>
-      <a href="https://www.instagram.com/rexigris?igsh=MXVxMDFpMXNhYWQ1cQ==" target="_blank" rel="noreferrer" className="hover:text-white">Instagram</a>
+      <div className="flex items-center gap-3">
+        <a href="https://www.instagram.com/rexigris?igsh=MXVxMDFpMXNhYWQ1cQ==" target="_blank" rel="noreferrer" className="hover:text-white">Instagram: @rexigris</a>
+        <a href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer" className="hover:text-white">Discord: Raptor Esports</a>
+      </div>
     </footer>
   )
 }
