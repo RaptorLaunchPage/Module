@@ -14,16 +14,16 @@ The error occurs because:
 2. The function tries to create an attendance record automatically
 3. In some cases, the slot referenced in the performance doesn't have a valid date
 4. The function was trying to insert NULL into the required `date` column
-5. The database schema has been updated to use a session-based attendance model, but the trigger function was still using the old date/session_time model
-6. The unique constraints have changed from `(player_id, date, session_time)` to `(player_id, session_id)`
+5. The function was using `ON CONFLICT` specification that referenced a unique constraint that doesn't exist
+6. The actual database schema has both `session_time` and `session_id` columns but no unique constraints on the attendances table
 
 ## Solution
-A new session-based function has been created in `/workspace/scripts/16-fix-auto-attendance-null-date.sql` that:
+A new function has been created in `/workspace/scripts/16-fix-auto-attendance-null-date.sql` that:
 
 1. Always ensures a non-null date (uses slot date if available, falls back to CURRENT_DATE)
-2. Uses the modern session-based attendance model instead of the legacy date/session_time approach
-3. Automatically creates tournament/scrims sessions for match performances
-4. Uses the correct unique constraint `(player_id, session_id)` for conflict resolution
+2. Works with the actual database schema using the `session_time` column with value 'Match'
+3. Performs manual duplicate checking instead of relying on non-existent unique constraints
+4. Uses 'auto' status (which is valid according to the actual schema constraints)
 5. Properly handles the 'source' column to track auto-generated attendance
 
 ## How to Apply the Fix
@@ -54,13 +54,13 @@ After applying the fix:
 3. Check the `attendances` table to verify automatic attendance records are being created correctly
 
 ## Technical Details
-The new function `create_match_attendance_from_performance()`:
+The new function `create_auto_attendance_fixed()`:
 - Safely handles null slot dates by falling back to CURRENT_DATE
-- Uses the session-based attendance model with proper session creation/lookup
-- Automatically creates tournament/scrims sessions for each team/date combination
-- Uses 'present' status (valid according to current constraints)
+- Works with the actual database schema using `session_time = 'Match'`
+- Performs manual duplicate checking using `NOT EXISTS` clause
+- Uses 'auto' status (valid according to actual schema constraints)
 - Sets source to 'auto' to track automatic creation
-- Prevents conflicts using the correct unique constraint `(player_id, session_id)`
+- Checks for existing records by `(player_id, date, session_time, team_id)` combination
 - Properly validates all required fields before insertion
 
 ## Files Modified

@@ -1,6 +1,6 @@
 -- Fix auto-attendance trigger to prevent null date constraint violations
 -- This addresses the error: null value in column "date" of relation "attendances" violates not-null constraint
--- Updated to use session-based attendance model
+-- Updated to work with the actual database schema (both session_time and session_id columns exist)
 
 -- Drop existing trigger to prevent conflicts
 DROP TRIGGER IF EXISTS auto_attendance_on_performance ON public.performances;
@@ -12,89 +12,84 @@ DROP FUNCTION IF EXISTS public.create_auto_attendance_v2();
 DROP FUNCTION IF EXISTS public.create_auto_attendance_fixed();
 DROP FUNCTION IF EXISTS public.create_match_attendance_from_performance();
 
--- Create new session-based function that handles null dates properly
-CREATE OR REPLACE FUNCTION public.create_match_attendance_from_performance()
+-- Create new function that handles null dates and works with the actual schema
+CREATE OR REPLACE FUNCTION public.create_auto_attendance_fixed()
 RETURNS TRIGGER AS $$
 DECLARE
-    match_session_id uuid;
-    performance_date date;
+    slot_date date;
+    slot_team_id uuid;
+    attendance_date date;
+    attendance_team_id uuid;
 BEGIN
-    -- Determine the date for the performance - always ensure non-null
-    performance_date := CURRENT_DATE;
+    -- Initialize fallback values
+    attendance_date := CURRENT_DATE;
+    attendance_team_id := NEW.team_id;
+    
+    -- Try to get slot information if slot is linked to performance
     IF NEW.slot IS NOT NULL THEN
-        SELECT date INTO performance_date FROM public.slots WHERE id = NEW.slot;
-        -- If slot date is null, keep CURRENT_DATE as fallback
-        IF performance_date IS NULL THEN
-            performance_date := CURRENT_DATE;
+        SELECT date, team_id INTO slot_date, slot_team_id
+        FROM public.slots
+        WHERE id = NEW.slot;
+        
+        -- Use slot information if available, but ensure non-null values
+        IF slot_date IS NOT NULL THEN
+            attendance_date := slot_date;
+        END IF;
+        
+        IF slot_team_id IS NOT NULL THEN
+            attendance_team_id := slot_team_id;
         END IF;
     END IF;
-
-    -- Create or get match session for this team and date
-    INSERT INTO public.sessions (
-        team_id, 
-        session_type, 
-        session_subtype, 
-        date, 
-        title,
-        is_mandatory,
-        created_by
-    )
-    SELECT 
-        NEW.team_id,
-        'tournament',
-        'Scrims',
-        performance_date,
-        'Auto-generated Scrims Session',
-        false,
-        NEW.player_id
-    WHERE NOT EXISTS (
-        SELECT 1 FROM public.sessions 
-        WHERE team_id = NEW.team_id 
-        AND date = performance_date 
-        AND session_type = 'tournament'
-        AND session_subtype = 'Scrims'
-    );
-
-    -- Get the session ID
-    SELECT id INTO match_session_id 
-    FROM public.sessions 
-    WHERE team_id = NEW.team_id 
-    AND date = performance_date 
-    AND session_type = 'tournament'
-    AND session_subtype = 'Scrims'
-    LIMIT 1;
-
-    -- Create attendance record
-    INSERT INTO public.attendances (
-        player_id, 
-        team_id, 
-        session_id, 
-        status, 
-        source,
-        slot_id
-    )
-    SELECT 
-        NEW.player_id,
-        NEW.team_id,
-        match_session_id,
-        'present',
-        'auto',
-        NEW.slot
-    WHERE NOT EXISTS (
+    
+    -- Always ensure we have a non-null date and team_id
+    IF attendance_date IS NULL THEN
+        attendance_date := CURRENT_DATE;
+    END IF;
+    
+    IF attendance_team_id IS NULL THEN
+        attendance_team_id := NEW.team_id;
+    END IF;
+    
+    -- Insert attendance record using the legacy session_time approach
+    -- Check for duplicates manually since there's no unique constraint
+    IF NOT EXISTS (
         SELECT 1 FROM public.attendances 
         WHERE player_id = NEW.player_id 
-        AND session_id = match_session_id
-    );
-
+        AND date = attendance_date 
+        AND session_time = 'Match'
+        AND team_id = attendance_team_id
+    ) THEN
+        INSERT INTO public.attendances (
+            player_id, 
+            team_id, 
+            date, 
+            session_time, 
+            status, 
+            source, 
+            marked_by, 
+            slot_id
+        )
+        VALUES (
+            NEW.player_id,
+            attendance_team_id,
+            attendance_date,
+            'Match',
+            'auto',     -- Valid status according to actual schema
+            'auto',     -- Track that this was auto-generated
+            NULL,       -- No specific user marked this
+            NEW.slot
+        );
+    END IF;
+    
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create trigger to auto-create attendance on performance entry
-CREATE TRIGGER auto_match_attendance_on_performance
+CREATE TRIGGER auto_attendance_on_performance
   AFTER INSERT ON public.performances
   FOR EACH ROW
-  EXECUTE FUNCTION public.create_match_attendance_from_performance();
+  EXECUTE FUNCTION public.create_auto_attendance_fixed();
 
 -- Grant necessary permissions
-GRANT EXECUTE ON FUNCTION public.create_match_attendance_from_performance() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_auto_attendance_fixed() TO authenticated;
