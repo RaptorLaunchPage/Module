@@ -33,7 +33,7 @@ export default function PublicSitePage() {
 
   return (
     <VideoBackground>
-      <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto">
+      <div className="relative w-full overflow-x-hidden overflow-y-auto">
         <PublicNavigation />
         
         {/* Hero */}
