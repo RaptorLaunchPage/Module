@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react"
 import { VideoBackground } from "@/components/video-background"
 import { Card, CardContent } from "@/components/ui/card"
 import { FadeInOnScroll } from "@/components/ui/fade-in-on-scroll"
+import { CountUp } from "@/components/ui/count-up"
 import { Trophy, Users, Calendar } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { PublicNavigation } from "@/components/public/PublicNavigation"
@@ -85,7 +86,9 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
     <Card className="bg-black/50 border-white/10">
       <CardContent className="p-4 text-left text-white">
         <div className="flex items-center gap-2 text-white/80">{icon}<span className="text-sm">{label}</span></div>
-        <div className="text-2xl font-bold tabular-nums">{value.toLocaleString()}</div>
+        <div className="text-2xl font-bold tabular-nums">
+          <CountUp value={value} duration={2000} delay={500} />
+        </div>
       </CardContent>
     </Card>
   )

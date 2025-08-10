@@ -36,34 +36,40 @@ export default function AboutPage() {
         </section>
 
         {/* Intro */}
-        <FadeInOnScroll as="section" className="max-w-6xl mx-auto px-4 py-10">
+        <section className="max-w-6xl mx-auto px-4 py-10">
           <div className="grid md:grid-cols-3 gap-6">
-            <Card className="bg-black/50 border-white/10">
-              <CardHeader>
-                <CardTitle>Our Vision</CardTitle>
-              </CardHeader>
-              <CardContent className="text-white/80">
-                Elevate Indian esports with a modern, data-driven ecosystem that nurtures winners.
-              </CardContent>
-            </Card>
-            <Card className="bg-black/50 border-white/10">
-              <CardHeader>
-                <CardTitle>What Drives Us</CardTitle>
-              </CardHeader>
-              <CardContent className="text-white/80">
-                Discipline, consistency, and innovation — backed by AI-powered insights.
-              </CardContent>
-            </Card>
-            <Card className="bg-black/50 border-white/10">
-              <CardHeader>
-                <CardTitle>Players First</CardTitle>
-              </CardHeader>
-              <CardContent className="text-white/80">
-                Transparent frameworks, fair incentives, and clear progression paths.
-              </CardContent>
-            </Card>
+            <FadeInOnScroll delayMs={0}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>Our Vision</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">
+                  Elevate Indian esports with a modern, data-driven ecosystem that nurtures winners.
+                </CardContent>
+              </Card>
+            </FadeInOnScroll>
+            <FadeInOnScroll delayMs={200}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>What Drives Us</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">
+                  Discipline, consistency, and innovation — backed by AI-powered insights.
+                </CardContent>
+              </Card>
+            </FadeInOnScroll>
+            <FadeInOnScroll delayMs={400}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>Players First</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">
+                  Transparent frameworks, fair incentives, and clear progression paths.
+                </CardContent>
+              </Card>
+            </FadeInOnScroll>
           </div>
-        </FadeInOnScroll>
+        </section>
 
         {/* Milestones */}
         <section className="max-w-6xl mx-auto px-4 py-8">
@@ -95,29 +101,37 @@ export default function AboutPage() {
         </section>
 
         {/* Achievements */}
-        <FadeInOnScroll as="section" className="max-w-6xl mx-auto px-4 py-8">
-          <h2 className="text-3xl font-bold text-white mb-6">Achievements</h2>
+        <section className="max-w-6xl mx-auto px-4 py-8">
+          <FadeInOnScroll>
+            <h2 className="text-3xl font-bold text-white mb-6">Achievements</h2>
+          </FadeInOnScroll>
           <div className="grid md:grid-cols-3 gap-6">
-            <Card className="bg-black/50 border-white/10">
-              <CardHeader>
-                <CardTitle>2025 Establishment</CardTitle>
-              </CardHeader>
-              <CardContent className="text-white/80">Rapidly growing community and structured programs launched.</CardContent>
-            </Card>
-            <Card className="bg-black/50 border-white/10">
-              <CardHeader>
-                <CardTitle>AI Platform</CardTitle>
-              </CardHeader>
-              <CardContent className="text-white/80">Deployed performance analytics and curated insights engine.</CardContent>
-            </Card>
-            <Card className="bg-black/50 border-white/10">
-              <CardHeader>
-                <CardTitle>Scrim Success</CardTitle>
-              </CardHeader>
-              <CardContent className="text-white/80">Consistent finishes and momentum across multiple rosters.</CardContent>
-            </Card>
+            <FadeInOnScroll delayMs={0}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>2025 Establishment</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">Rapidly growing community and structured programs launched.</CardContent>
+              </Card>
+            </FadeInOnScroll>
+            <FadeInOnScroll delayMs={200}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>AI Platform</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">Deployed performance analytics and curated insights engine.</CardContent>
+              </Card>
+            </FadeInOnScroll>
+            <FadeInOnScroll delayMs={400}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>Scrim Success</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">Consistent finishes and momentum across multiple rosters.</CardContent>
+              </Card>
+            </FadeInOnScroll>
           </div>
-        </FadeInOnScroll>
+        </section>
 
         <PublicFooter />
       </div>

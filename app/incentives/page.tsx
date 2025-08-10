@@ -29,29 +29,37 @@ export default function IncentivesPage() {
         </section>
 
         {/* Incentives List */}
-        <FadeInOnScroll as="section" className="max-w-6xl mx-auto px-4 py-10">
-          <h2 className="text-3xl font-bold text-white mb-6">Incentives</h2>
+        <section className="max-w-6xl mx-auto px-4 py-10">
+          <FadeInOnScroll>
+            <h2 className="text-3xl font-bold text-white mb-6">Incentives</h2>
+          </FadeInOnScroll>
           <div className="grid md:grid-cols-3 gap-6">
-            <Card className="bg-black/50 border-white/10">
-              <CardHeader>
-                <CardTitle>Paid practice scrims</CardTitle>
-              </CardHeader>
-              <CardContent className="text-white/80">Compensated practice hours to reward consistency and effort.</CardContent>
-            </Card>
-            <Card className="bg-black/50 border-white/10">
-              <CardHeader>
-                <CardTitle>AI performance tools</CardTitle>
-              </CardHeader>
-              <CardContent className="text-white/80">Full access to analytics, curated insights, and performance dashboards.</CardContent>
-            </Card>
-            <Card className="bg-black/50 border-white/10">
-              <CardHeader>
-                <CardTitle>Attendance monitoring</CardTitle>
-              </CardHeader>
-              <CardContent className="text-white/80">Track training and match participation to unlock rewards.</CardContent>
-            </Card>
+            <FadeInOnScroll delayMs={0}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>Paid practice scrims</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">Compensated practice hours to reward consistency and effort.</CardContent>
+              </Card>
+            </FadeInOnScroll>
+            <FadeInOnScroll delayMs={200}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>AI performance tools</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">Full access to analytics, curated insights, and performance dashboards.</CardContent>
+              </Card>
+            </FadeInOnScroll>
+            <FadeInOnScroll delayMs={400}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>Attendance monitoring</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">Track training and match participation to unlock rewards.</CardContent>
+              </Card>
+            </FadeInOnScroll>
           </div>
-        </FadeInOnScroll>
+        </section>
 
         {/* Tier-Based Rewards Table */}
         <FadeInOnScroll as="section" className="max-w-6xl mx-auto px-4 py-10">
