@@ -76,7 +76,7 @@ export default function AboutPage() {
           <FadeInOnScroll>
             <h2 className="text-3xl font-bold text-white mb-6">Milestones</h2>
           </FadeInOnScroll>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="max-w-2xl mx-auto">
             <FadeInOnScroll>
               <TimelineCard year="2025" items={[
                 "May — Organization established.",
@@ -85,15 +85,42 @@ export default function AboutPage() {
                 "August — AI-driven performance platform launched.",
               ]} />
             </FadeInOnScroll>
-            <FadeInOnScroll delayMs={120}>
+          </div>
+        </section>
+
+        {/* What We Offer */}
+        <section className="max-w-6xl mx-auto px-4 py-8">
+          <FadeInOnScroll>
+            <h2 className="text-3xl font-bold text-white mb-6">What We Offer</h2>
+          </FadeInOnScroll>
+          <div className="grid md:grid-cols-3 gap-6">
+            <FadeInOnScroll delayMs={0}>
               <Card className="bg-black/50 border-white/10">
                 <CardHeader>
-                  <CardTitle>What We Offer</CardTitle>
+                  <CardTitle>Sponsorship</CardTitle>
                 </CardHeader>
-                <CardContent className="grid sm:grid-cols-3 gap-3 text-white/85">
-                  <Offer icon={<Users className="w-4 h-4" />} title="Sponsorship" desc="Support for top-performing teams and talent." />
-                  <Offer icon={<Sparkles className="w-4 h-4" />} title="Training" desc="Coaching, VOD reviews, and structured practice." />
-                  <Offer icon={<Calendar className="w-4 h-4" />} title="Data Tools" desc="AI insights, analytics dashboards, and tracking." />
+                <CardContent className="text-white/80">
+                  Support for top-performing teams and talent with comprehensive backing.
+                </CardContent>
+              </Card>
+            </FadeInOnScroll>
+            <FadeInOnScroll delayMs={200}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>Training</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">
+                  Coaching, VOD reviews, and structured practice programs.
+                </CardContent>
+              </Card>
+            </FadeInOnScroll>
+            <FadeInOnScroll delayMs={400}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>Data Tools</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">
+                  AI insights, analytics dashboards, and performance tracking.
                 </CardContent>
               </Card>
             </FadeInOnScroll>
