@@ -5,25 +5,41 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BRAND_GRAD, HEADER_BG } from "@/components/public/public-theme"
 
+// Navigation items for the unified single-page system
 const NAV_ITEMS = [
+  { name: "Home", href: "/public", section: 0 },
+  { name: "About", href: "/public", section: 1 },
+  { name: "Vision", href: "/public", section: 2 },
+  { name: "Milestones", href: "/public", section: 3 },
+  { name: "Incentives", href: "/public", section: 4 },
+  { name: "Tier System", href: "/public", section: 5 },
+  { name: "Rewards", href: "/public", section: 6 },
+  { name: "Progression", href: "/public", section: 7 },
+  { name: "Tournaments", href: "/public", section: 8 },
+  { name: "Contact", href: "/public", section: 9 },
+]
+
+// Special case for other pages that aren't part of the sliding system
+const OTHER_PAGES_NAV = [
   { name: "Home", href: "/public" },
   { name: "About", href: "/about" },
   { name: "Incentives", href: "/incentives" },
   { name: "Highlights", href: "/highlight" },
 ]
 
-// Special case for public page which has internal navigation
-const PUBLIC_PAGE_NAV_ITEMS = [
-  { name: "Home", href: "/public" },
-  { name: "About", href: "/about" },
-  { name: "Tier System", href: "/public#tier-system" },
-  { name: "Incentives", href: "/incentives" },
-  { name: "Tournaments", href: "/public#tournaments" },
-  { name: "Contact", href: "/public#contact" },
-]
-
 export function PublicNavigation() {
   const pathname = usePathname()
+  const isPublicPage = pathname === "/public" || pathname === "/"
+  
+  // For the public page, we'll use a simplified navigation that focuses on the main sections
+  const mainNavItems = isPublicPage ? [
+    { name: "Home", href: "/public", section: 0 },
+    { name: "About", href: "/public", section: 1 },
+    { name: "Incentives", href: "/public", section: 4 },
+    { name: "Tier System", href: "/public", section: 5 },
+    { name: "Tournaments", href: "/public", section: 8 },
+    { name: "Contact", href: "/public", section: 9 },
+  ] : OTHER_PAGES_NAV
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-30 ${HEADER_BG}`}>
@@ -35,7 +51,7 @@ export function PublicNavigation() {
         
         {/* Center nav names */}
         <nav className="mx-auto hidden md:flex items-center gap-3 lg:gap-4 overflow-x-auto no-scrollbar px-2">
-          {(pathname === "/public" ? PUBLIC_PAGE_NAV_ITEMS : NAV_ITEMS).map(({ name, href }) => (
+          {mainNavItems.map(({ name, href, section }) => (
             <Link
               key={name}
               href={href}
