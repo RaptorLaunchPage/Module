@@ -81,6 +81,11 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
           setTeams(teamData ? [teamData] : [])
           const { data: playersData } = await supabase.from("users").select("*").eq("team_id", profile.team_id).eq("role", "player")
           setPlayers(playersData || [])
+          // Preselect coach's team
+          setFormData(prev => ({
+            ...prev,
+            team_id: profile.team_id || prev.team_id
+          }))
         } else if (['admin', 'manager'].includes(profile?.role || '')) {
           // Admins and managers see all teams
           const { data: teamsData } = await supabase.from("teams").select("*").order("name")
@@ -94,13 +99,44 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
     }
   }, [profile, isPlayer, isStaff])
 
-  // Fetch slot details and existing performances when slot is selected
+  // Fetch players when staff selects a team (admins/managers)
   useEffect(() => {
+    const fetchPlayersForTeam = async () => {
+      if (!isStaff) return
+      if (!formData.team_id) {
+        setPlayers([])
+        setFormData(prev => ({ ...prev, player_id: "" }))
+        return
+      }
+      // Admin/Manager selecting team should load players of that team
+      const { data: playersData } = await supabase
+        .from("users")
+        .select("*")
+        .eq("team_id", formData.team_id)
+        .eq("role", "player")
+      setPlayers(playersData || [])
+      // Reset player if it doesn't belong to selected team
+      if (playersData && !playersData.find(p => p.id === formData.player_id)) {
+        setFormData(prev => ({ ...prev, player_id: "" }))
+      }
+    }
+    fetchPlayersForTeam()
+  }, [formData.team_id, isStaff])
+
+  // Fetch slot details and existing performances when slot or selected player changes
+  useEffect(() => {
+    const targetPlayerId = isStaff ? formData.player_id : profile?.id
+
     if (!formData.slot) {
       setSelectedSlot(null)
       setAvailableMatches([])
       setExistingPerformances([])
       return
+    }
+
+    if (!targetPlayerId) {
+      // Wait until a player is selected for staff
+      setExistingPerformances([])
     }
 
     const fetchSlotDetails = async () => {
@@ -122,16 +158,20 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
         setAvailableMatches(matches)
 
         // Fetch existing performances for this slot and player
-        const { data: performanceData, error: performanceError } = await supabase
-          .from("performances")
-          .select("match_number, kills, damage, placement, id")
-          .eq("slot", formData.slot)
-          .eq("player_id", profile.id)
-          .order("match_number")
+        if (targetPlayerId) {
+          const { data: performanceData, error: performanceError } = await supabase
+            .from("performances")
+            .select("match_number, kills, damage, placement, id")
+            .eq("slot", formData.slot)
+            .eq("player_id", targetPlayerId)
+            .order("match_number")
 
-        if (performanceError) throw performanceError
+          if (performanceError) throw performanceError
 
-        setExistingPerformances(performanceData || [])
+          setExistingPerformances(performanceData || [])
+        } else {
+          setExistingPerformances([])
+        }
 
       } catch (error) {
         console.error('Error fetching slot details:', error)
@@ -146,20 +186,27 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
     }
 
     fetchSlotDetails()
-  }, [formData.slot, profile.id])
+  }, [formData.slot, formData.player_id, profile?.id, isStaff])
 
   // Reset match number when slot changes
   useEffect(() => {
     setFormData(prev => ({ ...prev, match_number: "" }))
   }, [formData.slot])
 
-  // Defensive: Only allow players with valid profile
-  if (!profile || profile.role !== "player") return null
-  if (!profile?.id) {
-    return <div className="text-center text-red-500 py-8">Your player profile is incomplete. Please contact support.</div>;
+  // Remove hard block to players only; render based on role and required assignments
+  if (!profile) return null
+
+  // Player/Coach assignment checks
+  if (profile.role === 'player') {
+    if (!profile?.id) {
+      return <div className="text-center text-red-500 py-8">Your player profile is incomplete. Please contact support.</div>;
+    }
+    if (!profile?.team_id) {
+      return <div className="text-center text-yellow-600 py-8">You are not assigned to a team. Please contact your coach or admin.</div>;
+    }
   }
-  if (!profile?.team_id) {
-    return <div className="text-center text-yellow-600 py-8">You are not assigned to a team. Please contact your coach or admin.</div>;
+  if (profile.role === 'coach' && !profile.team_id) {
+    return <div className="text-center text-yellow-600 py-8">You are not assigned to a team. Please contact an admin.</div>
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -168,10 +215,19 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
     setLastError(null)
     
     try {
+      // Resolve target player/team per role
+      const targetPlayerId = isStaff ? formData.player_id : profile.id
+      const targetTeamId = isStaff ? formData.team_id : profile.team_id
+
       // Validate required fields
-      if (!profile.id || !profile.team_id) throw new Error("Missing player or team information.")
+      if (!targetPlayerId || !targetTeamId) throw new Error("Missing player or team information.")
       if (!formData.match_number || !formData.slot || !formData.map) throw new Error("Please fill all required fields.")
-      
+
+      // Staff-specific validations
+      if (profile.role === 'coach' && targetTeamId !== profile.team_id) {
+        throw new Error("Coaches can only submit for their assigned team.")
+      }
+
       const match_number = Number(formData.match_number)
       
       // Check if performance already exists for this match
@@ -194,8 +250,8 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
 
       // Prepare payload
       const payload = {
-        player_id: profile.id,
-        team_id: profile.team_id,
+        player_id: targetPlayerId,
+        team_id: targetTeamId,
         match_number,
         slot: formData.slot,
         map: formData.map,
@@ -217,7 +273,7 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
         variant: "default"
       })
 
-      // Reset form but keep slot selected
+      // Reset form but keep slot selected and for staff keep team and player selections
       setFormData(prev => ({ 
         ...prev, 
         match_number: "", 
@@ -272,24 +328,82 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
         value: matchNum.toString(),
         label: `Match ${matchNum}`,
         disabled: isCompleted,
-        subtitle: isCompleted ? `Already submitted (${existing.kills}K, ${existing.damage}D)` : 'Available'
+        subtitle: isCompleted ? `Already submitted (${existing!.kills}K, ${existing!.damage}D)` : 'Available'
       }
     })
   }
+
+  // Helper selections for staff display
+  const selectedTeamObj = isStaff && formData.team_id ? teams.find(t => t.id === formData.team_id) : team
+  const selectedPlayerObj = isStaff && formData.player_id ? players.find(p => p.id === formData.player_id) : null
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Submit Performance</CardTitle>
-        <CardDescription>Record your match statistics</CardDescription>
+        <CardDescription>Record match statistics with smart duplicate prevention</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="mb-4">
-          <div className="text-sm text-muted-foreground">Player: <span className="font-semibold">{profile.name || profile.email}</span></div>
-          <div className="text-sm text-muted-foreground">Team: <span className="font-semibold">{team ? team.name : "Loading..."}</span></div>
+        <div className="mb-4 space-y-1">
+          <div className="text-sm text-muted-foreground">User: <span className="font-semibold">{profile.name || profile.email}</span></div>
+          <div className="text-sm text-muted-foreground">
+            {isPlayer ? (
+              <>Team: <span className="font-semibold">{team ? team.name : "Loading..."}</span></>
+            ) : (
+              <>Team: <span className="font-semibold">{selectedTeamObj?.name || (profile.role === 'coach' ? 'Your Team' : 'Not selected')}</span></>
+            )}
+          </div>
+          {isStaff && (
+            <div className="text-xs text-muted-foreground">
+              {selectedPlayerObj ? `Selected Player: ${selectedPlayerObj.name || selectedPlayerObj.email}` : 'Select a player to enable match status'}
+            </div>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Staff controls: team and player selection */}
+          {isStaff && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Team</Label>
+                <Select
+                  value={formData.team_id}
+                  onValueChange={(val) => setFormData({ ...formData, team_id: val })}
+                  disabled={profile.role === 'coach'}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={profile.role === 'coach' ? 'Your team' : 'Select team'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teams.map((t) => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Player</Label>
+                <Select
+                  value={formData.player_id}
+                  onValueChange={(val) => setFormData({ ...formData, player_id: val })}
+                  disabled={!formData.team_id}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={formData.team_id ? 'Select player' : 'Select team first'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {players.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name || p.email}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          
           <div className="grid gap-4 md:grid-cols-2">
             <SmartSlotSelector 
               value={formData.slot} 
@@ -311,7 +425,7 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
             )}
           </div>
 
-          {selectedSlot && availableMatches.length > 0 && (
+          {selectedSlot && availableMatches.length > 0 && (!isStaff || (isStaff && formData.player_id)) && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="match_number">Select Match</Label>
@@ -426,7 +540,10 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
 
           <Button 
             type="submit" 
-            disabled={loading || slotsLoading || !formData.match_number || !selectedSlot}
+            disabled={
+              loading || slotsLoading || !formData.match_number || !selectedSlot ||
+              (isStaff && (!formData.team_id || !formData.player_id))
+            }
             className="w-full"
           >
             {loading ? "Submitting..." : `Submit Performance for Match ${formData.match_number || '?'}`}
