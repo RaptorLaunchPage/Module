@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { OCRExtract } from "@/components/performance/ocr-extract"
 import { PerformanceDashboard } from "@/components/performance/performance-dashboard"
-import { PlayerPerformanceSubmit } from "@/components/performance/player-performance-submit"
+import { EnhancedPlayerPerformanceSubmit } from "@/components/performance/enhanced-player-performance-submit"
 import { StreamlinedPerformanceSubmit } from "@/components/performance/streamlined-performance-submit"
 import { PerformanceReportSimple } from "@/components/performance/performance-report-simple"
 import { SendToDiscordButton } from "@/components/discord-portal/send-to-discord-button"
@@ -802,7 +802,7 @@ export default function PerformancePage() {
           <TabsContent value="submit">
             {profile && (() => {
               try {
-                return <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />
+                return <EnhancedPlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />
               } catch (err) {
                 return <div className="text-center py-8 text-red-500">An error occurred while loading the performance form. Please contact support.</div>
               }
