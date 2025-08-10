@@ -38,7 +38,7 @@ const TIME_RANGES = [
 ]
 
 export function SmartSlotSelector({ value, onValueChange, required, teamId }: SmartSlotSelectorProps) {
-  const { profile } = useAuth()
+  const { profile, getToken } = useAuth()
   const [slots, setSlots] = useState<Slot[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
@@ -83,7 +83,13 @@ export function SmartSlotSelector({ value, onValueChange, required, teamId }: Sm
       if (teamId && isAdminOrManager) {
         params.set('team_id', teamId)
       }
-      const res = await fetch(`/api/slots?${params.toString()}`, { headers: { 'cache-control': 'no-cache' } })
+      const token = await getToken()
+      const res = await fetch(`/api/slots?${params.toString()}`, { 
+        headers: { 
+          'cache-control': 'no-cache',
+          'Authorization': `Bearer ${token}`
+        } 
+      })
       if (!res.ok) throw new Error('Failed to fetch slots')
       const data = await res.json()
       const slotsData: any[] = Array.isArray(data) ? data : (data.slots || [])
@@ -126,8 +132,8 @@ export function SmartSlotSelector({ value, onValueChange, required, teamId }: Sm
 
       if (error) throw error
 
-      // Add to slots list and select it
-      setSlots(prev => [data, ...prev])
+      // Only present the newly created slot as options and select it
+      setSlots([data])
       onValueChange(data.id)
       setShowQuickAdd(false)
       
