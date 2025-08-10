@@ -20,6 +20,16 @@ const SECTIONS = [
   "Contact",
 ] as const
 
+// Public nav (reduced): Home, About Us, Tier System, Incentives, Tournaments, Contact
+const NAV: Array<{ name: string; idx: number }> = [
+  { name: "Home", idx: 0 },
+  { name: "About Us", idx: 1 },
+  { name: "Tier System", idx: 3 },
+  { name: "Incentives", idx: 4 },
+  { name: "Tournaments", idx: 8 },
+  { name: "Contact", idx: 9 },
+]
+
 type SectionKey = typeof SECTIONS[number]
 
 export default function PublicSitePage() {
@@ -32,7 +42,6 @@ export default function PublicSitePage() {
   const next = useCallback(() => setIndex((i) => clamp(i + 1)), [clamp])
   const prev = useCallback(() => setIndex((i) => clamp(i - 1)), [clamp])
 
-  // Prevent vertical scrolling and convert wheel to horizontal step navigation
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
       if (!containerRef.current) return
@@ -58,7 +67,6 @@ export default function PublicSitePage() {
     }
   }, [next, prev])
 
-  // Touch swipe support (basic)
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
@@ -92,34 +100,35 @@ export default function PublicSitePage() {
         {/* Slim, fixed header */}
         <header className="fixed top-0 left-0 right-0 z-30 bg-black/55 backdrop-blur-md border-b border-white/10">
           <div className="max-w-7xl mx-auto h-14 px-3 sm:px-4 flex items-center">
-            {/* Brand left */}
-            <div className="font-extrabold tracking-wide text-white">RAPTOR ESPORTS</div>
+            {/* Brand left with gradient */}
+            <div className="font-extrabold tracking-wide text-transparent bg-gradient-to-r from-indigo-400 via-pink-400 to-amber-300 bg-clip-text">
+              RAPTOR ESPORTS
+            </div>
             {/* Center nav names (no button UI) */}
-            <nav className="mx-auto hidden md:flex items-center gap-4 lg:gap-5 overflow-x-auto no-scrollbar px-2">
-              {SECTIONS.map((name, i) => (
+            <nav className="mx-auto hidden md:flex items-center gap-3 lg:gap-4 overflow-x-auto no-scrollbar px-2">
+              {NAV.map(({ name, idx }) => (
                 <button
                   key={name}
-                  onClick={() => goTo(i)}
-                  className={`text-sm text-white/80 hover:text-white transition-colors pb-0.5 border-b-2 ${i === index ? "border-white" : "border-transparent hover:border-white/40"}`}
+                  onClick={() => goTo(idx)}
+                  className={`text-xs sm:text-sm text-white/80 hover:text-white transition-colors pb-0.5 border-b-2 ${index === idx ? "border-white" : "border-transparent hover:border-white/40"}`}
                   aria-label={`Go to ${name}`}
                 >
                   {name}
                 </button>
               ))}
             </nav>
-            {/* Right: Dashboard link */}
+            {/* Right: Dashboard button */}
             <div className="ml-auto">
               <a
                 href="/auth/login"
-                className="text-sm text-white/90 hover:text-white transition-colors"
+                className="px-3 py-1.5 rounded-md font-medium border border-white/30 text-white/90 hover:text-white hover:bg-white/10 transition-colors text-xs sm:text-sm"
               >
                 Dashboard
               </a>
             </div>
           </div>
         </header>
-
-        {/* Slides Container */}
+        {/* Slides Container remains unchanged below */}
         <div
           className="absolute inset-0 flex h-full w-[1000vw] transition-transform duration-500 ease-in-out"
           style={{ transform: translate }}
