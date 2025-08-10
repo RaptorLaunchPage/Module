@@ -38,10 +38,7 @@ export default function PublicSitePage() {
         
         {/* Hero */}
         <section className="relative h-[60vh] sm:h-[70vh] w-full pt-14">
-          <div className="absolute inset-0">
-            <div className="h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60" />
-          </div>
-          <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
+          <div className="h-full flex flex-col items-center justify-center text-center px-4">
             <FadeInOnScroll>
               <h1 className="text-4xl sm:text-6xl font-extrabold drop-shadow-xl text-white">
                 Next-Gen Esports Org — Powered by AI, Driven by Data & Passion.

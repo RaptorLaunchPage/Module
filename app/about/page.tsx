@@ -119,17 +119,6 @@ export default function AboutPage() {
           </div>
         </FadeInOnScroll>
 
-        {/* CTA */}
-        <FadeInOnScroll as="section" className="max-w-6xl mx-auto px-4 py-12 text-center">
-          <a
-            href="https://discord.gg/6986Kf3eG4"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex px-5 py-2 rounded-md font-semibold bg-gradient-to-r from-[#00C6FF] via-[#3A7DFF] to-[#B721FF] text-white hover:brightness-110 transition-shadow shadow-[0_0_30px_rgba(58,125,255,0.35)]"
-          >
-            Join Discord
-          </a>
-        </FadeInOnScroll>
         <PublicFooter />
       </div>
     </VideoBackground>
