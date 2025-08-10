@@ -125,29 +125,40 @@ export default function PublicSitePage() {
           {/* 1. Home */}
           <Section>
             <div className="flex flex-col items-center justify-center h-full text-center text-white gap-6">
-              <h1 className="text-4xl sm:text-6xl font-extrabold drop-shadow-lg">Compete. Evolve. Conquer.</h1>
-              <p className="text-white/80 max-w-2xl">India’s elite esports collective. Proven results, professional culture, and a path to greatness.</p>
+              <h1 className="text-4xl sm:text-6xl font-extrabold drop-shadow-lg">Next-Gen Esports Org — Powered by AI, Driven by Data.</h1>
+              <p className="text-white/80 max-w-2xl">Cinematic performance. Data-backed decisions. Build your legacy with us.</p>
               <div className="flex gap-3">
                 <Button asChild>
+                  <a href="https://discord.com/invite/raptor" target="_blank" rel="noreferrer" className="flex items-center gap-2">
+                    Join Us
+                  </a>
+                </Button>
+                <Button variant="outline" className="text-white border-white/40" asChild>
                   <a href="#" className="flex items-center gap-2">
                     <Play className="h-4 w-4" /> Watch Highlight
                   </a>
                 </Button>
-                <Button variant="outline" className="text-white border-white/40">Apply Now</Button>
               </div>
-              <div className="grid grid-cols-3 gap-4 mt-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
                 <Stat icon={<Users className="h-5 w-5" />} label="Active Teams" value="12" />
-                <Stat icon={<Trophy className="h-5 w-5" />} label="Major Wins" value="24" />
-                <Stat icon={<Calendar className="h-5 w-5" />} label="Next Tourney" value="Oct 15" />
+                <Stat icon={<Users className="h-5 w-5" />} label="Active Players" value="72" />
+                <Stat icon={<Calendar className="h-5 w-5" />} label="Total Matches" value="1,248" />
+                <Stat icon={<Trophy className="h-5 w-5" />} label="Total WWCD" value="104" />
               </div>
               <div className="mt-8 w-full max-w-3xl">
                 <Card className="bg-black/50 border-white/10">
                   <CardContent className="p-0">
-                    <video controls poster="/poster.jpg" className="w-full h-[360px] object-cover rounded-md">
+                    <video autoPlay muted loop playsInline controls poster="/poster.jpg" className="w-full h-[360px] object-cover rounded-md">
                       <source src="/highlight.mp4" type="video/mp4" />
                     </video>
                   </CardContent>
                 </Card>
+              </div>
+              {/* Quick Links Row */}
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <Button variant="outline" className="text-white border-white/40" onClick={() => goTo(1)}>About Us</Button>
+                <Button variant="outline" className="text-white border-white/40" onClick={() => goTo(8)}>Tournaments</Button>
+                <Button variant="outline" className="text-white border-white/40" onClick={() => goTo(2)}>Sponsorship</Button>
               </div>
             </div>
           </Section>
@@ -301,9 +312,9 @@ export default function PublicSitePage() {
             <div className="max-w-5xl mx-auto text-white px-6 py-12">
               <h2 className="text-4xl font-bold mb-6">What’s Covered by the Org</h2>
               <div className="grid md:grid-cols-2 gap-8">
-                <ListCard title="Event Fees" items={["Tournament registrations", "Scrim slots", "Admin fees"]) } />
-                <ListCard title="Logistics" items={["Travel planning", "Hotel coordination", "On-ground support"]) } />
-                <ListCard title="Training" items={["Coaching staff", "VOD reviews", "Performance analytics"]) } />
+                <ListCard title="Event Fees" items={["Tournament registrations", "Scrim slots", "Admin fees"]} />
+                <ListCard title="Logistics" items={["Travel planning", "Hotel coordination", "On-ground support"]} />
+                <ListCard title="Training" items={["Coaching staff", "VOD reviews", "Performance analytics"]} />
                 <ListCard title="Gear & Maintenance" items={["Equipment support", "Jersey & branding", "Maintenance"]} />
               </div>
             </div>
