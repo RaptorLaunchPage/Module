@@ -33,7 +33,7 @@ interface ExistingPerformance {
 }
 
 export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceAdded: () => void }) {
-  const { profile } = useAuth()
+  const { profile, getToken } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -263,9 +263,20 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
         added_by: profile.id,
       }
 
-      // Submit performance
-      const { error } = await supabase.from("performances").insert(payload)
-      if (error) throw error
+      // Submit performance via API for centralized validation and side effects
+      const token = await getToken()
+      const response = await fetch('/api/performances', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || 'Failed to submit performance')
+      }
 
       toast({ 
         title: "Success!", 
@@ -409,6 +420,8 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
               value={formData.slot} 
               onValueChange={(val) => setFormData({ ...formData, slot: val })} 
               required 
+              // When staff selects a team, scope slots to that team for better UX
+              {...(isStaff && formData.team_id ? { teamId: formData.team_id } : {})}
             />
             
             {selectedSlot && (
