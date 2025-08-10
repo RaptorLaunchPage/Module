@@ -180,7 +180,7 @@ export default function PublicSitePage() {
             <div className="ml-auto">
               <a
                 href="/auth/login"
-                className="px-3 py-1.5 rounded-md font-medium border border-white/30 text-white/90 hover:text-white hover:bg-white/10 transition-colors text-xs sm:text-sm"
+                className="px-3 py-1.5 rounded-md font-semibold bg-gradient-to-r from-[#00C6FF] via-[#3A7DFF] to-[#B721FF] text-white hover:brightness-110 transition-shadow shadow-[0_0_20px_rgba(58,125,255,0.35)] text-xs sm:text-sm"
               >
                 Dashboard
               </a>
@@ -196,7 +196,7 @@ export default function PublicSitePage() {
           {/* 1. Home */}
           <Section>
             <div className="flex flex-col items-center justify-center h-full text-center text-white gap-6">
-              <h1 className="text-4xl sm:text-6xl font-extrabold drop-shadow-xl text-transparent bg-clip-text bg-gradient-to-r from-[#00C6FF] via-[#3A7DFF] to-[#B721FF]">
+              <h1 className="text-4xl sm:text-6xl font-extrabold drop-shadow-xl text-white">
                 Next-Gen Esports Org — Powered by AI, Driven by Data & Passion.
               </h1>
               <p className="text-white/80 max-w-2xl">Cinematic performance. Data-backed decisions. Build your legacy with us.</p>
@@ -214,7 +214,7 @@ export default function PublicSitePage() {
                 <Stat icon={<Users className="h-5 w-5" />} label="Active Teams" value={teamsCount} />
                 <Stat icon={<Users className="h-5 w-5" />} label="Active Players" value={playersCount} />
                 <Stat icon={<Calendar className="h-5 w-5" />} label="Total Matches" value={1248} />
-                <Stat icon={<Trophy className="h-5 w-5" />} label="Total WWCD" value={104} />
+                <Stat icon={<Trophy className="h-5 w-5" />} label="Total WWCD" value={439} />
               </div>
               {/* Quick Links Row */}
               <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-white/80">
