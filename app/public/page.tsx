@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge"
 import { VideoBackground } from "@/components/video-background"
 import { Trophy, Users, Calendar, Play, Mail, ArrowRight } from "lucide-react"
 import { supabase } from "@/lib/supabase"
-import { FadeInOnScroll } from "@/components/ui/fade-in-on-scroll"
 
 const SECTIONS = [
   "Home",
@@ -227,41 +226,44 @@ export default function PublicSitePage() {
             </div>
           </Section>
 
-          {/* 2. About (condensed full-screen) */}
+          {/* 2. About (static) */}
           <Section>
-            <div className="relative h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60">
-              <div className="relative z-10 h-full w-full px-6 py-10 flex flex-col">
-                <div className="mb-6 text-center">
-                  <h2 className="text-4xl font-extrabold text-white drop-shadow-xl">Powered by AI. Backed by Raptor.</h2>
-                  <p className="mt-2 text-white/85 max-w-3xl mx-auto">Founded in 2025, Raptor Esports combines competitive excellence with cutting-edge technology to empower players.</p>
-                </div>
-                <div className="mt-auto grid md:grid-cols-2 gap-6">
-                  <FadeInOnScroll initialVisible>
-                    <Card className="bg-black/50 border-white/10">
-                      <CardHeader>
-                        <CardTitle>Milestones (2025)</CardTitle>
-                      </CardHeader>
-                      <CardContent className="text-white/85 space-y-2">
-                        <li>May — Organization established.</li>
-                        <li>June — Incentive program launched.</li>
-                        <li>July — Tier system + Instagram presence.</li>
-                        <li>August — AI-driven performance platform launched.</li>
-                      </CardContent>
-                    </Card>
-                  </FadeInOnScroll>
-                  <FadeInOnScroll delayMs={120} initialVisible>
-                    <Card className="bg-black/50 border-white/10">
-                      <CardHeader>
-                        <CardTitle>What We Offer</CardTitle>
-                      </CardHeader>
-                      <CardContent className="grid sm:grid-cols-3 gap-3 text-white/85">
-                        <MiniOffer title="Sponsorship" desc="Support for top-performing teams." />
-                        <MiniOffer title="Training" desc="Coaching, VOD reviews, practice." />
-                        <MiniOffer title="Data Tools" desc="AI insights & analytics." />
-                      </CardContent>
-                    </Card>
-                  </FadeInOnScroll>
-                </div>
+            <div className="h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60 px-6 py-10 text-white flex flex-col">
+              <div className="text-center">
+                <h2 className="text-3xl sm:text-4xl font-extrabold drop-shadow-xl">Powered by AI. Backed by Raptor.</h2>
+                <p className="mt-2 text-white/85 max-w-3xl mx-auto">Founded in 2025, Raptor Esports combines competitive excellence with cutting-edge technology to empower players.</p>
+              </div>
+              <div className="mt-auto grid md:grid-cols-2 gap-6">
+                <Card className="bg-black/50 border-white/10">
+                  <CardHeader>
+                    <CardTitle>Milestones (2025)</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-white/85 space-y-2">
+                    <li>May — Organization established.</li>
+                    <li>June — Incentive program launched.</li>
+                    <li>July — Tier system + Instagram presence.</li>
+                    <li>August — AI-driven performance platform launched.</li>
+                  </CardContent>
+                </Card>
+                <Card className="bg-black/50 border-white/10">
+                  <CardHeader>
+                    <CardTitle>What We Offer</CardTitle>
+                  </CardHeader>
+                  <CardContent className="grid sm:grid-cols-3 gap-3 text-white/85">
+                    <div className="bg-white/5 rounded p-3">
+                      <div className="font-semibold">Sponsorship</div>
+                      <div className="text-white/70 text-sm">Support for top-performing teams.</div>
+                    </div>
+                    <div className="bg-white/5 rounded p-3">
+                      <div className="font-semibold">Training</div>
+                      <div className="text-white/70 text-sm">Coaching, VOD reviews, practice.</div>
+                    </div>
+                    <div className="bg-white/5 rounded p-3">
+                      <div className="font-semibold">Data Tools</div>
+                      <div className="text-white/70 text-sm">AI insights & analytics.</div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </Section>
@@ -345,47 +347,41 @@ export default function PublicSitePage() {
             </div>
           </Section>
 
-          {/* 5. Incentives (condensed full-screen) */}
+          {/* 5. Incentives (static) */}
           <Section>
-            <div className="relative h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60">
-              <div className="relative z-10 h-full w-full px-6 py-10 flex flex-col">
-                <div className="text-center">
-                  <h2 className="text-4xl font-extrabold text-white drop-shadow-xl">Earn more as you climb the ranks.</h2>
+            <div className="h-full w-full bg-gradient-to-br from-black via-black/80 to-black/60 px-6 py-10 text-white flex flex-col">
+              <div className="text-center">
+                <h2 className="text-3xl sm:text-4xl font-extrabold drop-shadow-xl">Earn more as you climb the ranks.</h2>
+              </div>
+              <div className="mt-auto grid lg:grid-cols-2 gap-6">
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <Card className="bg-black/50 border-white/10"><CardHeader><CardTitle>Paid scrims</CardTitle></CardHeader><CardContent className="text-white/80">Rewarding consistency and effort.</CardContent></Card>
+                  <Card className="bg-black/50 border-white/10"><CardHeader><CardTitle>AI tools</CardTitle></CardHeader><CardContent className="text-white/80">Analytics, insights, dashboards.</CardContent></Card>
+                  <Card className="bg-black/50 border-white/10"><CardHeader><CardTitle>Attendance</CardTitle></CardHeader><CardContent className="text-white/80">Tracked training & matches.</CardContent></Card>
                 </div>
-                <div className="mt-auto grid lg:grid-cols-2 gap-6">
-                  <FadeInOnScroll initialVisible>
-                    <div className="grid sm:grid-cols-3 gap-4">
-                      <Card className="bg-black/50 border-white/10"><CardHeader><CardTitle>Paid scrims</CardTitle></CardHeader><CardContent className="text-white/80">Rewarding consistency and effort.</CardContent></Card>
-                      <Card className="bg-black/50 border-white/10"><CardHeader><CardTitle>AI tools</CardTitle></CardHeader><CardContent className="text-white/80">Analytics, insights, dashboards.</CardContent></Card>
-                      <Card className="bg-black/50 border-white/10"><CardHeader><CardTitle>Attendance</CardTitle></CardHeader><CardContent className="text-white/80">Tracked training & matches.</CardContent></Card>
-                    </div>
-                  </FadeInOnScroll>
-                  <FadeInOnScroll delayMs={120} initialVisible>
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <Card className="bg-black/50 border-white/10">
-                        <CardHeader><CardTitle>Tier Rewards</CardTitle></CardHeader>
-                        <CardContent className="text-white/90 space-y-1 text-sm">
-                          <div className="flex justify-between"><span>T1</span><span>Premium + Coaching</span></div>
-                          <div className="flex justify-between"><span>God Tier</span><span>Elite + Analyst</span></div>
-                          <div className="text-white/70 mt-2">Major tournaments (₹20k+) split 50/50 post-expense.</div>
-                        </CardContent>
-                      </Card>
-                      <Card className="bg-black/50 border-white/10">
-                        <CardHeader><CardTitle>Progression</CardTitle></CardHeader>
-                        <CardContent>
-                          <div className="grid grid-cols-5 gap-2 text-center">
-                            {['T4','T3','T2','T1','God'].map((t, i) => (
-                              <div key={t} className={`rounded px-2 py-3 ${i>=3? 'bg-white/15':'bg-white/10'}`}>
-                                <div className="text-white font-semibold">{t}</div>
-                                <div className="text-white/70 text-xs">{i===0?'Start':i===1?'Growth':i===2?'Compete':i===3?'Contend':'Dominate'}</div>
-                              </div>
-                            ))}
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <Card className="bg-black/50 border-white/10">
+                    <CardHeader><CardTitle>Tier Rewards</CardTitle></CardHeader>
+                    <CardContent className="text-white/90 space-y-1 text-sm">
+                      <div className="flex justify-between"><span>T1</span><span>Premium + Coaching</span></div>
+                      <div className="flex justify-between"><span>God Tier</span><span>Elite + Analyst</span></div>
+                      <div className="text-white/70 mt-2">Major tournaments (₹20k+) split 50/50 post-expense.</div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-black/50 border-white/10">
+                    <CardHeader><CardTitle>Progression</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-5 gap-2 text-center">
+                        {['T4','T3','T2','T1','God'].map((t, i) => (
+                          <div key={t} className={`rounded px-2 py-3 ${i>=3? 'bg-white/15':'bg-white/10'}`}>
+                            <div className="text-white font-semibold">{t}</div>
+                            <div className="text-white/70 text-xs">{i===0?'Start':i===1?'Growth':i===2?'Compete':i===3?'Contend':'Dominate'}</div>
                           </div>
-                          <div className="mt-2 text-center text-white/80 text-sm">More Wins = Bigger Cuts.</div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </FadeInOnScroll>
+                        ))}
+                      </div>
+                      <div className="mt-2 text-center text-white/80 text-sm">More Wins = Bigger Cuts.</div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             </div>
@@ -545,7 +541,7 @@ export default function PublicSitePage() {
 function Section({ children }: { children: React.ReactNode }) {
   return (
     <section className="h-screen w-screen flex-shrink-0 p-4">
-      <div className="h-full w-full overflow-hidden">
+      <div className="h-full w-full overflow-visible">
         {children}
       </div>
     </section>
@@ -578,25 +574,6 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
         <div className="text-2xl font-bold tabular-nums">{formatted}</div>
       </CardContent>
     </Card>
-  )
-}
-
-function MiniOffer({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div className="bg-white/5 rounded p-3">
-      <div className="font-semibold text-white">{title}</div>
-      <div className="text-white/70 text-sm">{desc}</div>
-    </div>
-  )
-}
-
-function TimelineItem({ year, text }: { year: string; text: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="h-2 w-2 rounded-full bg-white" />
-      <div className="text-white/70 text-sm w-16">{year}</div>
-      <div className="text-white/90">{text}</div>
-    </div>
   )
 }
 
