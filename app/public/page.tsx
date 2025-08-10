@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { VideoBackground } from "@/components/video-background"
-import { Trophy, Users, Calendar, Play, Mail, ChevronLeft, ChevronRight, Download, ExternalLink } from "lucide-react"
+import { Trophy, Users, Calendar, Play, Mail } from "lucide-react"
 
 const SECTIONS = [
   "Home",
@@ -89,33 +89,35 @@ export default function PublicSitePage() {
   return (
     <VideoBackground>
       <div className="relative h-screen w-full overflow-hidden" ref={containerRef}>
-        {/* Top Navigation */}
-        <div className="absolute top-0 left-0 right-0 z-20 bg-black/40 backdrop-blur-md border-b border-white/10">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-            <div className="font-bold text-white tracking-wide">RAPTOR ESPORTS</div>
-            <nav className="hidden md:flex items-center gap-2 flex-wrap">
+        {/* Slim, fixed header */}
+        <header className="fixed top-0 left-0 right-0 z-30 bg-black/55 backdrop-blur-md border-b border-white/10">
+          <div className="max-w-7xl mx-auto h-14 px-4 flex items-center">
+            {/* Brand left */}
+            <div className="font-extrabold tracking-wide text-white">RAPTOR ESPORTS</div>
+            {/* Center nav names (no button UI) */}
+            <nav className="hidden md:flex items-center gap-5 mx-auto">
               {SECTIONS.map((name, i) => (
-                <Button
+                <button
                   key={name}
-                  size="sm"
-                  variant={i === index ? "default" : "outline"}
                   onClick={() => goTo(i)}
-                  className={i === index ? "bg-white text-black" : "bg-transparent text-white border-white/30 hover:bg-white/10"}
+                  className={`text-sm text-white/80 hover:text-white transition-colors pb-0.5 border-b-2 ${i === index ? "border-white" : "border-transparent hover:border-white/40"}`}
+                  aria-label={`Go to ${name}`}
                 >
                   {name}
-                </Button>
+                </button>
               ))}
             </nav>
-            <div className="ml-auto flex items-center gap-2">
-              <Button size="icon" variant="outline" className="bg-transparent text-white border-white/30" onClick={prev}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="outline" className="bg-transparent text-white border-white/30" onClick={next}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+            {/* Right: Dashboard link */}
+            <div className="ml-auto">
+              <a
+                href="/auth/login"
+                className="text-sm text-white/90 hover:text-white transition-colors"
+              >
+                Dashboard
+              </a>
             </div>
           </div>
-        </div>
+        </header>
 
         {/* Slides Container */}
         <div
@@ -124,48 +126,40 @@ export default function PublicSitePage() {
         >
           {/* 1. Home */}
           <Section>
-            <div className="flex flex-col items-center justify-center h-full text-center text-white gap-6">
+            <div className="flex flex-col items-center justify-center h-full text-center text-white gap-6 pt-24">
               <h1 className="text-4xl sm:text-6xl font-extrabold drop-shadow-lg">Next-Gen Esports Org — Powered by AI, Driven by Data.</h1>
               <p className="text-white/80 max-w-2xl">Cinematic performance. Data-backed decisions. Build your legacy with us.</p>
-              <div className="flex gap-3">
+              <div className="flex gap-4">
                 <Button asChild>
                   <a href="https://discord.com/invite/raptor" target="_blank" rel="noreferrer" className="flex items-center gap-2">
                     Join Us
                   </a>
                 </Button>
-                <Button variant="outline" className="text-white border-white/40" asChild>
-                  <a href="#" className="flex items-center gap-2">
-                    <Play className="h-4 w-4" /> Watch Highlight
-                  </a>
-                </Button>
+                <a
+                  href="/highlight"
+                  className="text-white/90 hover:text-white underline underline-offset-4"
+                >
+                  Watch Highlight
+                </a>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-                <Stat icon={<Users className="h-5 w-5" />} label="Active Teams" value="12" />
-                <Stat icon={<Users className="h-5 w-5" />} label="Active Players" value="72" />
-                <Stat icon={<Calendar className="h-5 w-5" />} label="Total Matches" value="1,248" />
-                <Stat icon={<Trophy className="h-5 w-5" />} label="Total WWCD" value="104" />
-              </div>
-              <div className="mt-8 w-full max-w-3xl">
-                <Card className="bg-black/50 border-white/10">
-                  <CardContent className="p-0">
-                    <video autoPlay muted loop playsInline controls poster="/poster.jpg" className="w-full h-[360px] object-cover rounded-md">
-                      <source src="/highlight.mp4" type="video/mp4" />
-                    </video>
-                  </CardContent>
-                </Card>
+                <Stat icon={<Users className="h-5 w-5" />} label="Active Teams" value={12} />
+                <Stat icon={<Users className="h-5 w-5" />} label="Active Players" value={72} />
+                <Stat icon={<Calendar className="h-5 w-5" />} label="Total Matches" value={1248} />
+                <Stat icon={<Trophy className="h-5 w-5" />} label="Total WWCD" value={104} />
               </div>
               {/* Quick Links Row */}
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                <Button variant="outline" className="text-white border-white/40" onClick={() => goTo(1)}>About Us</Button>
-                <Button variant="outline" className="text-white border-white/40" onClick={() => goTo(8)}>Tournaments</Button>
-                <Button variant="outline" className="text-white border-white/40" onClick={() => goTo(2)}>Sponsorship</Button>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-6 text-white/80">
+                <button onClick={() => goTo(1)} className="hover:text-white hover:underline underline-offset-4">About Us</button>
+                <button onClick={() => goTo(8)} className="hover:text-white hover:underline underline-offset-4">Tournaments</button>
+                <button onClick={() => goTo(2)} className="hover:text-white hover:underline underline-offset-4">Sponsorship</button>
               </div>
             </div>
           </Section>
 
           {/* 2. About Us */}
           <Section>
-            <div className="max-w-5xl mx-auto text-white px-6 py-12">
+            <div className="max-w-5xl mx-auto text-white px-6 py-20">
               <h2 className="text-4xl font-bold mb-6">About Us</h2>
               <p className="text-white/80 mb-6">Founded with a relentless drive to elevate Indian esports, we’ve built a system that turns raw talent into championship performance.</p>
               <div className="grid md:grid-cols-2 gap-8">
@@ -215,7 +209,7 @@ export default function PublicSitePage() {
 
           {/* 3. Sponsorship */}
           <Section>
-            <div className="max-w-6xl mx-auto text-white px-6 py-12">
+            <div className="max-w-6xl mx-auto text-white px-6 py-20">
               <h2 className="text-4xl font-bold mb-6">Sponsorship</h2>
               <div className="grid md:grid-cols-3 gap-6">
                 {["HyperX", "Nvidia", "RedBull"].map((n) => (
@@ -240,7 +234,7 @@ export default function PublicSitePage() {
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Media Kit</CardTitle>
                     <Button variant="outline" className="text-white border-white/40" size="sm">
-                      <Download className="h-4 w-4 mr-2" /> Download
+                      Download
                     </Button>
                   </CardHeader>
                   <CardContent className="text-white/80">
@@ -261,7 +255,7 @@ export default function PublicSitePage() {
 
           {/* 4. Tier System */}
           <Section>
-            <div className="max-w-5xl mx-auto text-white px-6 py-12">
+            <div className="max-w-5xl mx-auto text-white px-6 py-20">
               <h2 className="text-4xl font-bold mb-6">Tier System</h2>
               <div className="grid md:grid-cols-2 gap-8">
                 <Card className="bg-black/50 border-white/10">
@@ -294,7 +288,7 @@ export default function PublicSitePage() {
 
           {/* 5. Incentives */}
           <Section>
-            <div className="max-w-6xl mx-auto text-white px-6 py-12">
+            <div className="max-w-6xl mx-auto text-white px-6 py-20">
               <h2 className="text-4xl font-bold mb-6">Incentives</h2>
               <div className="grid md:grid-cols-3 gap-6">
                 <PerkCard title="Prizes & Rewards" desc="Tier-based cash, bonuses, and seasonal awards." />
@@ -309,7 +303,7 @@ export default function PublicSitePage() {
 
           {/* 6. What’s Covered by the Org */}
           <Section>
-            <div className="max-w-5xl mx-auto text-white px-6 py-12">
+            <div className="max-w-5xl mx-auto text-white px-6 py-20">
               <h2 className="text-4xl font-bold mb-6">What’s Covered by the Org</h2>
               <div className="grid md:grid-cols-2 gap-8">
                 <ListCard title="Event Fees" items={["Tournament registrations", "Scrim slots", "Admin fees"]} />
@@ -322,7 +316,7 @@ export default function PublicSitePage() {
 
           {/* 7. How It Works */}
           <Section>
-            <div className="max-w-4xl mx-auto text-white px-6 py-12">
+            <div className="max-w-4xl mx-auto text-white px-6 py-20">
               <h2 className="text-4xl font-bold mb-6">How It Works</h2>
               <ol className="space-y-4 text-white/90">
                 <Step n={1} title="Apply online" />
@@ -335,7 +329,7 @@ export default function PublicSitePage() {
 
           {/* 8. Why You Should Join */}
           <Section>
-            <div className="max-w-6xl mx-auto text-white px-6 py-12">
+            <div className="max-w-6xl mx-auto text-white px-6 py-20">
               <h2 className="text-4xl font-bold mb-6">Why You Should Join</h2>
               <div className="grid md:grid-cols-2 gap-8">
                 <ListCard title="Competitive Edge" items={["Proven results", "Structured practice", "Analytic coaching"]} />
@@ -359,7 +353,7 @@ export default function PublicSitePage() {
 
           {/* 9. Tournaments */}
           <Section>
-            <div className="max-w-6xl mx-auto text-white px-6 py-12">
+            <div className="max-w-6xl mx-auto text-white px-6 py-20">
               <h2 className="text-4xl font-bold mb-6">Tournaments</h2>
               <div className="grid md:grid-cols-3 gap-6">
                 <Card className="bg-black/50 border-white/10">
@@ -376,9 +370,7 @@ export default function PublicSitePage() {
                     <CardTitle>Brackets</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Button variant="outline" className="text-white border-white/40" size="sm">
-                      <ExternalLink className="h-4 w-4 mr-2" /> View Live
-                    </Button>
+                    <a href="#" className="text-white/90 hover:text-white underline underline-offset-4">View Live</a>
                   </CardContent>
                 </Card>
                 <Card className="bg-black/50 border-white/10">
@@ -399,7 +391,7 @@ export default function PublicSitePage() {
 
           {/* 10. Contact */}
           <Section>
-            <div className="max-w-3xl mx-auto text-white px-6 py-12">
+            <div className="max-w-3xl mx-auto text-white px-6 py-20">
               <h2 className="text-4xl font-bold mb-6">Contact</h2>
               <Card className="bg-black/50 border-white/10">
                 <CardContent className="p-6 space-y-4">
@@ -424,31 +416,24 @@ export default function PublicSitePage() {
                 </CardContent>
               </Card>
               <div className="mt-4 flex items-center gap-3">
-                <Button variant="outline" className="text-white border-white/40" size="sm">
-                  Twitter
-                </Button>
-                <Button variant="outline" className="text-white border-white/40" size="sm">
-                  Instagram
-                </Button>
-                <Button variant="outline" className="text-white border-white/40" size="sm">
-                  Discord
-                </Button>
+                <a className="text-white/80 hover:text-white underline underline-offset-4" href="#">Twitter</a>
+                <a className="text-white/80 hover:text-white underline underline-offset-4" href="#">Instagram</a>
+                <a className="text-white/80 hover:text-white underline underline-offset-4" href="#">Discord</a>
               </div>
             </div>
           </Section>
         </div>
 
-        {/* Bottom progress dots */}
-        <div className="absolute bottom-4 left-0 right-0 z-20 flex items-center justify-center gap-2">
-          {SECTIONS.map((_, i) => (
-            <button
-              key={i}
-              aria-label={`Go to ${SECTIONS[i]}`}
-              onClick={() => goTo(i)}
-              className={`h-2 rounded-full transition-all ${i === index ? "w-8 bg-white" : "w-2 bg-white/40"}`}
-            />
-          ))}
-        </div>
+        {/* Footer */}
+        <footer className="fixed bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/70 to-transparent">
+          <div className="max-w-7xl mx-auto h-12 px-4 flex items-center justify-between text-sm text-white/70">
+            <span>© {new Date().getFullYear()} Raptor Esports. All rights reserved.</span>
+            <div className="flex items-center gap-4">
+              <a href="#" className="hover:text-white">Privacy</a>
+              <a href="#" className="hover:text-white">Terms</a>
+            </div>
+          </div>
+        </footer>
       </div>
     </VideoBackground>
   )
@@ -464,12 +449,30 @@ function Section({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function useCountUp(target: number, durationMs = 1200) {
+  const [value, setValue] = useState(0)
+  useEffect(() => {
+    let raf: number
+    const start = performance.now()
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / durationMs)
+      setValue(Math.floor(t * target))
+      if (t < 1) raf = requestAnimationFrame(step)
+    }
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [target, durationMs])
+  return value
+}
+
+function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+  const animated = useCountUp(value)
+  const formatted = useMemo(() => animated.toLocaleString(), [animated])
   return (
     <Card className="bg-black/50 border-white/10 min-w-[160px]">
       <CardContent className="p-4 text-left text-white">
         <div className="flex items-center gap-2 text-white/80">{icon}<span className="text-sm">{label}</span></div>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-bold tabular-nums">{formatted}</div>
       </CardContent>
     </Card>
   )
