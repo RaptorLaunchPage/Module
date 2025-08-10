@@ -528,7 +528,7 @@ function generateInsights(performances: any[], analysisType: string) {
     if (p.placement === 1) m.wins += 1
   }
   if (byMap.size > 1) {
-    const mapsArr = Array.from(byMap.entries()).map(([name, v]) => ({ name, avgKills: v.kills / v.matches, winRate: v.matches ? (v.wins / v.matches) * 100 : 0 }))
+    const mapsArr = Array.from(byMap.entries()).map(([name, v]) => ({ name, matches: v.matches, avgKills: v.kills / Math.max(v.matches, 1), winRate: v.matches ? (v.wins / v.matches) * 100 : 0 }))
     const weakest = mapsArr.reduce((min, cur) => (cur.winRate < min.winRate ? cur : min), mapsArr[0])
     if (weakest.matches !== performances.length) {
       insights.push({
