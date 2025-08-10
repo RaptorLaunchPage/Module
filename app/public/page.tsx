@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { VideoBackground } from "@/components/video-background"
 import { Trophy, Users, Calendar, Play, Mail, ArrowRight } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { PublicFooter } from "@/components/public/PublicFooter"
 
 const SECTIONS = [
   "Home",

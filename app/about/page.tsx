@@ -7,13 +7,17 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FadeInOnScroll } from "@/components/ui/fade-in-on-scroll"
 import { Calendar, Sparkles, Trophy, Users } from "lucide-react"
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
 
 export default function AboutPage() {
   return (
     <VideoBackground>
       <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto">
+        <PublicNavigation />
+        
         {/* Hero */}
-        <section className="relative h-[52vh] sm:h-[60vh] w-full">
+        <section className="relative h-[52vh] sm:h-[60vh] w-full pt-14">
           <div className="absolute inset-0">
             {/* Replace with blurred collage image via CSS background */}
             <div className="h-full w-full bg-[url('/images/about-collage.jpg')] bg-cover bg-center blur-[2px] brightness-[.65]" />
@@ -126,6 +130,7 @@ export default function AboutPage() {
             Join Discord
           </a>
         </FadeInOnScroll>
+        <PublicFooter />
       </div>
     </VideoBackground>
   )

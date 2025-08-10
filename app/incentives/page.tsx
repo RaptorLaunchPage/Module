@@ -5,13 +5,17 @@ import { VideoBackground } from "@/components/video-background"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FadeInOnScroll } from "@/components/ui/fade-in-on-scroll"
 import { Button } from "@/components/ui/button"
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
 
 export default function IncentivesPage() {
   return (
     <VideoBackground>
       <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto">
+        <PublicNavigation />
+        
         {/* Hero */}
-        <section className="relative h-[48vh] sm:h-[56vh] w-full">
+        <section className="relative h-[48vh] sm:h-[56vh] w-full pt-14">
           <div className="absolute inset-0">
             {/* Replace with trophy background */}
             <div className="h-full w-full bg-[url('/images/trophy-hero.jpg')] bg-cover bg-center brightness-[.7]" />
@@ -140,6 +144,7 @@ export default function IncentivesPage() {
             Join Discord
           </a>
         </FadeInOnScroll>
+        <PublicFooter />
       </div>
     </VideoBackground>
   )
