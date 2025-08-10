@@ -53,14 +53,14 @@ export default function PublicSitePage() {
   }, [clamp, hideHint])
 
   const next = useCallback(() => {
-    setIndex((i) => clamp(i + 1))
+    setIndex((i) => (i + 1) % SECTIONS.length)
     hideHint()
-  }, [clamp, hideHint])
+  }, [hideHint])
 
   const prev = useCallback(() => {
-    setIndex((i) => clamp(i - 1))
+    setIndex((i) => (i - 1 + SECTIONS.length) % SECTIONS.length)
     hideHint()
-  }, [clamp, hideHint])
+  }, [hideHint])
 
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
@@ -229,19 +229,15 @@ export default function PublicSitePage() {
 
           {/* 2. About (condensed full-screen) */}
           <Section>
-            <div className="relative h-full w-full">
-              <div className="absolute inset-0">
+            <div className="relative h-full w-full bg-gradient-to-br from-black/70 to-black/40">
+              <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="h-full w-full bg-[url('/images/about-collage.jpg')] bg-cover bg-center brightness-[.65]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
               </div>
               <div className="relative z-10 h-full w-full px-6 py-10 flex flex-col">
                 <div className="mb-6 text-center">
-                  <FadeInOnScroll initialVisible>
-                    <h2 className="text-4xl font-extrabold text-white drop-shadow-xl">Powered by AI. Backed by Raptor.</h2>
-                  </FadeInOnScroll>
-                  <FadeInOnScroll delayMs={120} initialVisible>
-                    <p className="mt-2 text-white/85 max-w-3xl mx-auto">Founded in 2025, Raptor Esports combines competitive excellence with cutting-edge technology to empower players.</p>
-                  </FadeInOnScroll>
+                  <h2 className="text-4xl font-extrabold text-white drop-shadow-xl">Powered by AI. Backed by Raptor.</h2>
+                  <p className="mt-2 text-white/85 max-w-3xl mx-auto">Founded in 2025, Raptor Esports combines competitive excellence with cutting-edge technology to empower players.</p>
                 </div>
                 <div className="mt-auto grid md:grid-cols-2 gap-6">
                   <FadeInOnScroll>
@@ -355,16 +351,14 @@ export default function PublicSitePage() {
 
           {/* 5. Incentives (condensed full-screen) */}
           <Section>
-            <div className="relative h-full w-full">
-              <div className="absolute inset-0">
+            <div className="relative h-full w-full bg-gradient-to-br from-black/70 to-black/40">
+              <div className="absolute inset-0 z-0 pointer-events-none">
                 <div className="h-full w-full bg-[url('/images/trophy-hero.jpg')] bg-cover bg-center brightness-[.7]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
               </div>
               <div className="relative z-10 h-full w-full px-6 py-10 flex flex-col">
                 <div className="text-center">
-                  <FadeInOnScroll initialVisible>
-                    <h2 className="text-4xl font-extrabold text-white drop-shadow-xl">Earn more as you climb the ranks.</h2>
-                  </FadeInOnScroll>
+                  <h2 className="text-4xl font-extrabold text-white drop-shadow-xl">Earn more as you climb the ranks.</h2>
                 </div>
                 <div className="mt-auto grid lg:grid-cols-2 gap-6">
                   <FadeInOnScroll>
