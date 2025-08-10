@@ -7,20 +7,27 @@ interface FadeInOnScrollProps {
   className?: string
   as?: keyof JSX.IntrinsicElements
   delayMs?: number
+  initialVisible?: boolean
+  fallbackMs?: number
 }
 
-export function FadeInOnScroll({ children, className = "", as = "div", delayMs = 0 }: FadeInOnScrollProps) {
+export function FadeInOnScroll({ children, className = "", as = "div", delayMs = 0, initialVisible = false, fallbackMs = 800 }: FadeInOnScrollProps) {
   const ref = useRef<HTMLElement | null>(null)
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(initialVisible)
 
   useEffect(() => {
+    if (initialVisible) return
+
     const el = ref.current
     if (!el) return
+
+    let didSet = false
 
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
+            didSet = true
             setTimeout(() => setVisible(true), delayMs)
             observer.disconnect()
             break
@@ -31,8 +38,17 @@ export function FadeInOnScroll({ children, className = "", as = "div", delayMs =
     )
 
     observer.observe(el)
-    return () => observer.disconnect()
-  }, [delayMs])
+
+    // Fallback in case observer doesn't trigger (e.g., horizontal slider contexts)
+    const t = window.setTimeout(() => {
+      if (!didSet) setVisible(true)
+    }, Math.max(0, delayMs + fallbackMs))
+
+    return () => {
+      observer.disconnect()
+      window.clearTimeout(t)
+    }
+  }, [delayMs, initialVisible, fallbackMs])
 
   const Tag = as as any
   return (

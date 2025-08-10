@@ -236,10 +236,10 @@ export default function PublicSitePage() {
               </div>
               <div className="relative z-10 h-full w-full px-6 py-10 flex flex-col">
                 <div className="mb-6 text-center">
-                  <FadeInOnScroll>
+                  <FadeInOnScroll initialVisible>
                     <h2 className="text-4xl font-extrabold text-white drop-shadow-xl">Powered by AI. Backed by Raptor.</h2>
                   </FadeInOnScroll>
-                  <FadeInOnScroll delayMs={120}>
+                  <FadeInOnScroll delayMs={120} initialVisible>
                     <p className="mt-2 text-white/85 max-w-3xl mx-auto">Founded in 2025, Raptor Esports combines competitive excellence with cutting-edge technology to empower players.</p>
                   </FadeInOnScroll>
                 </div>
@@ -362,7 +362,7 @@ export default function PublicSitePage() {
               </div>
               <div className="relative z-10 h-full w-full px-6 py-10 flex flex-col">
                 <div className="text-center">
-                  <FadeInOnScroll>
+                  <FadeInOnScroll initialVisible>
                     <h2 className="text-4xl font-extrabold text-white drop-shadow-xl">Earn more as you climb the ranks.</h2>
                   </FadeInOnScroll>
                 </div>
