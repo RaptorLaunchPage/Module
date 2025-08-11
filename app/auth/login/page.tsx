@@ -53,11 +53,8 @@ export default function LoginPage() {
         console.log("✅ Login successful, showing brief success animation")
         setShowLoginAnimation(true)
         
-        // Short animation duration before letting auth hook handle redirect
-        setTimeout(() => {
-          console.log("🔄 Login animation complete, auth hook will handle redirect")
-          // Don't manually redirect - let the auth hook handle it
-        }, 1500) // Reduced from potentially longer duration
+        // Let the auth hook handle redirect immediately
+        // The animation will show briefly while redirect happens
       } else {
         // Error case - make sure to reset submitting state
         setIsSubmitting(false)

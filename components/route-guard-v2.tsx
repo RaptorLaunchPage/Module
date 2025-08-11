@@ -83,8 +83,10 @@ const RouteGuardV2 = memo(function RouteGuardV2({ children }: RouteGuardV2Props)
           return
         }
 
-        // Initialize auth flow - this is the primary initialization point
-        await authFlowV2.initialize(true)
+        // For public routes, initialize auth silently without showing loading
+        // For protected routes, initialize with loading indicator
+        const shouldShowLoading = !isPublicRoute(pathname)
+        await authFlowV2.initialize(shouldShowLoading)
       } catch (error: any) {
         // Fallback to allow access if auth fails completely
         setIsInitialized(true)
@@ -117,7 +119,12 @@ const RouteGuardV2 = memo(function RouteGuardV2({ children }: RouteGuardV2Props)
     // Don't make routing decisions here to avoid conflicts
   }, [authState, isInitialized, pathname, safeRedirect])
 
-  // Don't render anything while auth is initializing - let global loading handle it
+  // For public routes, render immediately without waiting for auth initialization
+  if (isPublicRoute(pathname)) {
+    return <>{children}</>
+  }
+
+  // For protected routes, wait for auth initialization
   if (!isInitialized) {
     return null
   }
