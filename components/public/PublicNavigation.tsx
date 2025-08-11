@@ -14,6 +14,7 @@ const NAV_ITEMS = [
 
   { name: "Tier", href: "/tier-structure" },
   { name: "Gallery", href: "/gallery" },
+  { name: "Join", href: "/join-us" },
 ]
 
 export function PublicNavigation() {
