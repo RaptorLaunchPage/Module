@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
 import { Eye, EyeOff, LogIn, RefreshCw, Home, Shield } from "lucide-react"
 import { COMPONENT_STYLES } from "@/lib/global-theme"
 
@@ -90,25 +92,29 @@ export default function LoginPage() {
   if (showLoginAnimation) {
     return (
       <VideoBackground>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className={`w-full max-w-md ${COMPONENT_STYLES.authCard}`}>
-            <CardContent className="text-center py-12">
-              <div className="space-y-6">
-                <div className="flex items-center justify-center">
-                  <Shield className="h-16 w-16 text-white animate-pulse" />
+        <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+          <PublicNavigation />
+          <div className="flex-1 flex items-center justify-center p-4">
+            <Card className={`w-full max-w-md ${COMPONENT_STYLES.authCard}`}>
+              <CardContent className="text-center py-12">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-center">
+                    <Shield className="h-16 w-16 text-white animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-xl font-semibold text-white">Welcome Back!</h3>
+                    <p className="text-slate-200">Taking you to your dashboard...</p>
+                  </div>
+                  <div className="flex justify-center space-x-1">
+                    <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <h3 className="text-xl font-semibold text-white">Welcome Back!</h3>
-                  <p className="text-slate-200">Taking you to your dashboard...</p>
-                </div>
-                <div className="flex justify-center space-x-1">
-                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{ animationDelay: '0.3s' }}></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
+          <PublicFooter />
         </div>
       </VideoBackground>
     )
@@ -116,11 +122,15 @@ export default function LoginPage() {
 
   return (
     <VideoBackground>
-      {/* Ambient glowing dots */}
-      <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
-      <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
-      
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+        <PublicNavigation />
+        
+        <div className="flex-1 flex items-center justify-center p-4">
+          {/* Ambient glowing dots */}
+          <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+          <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+          
+          <div className="w-full max-w-md">
         <Card className={`w-full max-w-md ${COMPONENT_STYLES.authCard}`}>
           <CardHeader className="text-center relative">
             <Link href="/" className="absolute left-4 top-4">
@@ -263,6 +273,9 @@ export default function LoginPage() {
             </div>
           </CardContent>
         </Card>
+          </div>
+        </div>
+        <PublicFooter />
       </div>
     </VideoBackground>
   )

@@ -13,6 +13,8 @@ import { CheckCircle, XCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import { VideoBackground } from "@/components/video-background"
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
 
 function AuthConfirmContent() {
   const router = useRouter()
@@ -239,11 +241,14 @@ function AuthConfirmContent() {
 
   return (
     <VideoBackground>
-      {/* Subtle white glowing dots */}
-      <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
-      <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
-      
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+        <PublicNavigation />
+        
+        <div className="flex-1 flex items-center justify-center p-4">
+          {/* Subtle white glowing dots */}
+          <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+          <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+          <div className="w-full max-w-md">
         <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center gap-2 esports-heading text-2xl text-white font-semibold">
@@ -300,6 +305,9 @@ function AuthConfirmContent() {
             )}
           </CardContent>
         </Card>
+          </div>
+        </div>
+        <PublicFooter />
       </div>
     </VideoBackground>
   )
@@ -309,15 +317,19 @@ export default function AuthConfirmPage() {
   return (
     <Suspense fallback={
       <VideoBackground>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2 text-white">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Loading...
-              </CardTitle>
-            </CardHeader>
-          </Card>
+        <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+          <PublicNavigation />
+          <div className="flex-1 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
+              <CardHeader className="text-center">
+                <CardTitle className="flex items-center justify-center gap-2 text-white">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Loading...
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+          <PublicFooter />
         </div>
       </VideoBackground>
     }>
