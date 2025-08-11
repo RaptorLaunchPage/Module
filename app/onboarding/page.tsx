@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { useAuthV2 as useAuth } from "@/hooks/use-auth-v2"
 import { supabase } from "@/lib/supabase"
 import { useSafeRedirect } from '@/lib/client-utils'
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +17,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Loader2, CheckCircle, User, Mail, GamepadIcon, ArrowRight, ArrowLeft } from "lucide-react"
 import { usePageLoading } from "@/lib/global-loading-manager"
 import { VideoBackground } from "@/components/video-background"
+import { getButtonStyle } from "@/lib/global-theme"
 
 interface OnboardingForm {
   fullName: string
@@ -314,12 +317,15 @@ export default function OnboardingPage() {
 
   return (
     <VideoBackground>
-      {/* Subtle white glowing dots */}
-      <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-8 w-8 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
-      <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-4 w-4 rounded-full bg-white opacity-40 blur-md animate-pulse" />
-      
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="w-full max-w-2xl">
+      <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+        <PublicNavigation />
+        
+        <div className="flex-1 flex items-center justify-center p-4">
+          {/* Subtle white glowing dots */}
+          <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-8 w-8 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+          <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-4 w-4 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+          
+          <div className="w-full max-w-2xl">
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="esports-heading text-4xl font-bold text-white mb-4">Complete Your Setup</h1>
@@ -365,7 +371,7 @@ export default function OnboardingPage() {
                   variant="outline"
                   onClick={handlePrevious}
                   disabled={step === 1}
-                  className="border-white/20 text-white hover:bg-white/10 disabled:opacity-50"
+                  className={`${getButtonStyle('outline')} disabled:opacity-50`}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Previous
@@ -374,7 +380,7 @@ export default function OnboardingPage() {
                 {step < 3 ? (
                   <Button
                     onClick={handleNext}
-                    className="bg-primary hover:bg-primary/90 text-white font-medium"
+                    className={`${getButtonStyle('primary')}`}
                   >
                     Next
                     <ArrowRight className="w-4 h-4 ml-2" />
@@ -383,7 +389,7 @@ export default function OnboardingPage() {
                   <Button
                     onClick={handleSubmit}
                     disabled={loading}
-                    className="bg-green-600 hover:bg-green-700 text-white font-medium"
+                    className={`${getButtonStyle('primary')}`}
                   >
                     {loading ? (
                       <>
@@ -401,7 +407,9 @@ export default function OnboardingPage() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
+        <PublicFooter />
       </div>
     </VideoBackground>
   )

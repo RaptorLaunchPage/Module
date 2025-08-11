@@ -12,14 +12,20 @@ interface RouteGuardV2Props {
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
   '/',
+  '/public',
   '/auth/login',
   '/auth/signup',
   '/auth/confirm',
   '/auth/forgot',
   '/auth/reset-password',
-  '/highlight',
   '/about',
-  '/incentives'
+  '/incentives',
+  '/tier-structure',
+  '/gallery',
+  '/apply',
+  '/error',
+  '/not-found',
+  '/global-error'
 ]
 
 // API routes and static assets
@@ -77,7 +83,7 @@ const RouteGuardV2 = memo(function RouteGuardV2({ children }: RouteGuardV2Props)
           return
         }
 
-        // Initialize auth flow - this is the primary initialization point
+        // Initialize auth flow once - don't reinitialize on pathname changes
         await authFlowV2.initialize(true)
       } catch (error: any) {
         // Fallback to allow access if auth fails completely
@@ -93,7 +99,7 @@ const RouteGuardV2 = memo(function RouteGuardV2({ children }: RouteGuardV2Props)
         unsubscribe()
       }
     }
-  }, [pathname])
+  }, []) // Remove pathname dependency to prevent re-initialization
 
   // Handle route protection logic
   useEffect(() => {
@@ -103,6 +109,7 @@ const RouteGuardV2 = memo(function RouteGuardV2({ children }: RouteGuardV2Props)
 
     // Only handle basic route protection for unauthenticated users
     if (!authState.isAuthenticated && !isPublicRoute(pathname)) {
+      console.log(`🚫 Unauthenticated user trying to access protected route: ${pathname}`)
       safeRedirect('/auth/login')
       return
     }
@@ -111,7 +118,12 @@ const RouteGuardV2 = memo(function RouteGuardV2({ children }: RouteGuardV2Props)
     // Don't make routing decisions here to avoid conflicts
   }, [authState, isInitialized, pathname, safeRedirect])
 
-  // Don't render anything while auth is initializing - let global loading handle it
+  // For public routes, render immediately without waiting for auth initialization
+  if (isPublicRoute(pathname)) {
+    return <>{children}</>
+  }
+
+  // For protected routes, wait for auth initialization
   if (!isInitialized) {
     return null
   }

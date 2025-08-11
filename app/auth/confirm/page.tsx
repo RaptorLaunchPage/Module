@@ -13,6 +13,9 @@ import { CheckCircle, XCircle, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import { VideoBackground } from "@/components/video-background"
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
+import { getButtonStyle } from "@/lib/global-theme"
 
 function AuthConfirmContent() {
   const router = useRouter()
@@ -239,11 +242,14 @@ function AuthConfirmContent() {
 
   return (
     <VideoBackground>
-      {/* Subtle white glowing dots */}
-      <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
-      <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
-      
-      <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+        <PublicNavigation />
+        
+        <div className="flex-1 flex items-center justify-center p-4">
+          {/* Subtle white glowing dots */}
+          <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+          <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+          <div className="w-full max-w-md">
         <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
           <CardHeader className="text-center">
             <CardTitle className="flex items-center justify-center gap-2 esports-heading text-2xl text-white font-semibold">
@@ -275,7 +281,7 @@ function AuthConfirmContent() {
                   <p className="text-sm text-slate-300 mb-4">
                     Redirecting to home page in 3 seconds...
                   </p>
-                  <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
+                  <Button asChild className={`w-full ${getButtonStyle('primary')}`}>
                     <Link href="/">Go to Home</Link>
                   </Button>
                 </div>
@@ -289,10 +295,10 @@ function AuthConfirmContent() {
                   <AlertDescription>{message}</AlertDescription>
                 </Alert>
                 <div className="grid grid-cols-1 gap-2">
-                  <Button asChild variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+                  <Button asChild variant="outline" className={`w-full ${getButtonStyle('outline')}`}>
                     <Link href="/auth/signup">Try Signup Again</Link>
                   </Button>
-                  <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
+                  <Button asChild className={`w-full ${getButtonStyle('primary')}`}>
                     <Link href="/auth/login">Go to Login</Link>
                   </Button>
                 </div>
@@ -300,6 +306,9 @@ function AuthConfirmContent() {
             )}
           </CardContent>
         </Card>
+          </div>
+        </div>
+        <PublicFooter />
       </div>
     </VideoBackground>
   )
@@ -309,15 +318,19 @@ export default function AuthConfirmPage() {
   return (
     <Suspense fallback={
       <VideoBackground>
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
-            <CardHeader className="text-center">
-              <CardTitle className="flex items-center justify-center gap-2 text-white">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Loading...
-              </CardTitle>
-            </CardHeader>
-          </Card>
+        <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+          <PublicNavigation />
+          <div className="flex-1 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md bg-black/70 backdrop-blur-lg border border-white/30 shadow-2xl relative z-20">
+              <CardHeader className="text-center">
+                <CardTitle className="flex items-center justify-center gap-2 text-white">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Loading...
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
+          <PublicFooter />
         </div>
       </VideoBackground>
     }>

@@ -4,18 +4,24 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { VideoBackground } from "@/components/video-background"
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
+import { getButtonStyle } from "@/lib/global-theme"
 import { Home, Search, ArrowLeft, Gamepad2, Shield, Zap } from "lucide-react"
 
 export default function NotFound() {
   return (
     <VideoBackground>
-      {/* Subtle white glowing dots */}
-      <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-8 w-8 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
-      <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-4 w-4 rounded-full bg-white opacity-40 blur-md animate-pulse" />
-      <div className="pointer-events-none fixed right-1/3 top-1/4 z-10 h-6 w-6 rounded-full bg-white opacity-30 blur-xl animate-pulse" />
-      
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center max-w-4xl w-full">
+      <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+        <PublicNavigation />
+        
+        <div className="flex-1 flex items-center justify-center p-4">
+          {/* Subtle white glowing dots */}
+          <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-8 w-8 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+          <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-4 w-4 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+          <div className="pointer-events-none fixed right-1/3 top-1/4 z-10 h-6 w-6 rounded-full bg-white opacity-30 blur-xl animate-pulse" />
+          
+          <div className="text-center max-w-4xl w-full">
           {/* Main 404 Hero */}
           <div className="mb-16">
             <div className="mb-8">
@@ -49,10 +55,10 @@ export default function NotFound() {
               </CardHeader>
               <CardContent>
                 <Link href="/">
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
-                    <Home className="w-4 h-4 mr-2" />
-                    Go Home
-                  </Button>
+                                <Button className={`w-full ${getButtonStyle('primary')}`}>
+                <Home className="w-4 h-4 mr-2" />
+                Go Home
+              </Button>
                 </Link>
               </CardContent>
             </Card>
@@ -69,7 +75,7 @@ export default function NotFound() {
               </CardHeader>
               <CardContent>
                 <Link href="/dashboard">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium">
+                  <Button className={`w-full ${getButtonStyle('primary')}`}>
                     <Shield className="w-4 h-4 mr-2" />
                     Dashboard
                   </Button>
@@ -89,7 +95,7 @@ export default function NotFound() {
               </CardHeader>
               <CardContent>
                 <Link href="/auth/signup">
-                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-medium">
+                  <Button className={`w-full ${getButtonStyle('primary')}`}>
                     <Gamepad2 className="w-4 h-4 mr-2" />
                     Sign Up
                   </Button>
@@ -113,7 +119,7 @@ export default function NotFound() {
                 <Button 
                   variant="outline" 
                   onClick={() => window.history.back()}
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className={`${getButtonStyle('outline')}`}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Go Back
@@ -121,7 +127,7 @@ export default function NotFound() {
                 <Button 
                   variant="outline"
                   onClick={() => window.location.reload()}
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className={`${getButtonStyle('outline')}`}
                 >
                   <Search className="w-4 h-4 mr-2" />
                   Try Again
@@ -136,7 +142,9 @@ export default function NotFound() {
               Error Code: 404 • Page Not Found • Raptor Esports Hub
             </p>
           </div>
+          </div>
         </div>
+        <PublicFooter />
       </div>
     </VideoBackground>
   )

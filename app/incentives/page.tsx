@@ -5,13 +5,17 @@ import { VideoBackground } from "@/components/video-background"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FadeInOnScroll } from "@/components/ui/fade-in-on-scroll"
 import { Button } from "@/components/ui/button"
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
 
 export default function IncentivesPage() {
   return (
     <VideoBackground>
       <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto">
+        <PublicNavigation />
+        
         {/* Hero */}
-        <section className="relative h-[48vh] sm:h-[56vh] w-full">
+        <section className="relative h-[48vh] sm:h-[56vh] w-full pt-14">
           <div className="absolute inset-0">
             {/* Replace with trophy background */}
             <div className="h-full w-full bg-[url('/images/trophy-hero.jpg')] bg-cover bg-center brightness-[.7]" />
@@ -25,29 +29,37 @@ export default function IncentivesPage() {
         </section>
 
         {/* Incentives List */}
-        <FadeInOnScroll as="section" className="max-w-6xl mx-auto px-4 py-10">
-          <h2 className="text-3xl font-bold text-white mb-6">Incentives</h2>
+        <section className="max-w-6xl mx-auto px-4 py-10">
+          <FadeInOnScroll>
+            <h2 className="text-3xl font-bold text-white mb-6">Incentives</h2>
+          </FadeInOnScroll>
           <div className="grid md:grid-cols-3 gap-6">
-            <Card className="bg-black/50 border-white/10">
-              <CardHeader>
-                <CardTitle>Paid practice scrims</CardTitle>
-              </CardHeader>
-              <CardContent className="text-white/80">Compensated practice hours to reward consistency and effort.</CardContent>
-            </Card>
-            <Card className="bg-black/50 border-white/10">
-              <CardHeader>
-                <CardTitle>AI performance tools</CardTitle>
-              </CardHeader>
-              <CardContent className="text-white/80">Full access to analytics, curated insights, and performance dashboards.</CardContent>
-            </Card>
-            <Card className="bg-black/50 border-white/10">
-              <CardHeader>
-                <CardTitle>Attendance monitoring</CardTitle>
-              </CardHeader>
-              <CardContent className="text-white/80">Track training and match participation to unlock rewards.</CardContent>
-            </Card>
+            <FadeInOnScroll delayMs={0}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>Paid practice scrims</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">Compensated practice hours to reward consistency and effort.</CardContent>
+              </Card>
+            </FadeInOnScroll>
+            <FadeInOnScroll delayMs={200}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>AI performance tools</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">Full access to analytics, curated insights, and performance dashboards.</CardContent>
+              </Card>
+            </FadeInOnScroll>
+            <FadeInOnScroll delayMs={400}>
+              <Card className="bg-black/50 border-white/10">
+                <CardHeader>
+                  <CardTitle>Attendance monitoring</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80">Track training and match participation to unlock rewards.</CardContent>
+              </Card>
+            </FadeInOnScroll>
           </div>
-        </FadeInOnScroll>
+        </section>
 
         {/* Tier-Based Rewards Table */}
         <FadeInOnScroll as="section" className="max-w-6xl mx-auto px-4 py-10">
@@ -129,17 +141,7 @@ export default function IncentivesPage() {
           <div className="mt-3 text-center text-white/80">More Wins = Bigger Cuts.</div>
         </FadeInOnScroll>
 
-        {/* CTA */}
-        <FadeInOnScroll as="section" className="max-w-6xl mx-auto px-4 py-12 text-center">
-          <a
-            href="https://discord.gg/6986Kf3eG4"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex px-5 py-2 rounded-md font-semibold bg-gradient-to-r from-[#00C6FF] via-[#3A7DFF] to-[#B721FF] text-white hover:brightness-110 transition-shadow shadow-[0_0_30px_rgba(58,125,255,0.35)]"
-          >
-            Join Discord
-          </a>
-        </FadeInOnScroll>
+        <PublicFooter />
       </div>
     </VideoBackground>
   )
