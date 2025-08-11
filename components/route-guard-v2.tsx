@@ -22,8 +22,6 @@ const PUBLIC_ROUTES = [
   '/about',
   '/incentives',
   '/apply',
-  '/agreement-review',
-  '/onboarding',
   '/raptor',
   '/error',
   '/not-found',
