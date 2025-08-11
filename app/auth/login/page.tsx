@@ -14,7 +14,7 @@ import { VideoBackground } from "@/components/video-background"
 import { PublicNavigation } from "@/components/public/PublicNavigation"
 import { PublicFooter } from "@/components/public/PublicFooter"
 import { Eye, EyeOff, LogIn, RefreshCw, Home, Shield } from "lucide-react"
-import { COMPONENT_STYLES } from "@/lib/global-theme"
+import { COMPONENT_STYLES, getButtonStyle } from "@/lib/global-theme"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -132,13 +132,7 @@ export default function LoginPage() {
           
           <div className="w-full max-w-md">
         <Card className={`w-full max-w-md ${COMPONENT_STYLES.authCard}`}>
-          <CardHeader className="text-center relative">
-            <Link href="/" className="absolute left-4 top-4">
-              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
-                <Home className="h-4 w-4 mr-2" />
-                Home
-              </Button>
-            </Link>
+          <CardHeader className="text-center">
             <div className="flex items-center justify-center mb-4">
               <Shield className="h-12 w-12 text-white" />
             </div>
@@ -194,7 +188,7 @@ export default function LoginPage() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    className="absolute right-0 top-0 h-full px-3 py-2"
                     onClick={() => setShowPassword(!showPassword)}
                     disabled={isSubmitting}
                   >
@@ -218,7 +212,7 @@ export default function LoginPage() {
               
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium" 
+                className={`w-full ${getButtonStyle('primary')}`}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast"
 import { VideoBackground } from "@/components/video-background"
 import { PublicNavigation } from "@/components/public/PublicNavigation"
 import { PublicFooter } from "@/components/public/PublicFooter"
+import { getButtonStyle } from "@/lib/global-theme"
 
 function AuthConfirmContent() {
   const router = useRouter()
@@ -280,7 +281,7 @@ function AuthConfirmContent() {
                   <p className="text-sm text-slate-300 mb-4">
                     Redirecting to home page in 3 seconds...
                   </p>
-                  <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
+                  <Button asChild className={`w-full ${getButtonStyle('primary')}`}>
                     <Link href="/">Go to Home</Link>
                   </Button>
                 </div>
@@ -294,10 +295,10 @@ function AuthConfirmContent() {
                   <AlertDescription>{message}</AlertDescription>
                 </Alert>
                 <div className="grid grid-cols-1 gap-2">
-                  <Button asChild variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+                  <Button asChild variant="outline" className={`w-full ${getButtonStyle('outline')}`}>
                     <Link href="/auth/signup">Try Signup Again</Link>
                   </Button>
-                  <Button asChild className="w-full bg-primary hover:bg-primary/90 text-white font-medium">
+                  <Button asChild className={`w-full ${getButtonStyle('primary')}`}>
                     <Link href="/auth/login">Go to Login</Link>
                   </Button>
                 </div>

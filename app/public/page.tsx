@@ -9,6 +9,7 @@ import { Trophy, Users, Calendar } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { PublicNavigation } from "@/components/public/PublicNavigation"
 import { PublicFooter } from "@/components/public/PublicFooter"
+import { getButtonStyle } from "@/lib/global-theme"
 
 export default function PublicSitePage() {
   const [teamsCount, setTeamsCount] = useState<number>(12)
@@ -52,11 +53,11 @@ export default function PublicSitePage() {
               <FadeInOnScroll delayMs={240}>
                 <div className="flex gap-4 mt-8">
                   <a href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer"
-                    className="px-5 py-2 rounded-md font-semibold bg-gradient-to-r from-[#00C6FF] via-[#3A7DFF] to-[#B721FF] text-white hover:brightness-110 transition-shadow shadow-[0_0_30px_rgba(58,125,255,0.35)]">
+                    className={`px-5 py-2 rounded-md font-semibold ${getButtonStyle('primary')}`}>
                     Join Us
                   </a>
                   <a href="/highlight"
-                    className="px-5 py-2 rounded-md font-semibold border border-white/30 text-white/90 hover:text-white hover:bg-white/10 transition-colors">
+                    className={`px-5 py-2 rounded-md font-semibold ${getButtonStyle('outline')}`}>
                     Watch Highlights
                   </a>
                 </div>

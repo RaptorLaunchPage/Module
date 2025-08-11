@@ -21,6 +21,7 @@ import {
 import ReactMarkdown from 'react-markdown'
 import { VideoBackground } from "@/components/video-background"
 import { usePageLoading } from "@/lib/global-loading-manager"
+import { getButtonStyle } from "@/lib/global-theme"
 
 interface AgreementContent {
   role: string
@@ -314,7 +315,7 @@ export default function AgreementReviewPage() {
                       console.log('Manual override: enabling accept button')
                       setHasScrolledToBottom(true)
                     }}
-                    className="text-xs text-white hover:bg-white/10"
+                    className={`text-xs ${getButtonStyle('ghost')}`}
                   >
                     I've read it
                   </Button>
@@ -333,7 +334,7 @@ export default function AgreementReviewPage() {
                 variant="outline"
                 size="lg"
                 disabled={submitting}
-                className="min-w-[150px] bg-red-500/20 border-red-500/40 text-red-100 hover:bg-red-500/30 hover:border-red-500/60"
+                className={`min-w-[150px] ${getButtonStyle('outline')} bg-red-500/20 border-red-500/40 text-red-100 hover:bg-red-500/30 hover:border-red-500/60`}
               >
                 <XCircle className="h-4 w-4 mr-2" />
                 Decline
@@ -346,7 +347,7 @@ export default function AgreementReviewPage() {
                 }}
                 size="lg"
                 disabled={!hasScrolledToBottom || submitting}
-                className="min-w-[150px] bg-green-500/80 hover:bg-green-500/90 text-white border-green-500/40"
+                className={`min-w-[150px] ${getButtonStyle('primary')}`}
               >
                 {submitting ? (
                   <>
@@ -380,7 +381,7 @@ export default function AgreementReviewPage() {
                     onClick={handleEmergencyBypass}
                     variant="ghost"
                     size="sm"
-                    className="text-orange-300 hover:text-orange-100 hover:bg-orange-500/20"
+                    className={`${getButtonStyle('ghost')} text-orange-300 hover:text-orange-100 hover:bg-orange-500/20`}
                   >
                     <AlertTriangle className="h-4 w-4 mr-2" />
                     Emergency Bypass

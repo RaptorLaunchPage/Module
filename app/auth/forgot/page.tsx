@@ -11,6 +11,7 @@ import Link from "next/link"
 import { VideoBackground } from "@/components/video-background"
 import { PublicNavigation } from "@/components/public/PublicNavigation"
 import { PublicFooter } from "@/components/public/PublicFooter"
+import { getButtonStyle } from "@/lib/global-theme"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -77,7 +78,7 @@ export default function ForgotPasswordPage() {
                     className="bg-transparent border-white/20 text-white placeholder:text-slate-400 focus:ring-white/30"
                   />
                 </div>
-                <Button type="submit" className="w-full bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20" disabled={loading}>
+                <Button type="submit" className={`w-full ${getButtonStyle('primary')}`} disabled={loading}>
                   {loading ? "Sending..." : "Send Reset Link"}
                 </Button>
               </form>

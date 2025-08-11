@@ -4,6 +4,7 @@ import React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BRAND_GRAD, HEADER_BG } from "@/components/public/public-theme"
+import { getButtonStyle } from "@/lib/global-theme"
 
 // Clean navigation with fewer tabs
 const NAV_ITEMS = [
@@ -45,7 +46,7 @@ export function PublicNavigation() {
         <div className="ml-auto">
           <Link
             href="/auth/login"
-            className="px-3 py-1.5 rounded-md font-semibold bg-gradient-to-r from-[#00C6FF] via-[#3A7DFF] to-[#B721FF] text-white hover:brightness-110 transition-shadow shadow-[0_0_20px_rgba(58,125,255,0.35)] text-xs sm:text-sm cursor-pointer"
+            className={`px-3 py-1.5 rounded-md font-semibold text-xs sm:text-sm cursor-pointer ${getButtonStyle('primary')}`}
             onClick={() => console.log('🔄 Dashboard button clicked - redirecting to login')}
           >
             Dashboard

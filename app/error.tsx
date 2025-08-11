@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { PublicNavigation } from "@/components/public/PublicNavigation"
 import { PublicFooter } from "@/components/public/PublicFooter"
+import { getButtonStyle } from "@/lib/global-theme"
 import { AlertTriangle, RefreshCw, Home, Bug } from "lucide-react"
 import Link from "next/link"
 
@@ -75,7 +76,7 @@ export default function Error({
             <Button 
               onClick={reset}
               size="lg"
-              className="bg-primary hover:bg-primary/90 text-white font-medium"
+              className={`${getButtonStyle('primary')}`}
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Try Again
@@ -85,7 +86,7 @@ export default function Error({
               <Button 
                 variant="outline"
                 size="lg"
-                className="w-full border-white/20 text-white hover:bg-white/10 font-medium"
+                className={`w-full ${getButtonStyle('outline')}`}
               >
                 <Home className="w-4 h-4 mr-2" />
                 Return Home
