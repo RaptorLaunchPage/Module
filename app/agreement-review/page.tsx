@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { forceLogout } from "@/lib/force-logout"
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
 import { 
   FileText, 
   CheckCircle, 
@@ -199,21 +201,25 @@ export default function AgreementReviewPage() {
   if (!agreementContent) {
     return (
       <VideoBackground>
-        <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
-        <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
-        
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
-            <CardContent className="flex items-center justify-center p-8">
-              <div className="text-center">
-                <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2 text-white">Agreement Not Found</h3>
-                <p className="text-white/80">
-                  Could not load the agreement for your role. Please contact support.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+          <PublicNavigation />
+          <div className="flex-1 flex items-center justify-center p-4">
+            <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+            <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+            
+            <Card className="w-full max-w-md bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
+              <CardContent className="flex items-center justify-center p-8">
+                <div className="text-center">
+                  <AlertTriangle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2 text-white">Agreement Not Found</h3>
+                  <p className="text-white/80">
+                    Could not load the agreement for your role. Please contact support.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <PublicFooter />
         </div>
       </VideoBackground>
     )
@@ -221,11 +227,14 @@ export default function AgreementReviewPage() {
 
   return (
     <VideoBackground>
-      <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
-      <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
-      
-      <div className="min-h-screen py-8">
-        <div className="container mx-auto px-4 max-w-4xl">
+      <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+        <PublicNavigation />
+        
+        <div className="flex-1 py-8">
+          <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+          <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+          
+          <div className="container mx-auto px-4 max-w-4xl">
         {/* Header */}
         <Card className="mb-6 bg-white/10 backdrop-blur-md border-white/20 shadow-xl">
           <CardHeader>
@@ -381,7 +390,9 @@ export default function AgreementReviewPage() {
             )}
           </CardContent>
         </Card>
+          </div>
         </div>
+        <PublicFooter />
       </div>
     </VideoBackground>
   )
