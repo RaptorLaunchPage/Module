@@ -4,6 +4,8 @@ import { useEffect } from "react"
 import { VideoBackground } from "@/components/video-background"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
 import { AlertTriangle, RefreshCw, Home, Bug } from "lucide-react"
 import Link from "next/link"
 
@@ -21,13 +23,16 @@ export default function Error({
 
   return (
     <VideoBackground>
-      {/* Ambient glowing dots */}
-      <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
-      <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
-      <div className="pointer-events-none fixed left-3/4 top-1/2 z-10 h-4 w-4 rounded-full bg-white opacity-30 blur-lg animate-pulse" />
-      
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center max-w-2xl w-full">
+      <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+        <PublicNavigation />
+        
+        <div className="flex-1 flex items-center justify-center p-4">
+          {/* Ambient glowing dots */}
+          <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-6 w-6 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+          <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-3 w-3 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+          <div className="pointer-events-none fixed left-3/4 top-1/2 z-10 h-4 w-4 rounded-full bg-white opacity-30 blur-lg animate-pulse" />
+          
+          <div className="text-center max-w-2xl w-full">
           {/* Error Hero */}
           <Card className="bg-white/10 backdrop-blur-md border-white/20 shadow-xl mb-8">
             <CardHeader className="pb-4">
@@ -105,7 +110,9 @@ export default function Error({
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
+        <PublicFooter />
       </div>
     </VideoBackground>
   )

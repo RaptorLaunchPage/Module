@@ -4,18 +4,23 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { VideoBackground } from "@/components/video-background"
+import { PublicNavigation } from "@/components/public/PublicNavigation"
+import { PublicFooter } from "@/components/public/PublicFooter"
 import { Home, Search, ArrowLeft, Gamepad2, Shield, Zap } from "lucide-react"
 
 export default function NotFound() {
   return (
     <VideoBackground>
-      {/* Subtle white glowing dots */}
-      <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-8 w-8 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
-      <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-4 w-4 rounded-full bg-white opacity-40 blur-md animate-pulse" />
-      <div className="pointer-events-none fixed right-1/3 top-1/4 z-10 h-6 w-6 rounded-full bg-white opacity-30 blur-xl animate-pulse" />
-      
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="text-center max-w-4xl w-full">
+      <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
+        <PublicNavigation />
+        
+        <div className="flex-1 flex items-center justify-center p-4">
+          {/* Subtle white glowing dots */}
+          <div className="pointer-events-none fixed left-1/4 top-1/3 z-10 h-8 w-8 rounded-full bg-white opacity-60 blur-2xl animate-pulse" />
+          <div className="pointer-events-none fixed right-1/4 bottom-1/4 z-10 h-4 w-4 rounded-full bg-white opacity-40 blur-md animate-pulse" />
+          <div className="pointer-events-none fixed right-1/3 top-1/4 z-10 h-6 w-6 rounded-full bg-white opacity-30 blur-xl animate-pulse" />
+          
+          <div className="text-center max-w-4xl w-full">
           {/* Main 404 Hero */}
           <div className="mb-16">
             <div className="mb-8">
@@ -136,7 +141,9 @@ export default function NotFound() {
               Error Code: 404 • Page Not Found • Raptor Esports Hub
             </p>
           </div>
+          </div>
         </div>
+        <PublicFooter />
       </div>
     </VideoBackground>
   )
