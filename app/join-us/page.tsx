@@ -14,8 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { getButtonStyle } from "@/lib/global-theme"
 import { useToast } from "@/hooks/use-toast"
-import { ResponsiveTabs, TabsContent } from "@/components/ui/enhanced-tabs"
-import { Bolt, Send, Users, Building2, Link2 } from "lucide-react"
+
+import { Bolt, Send, Link2 } from "lucide-react"
 
 export default function JoinUsPage() {
   const { toast } = useToast()
@@ -125,17 +125,7 @@ export default function JoinUsPage() {
                 <CardTitle className="text-2xl">Application</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveTabs
-                  tabs={[
-                    { value: "player", label: "Player / Team Application", icon: Users },
-                    { value: "brand", label: "Brand / Collaboration Inquiry", icon: Building2 },
-                  ]}
-                  defaultValue="player"
-                  variant="underline"
-                  size="md"
-                >
-                  <TabsContent value="player">
-                    <form onSubmit={handlePlayerSubmit} className="space-y-6">
+                <form onSubmit={handlePlayerSubmit} className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FadeInOnScroll className="space-y-2">
                           <label className="text-sm text-white/90">Name *</label>
@@ -258,6 +248,21 @@ export default function JoinUsPage() {
                         />
                       </FadeInOnScroll>
 
+                      {/* Notes inside application, before submission */}
+                      <FadeInOnScroll>
+                        <div className="flex items-start gap-3 rounded-lg p-4 bg-blue-500/15 border border-blue-400/40 text-white">
+                          <Bolt className="h-5 w-5 text-blue-300 mt-0.5" />
+                          <div>
+                            <div className="font-semibold">Recruitment Criteria</div>
+                            <ul className="mt-1 text-white/85 text-sm list-disc list-inside space-y-1">
+                              <li>Players/teams must meet minimum performance requirements.</li>
+                              <li>All applicants will be evaluated based on skill, commitment, and fit with our community.</li>
+                              <li>Applications are typically reviewed within 7 days.</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </FadeInOnScroll>
+
                       <FadeInOnScroll className="flex items-start gap-3">
                         <Checkbox
                           checked={playerForm.acceptedPolicy}
@@ -271,107 +276,23 @@ export default function JoinUsPage() {
                       </FadeInOnScroll>
 
                       <FadeInOnScroll>
-                        <Button type="submit" className="px-5 py-2 font-semibold">
-                          Submit Application
-                          <Send className="h-4 w-4 ml-2" />
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                          <Button type="submit" className="px-5 py-2 font-semibold">
+                            Submit Application
+                            <Send className="h-4 w-4 ml-2" />
+                          </Button>
+                          <Link href="/incentives" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("secondary")}`}>
+                            Read Incentives
+                          </Link>
+                        </div>
                       </FadeInOnScroll>
                     </form>
-                  </TabsContent>
 
-                  <TabsContent value="brand">
-                    <form onSubmit={handleBrandSubmit} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FadeInOnScroll className="space-y-2">
-                          <label className="text-sm text-white/90">Name / Organization Name *</label>
-                          <Input
-                            value={brandForm.name}
-                            onChange={(e) => setBrandForm((p) => ({ ...p, name: e.target.value }))}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                            required
-                          />
-                        </FadeInOnScroll>
-                        <FadeInOnScroll className="space-y-2" delayMs={80}>
-                          <label className="text-sm text-white/90">Collaboration Type *</label>
-                          <Select
-                            value={brandForm.type}
-                            onValueChange={(v) => setBrandForm((p) => ({ ...p, type: v }))}
-                          >
-                            <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                              <SelectValue placeholder="Select type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="sponsorship">Sponsorship</SelectItem>
-                              <SelectItem value="event">Event hosting</SelectItem>
-                              <SelectItem value="content">Content collaboration</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FadeInOnScroll>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FadeInOnScroll className="space-y-2">
-                          <label className="text-sm text-white/90">Email *</label>
-                          <Input
-                            type="email"
-                            value={brandForm.email}
-                            onChange={(e) => setBrandForm((p) => ({ ...p, email: e.target.value }))}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                            required
-                          />
-                        </FadeInOnScroll>
-                        <FadeInOnScroll className="space-y-2" delayMs={80}>
-                          <label className="text-sm text-white/90">Phone</label>
-                          <Input
-                            type="tel"
-                            value={brandForm.phone}
-                            onChange={(e) => setBrandForm((p) => ({ ...p, phone: e.target.value }))}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                          />
-                        </FadeInOnScroll>
-                      </div>
-
-                      <FadeInOnScroll className="space-y-2">
-                        <label className="text-sm text-white/90">Message *</label>
-                        <Textarea
-                          value={brandForm.message}
-                          onChange={(e) => setBrandForm((p) => ({ ...p, message: e.target.value }))}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                          rows={5}
-                          required
-                        />
-                      </FadeInOnScroll>
-
-                      <FadeInOnScroll>
-                        <Button type="submit" className="px-5 py-2 font-semibold">
-                          Send Inquiry
-                          <Send className="h-4 w-4 ml-2" />
-                        </Button>
-                      </FadeInOnScroll>
-                    </form>
-                  </TabsContent>
-                </ResponsiveTabs>
-              </CardContent>
+                                  </CardContent>
             </Card>
           </FadeInOnScroll>
         </section>
 
-        {/* Note Box */}
-        <section className="max-w-6xl mx-auto px-4 py-4">
-          <FadeInOnScroll>
-            <div className="flex items-start gap-3 rounded-lg p-4 bg-blue-500/15 border border-blue-400/40 text-white">
-              <Bolt className="h-5 w-5 text-blue-300 mt-0.5" />
-              <div>
-                <div className="font-semibold">Recruitment Criteria</div>
-                <ul className="mt-1 text-white/85 text-sm list-disc list-inside space-y-1">
-                  <li>Players/teams must meet minimum performance requirements.</li>
-                  <li>All applicants will be evaluated based on skill, commitment, and fit with our community.</li>
-                  <li>Applications are typically reviewed within 7 days.</li>
-                </ul>
-              </div>
-            </div>
-          </FadeInOnScroll>
-        </section>
 
         {/* Quick Links */}
         <section className="max-w-6xl mx-auto px-4 py-8">

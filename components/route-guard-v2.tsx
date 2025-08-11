@@ -24,6 +24,7 @@ const PUBLIC_ROUTES = [
   '/gallery',
   '/apply',
   '/join-us',
+  '/contact',
   '/error',
   '/not-found',
   '/global-error'
