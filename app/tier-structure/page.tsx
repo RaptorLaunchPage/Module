@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FadeInOnScroll } from "@/components/ui/fade-in-on-scroll"
 import { getButtonStyle } from "@/lib/global-theme"
 import Link from "next/link"
-import { CheckCircle2, ChevronUp, Trophy, ArrowRight, Star } from "lucide-react"
+import { CheckCircle2, Trophy, ArrowRight, Star, Award, Shield, Target } from "lucide-react"
 
 export default function TierStructurePage() {
   return (
@@ -45,32 +45,40 @@ export default function TierStructurePage() {
                 name: "God Tier",
                 desc: "The elite few at the very top. Dominates the competition and enjoys the highest perks & rewards.",
                 bg: "bg-gradient-to-br from-black/80 to-black/95 border-white/30",
+                Icon: Trophy,
               },
               {
                 name: "Tier 1",
                 desc: "Top-performing teams who consistently prove themselves against strong competition.",
                 bg: "bg-gradient-to-br from-black/75 to-black/90 border-white/25",
+                Icon: Star,
               },
               {
                 name: "Tier 2",
                 desc: "Skilled and competitive teams working towards breaking into the top ranks.",
                 bg: "bg-gradient-to-br from-black/70 to-black/85 border-white/20",
+                Icon: Award,
               },
               {
                 name: "Tier 3",
                 desc: "Solid, reliable teams honing their skills in balanced matchups.",
                 bg: "bg-gradient-to-br from-black/65 to-black/80 border-white/15",
+                Icon: Shield,
               },
               {
                 name: "Tier 4",
                 desc: "The entry tier for new challengers, with opportunities to quickly climb.",
                 bg: "bg-gradient-to-br from-black/60 to-black/75 border-white/10",
+                Icon: Target,
               },
             ].map((tier, idx) => (
               <FadeInOnScroll key={tier.name} delayMs={idx * 80}>
                 <Card className={`${tier.bg} backdrop-blur-md text-white border shadow-xl hover:shadow-2xl transition-transform duration-200 hover:scale-[1.02]`}>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg font-semibold">{tier.name}</CardTitle>
+                    <div className="flex items-center gap-2 mb-1">
+                      <tier.Icon className="h-5 w-5 text-white/90" />
+                      <CardTitle className="text-lg font-semibold">{tier.name}</CardTitle>
+                    </div>
                   </CardHeader>
                   <CardContent className="text-white/80">
                     <p className="text-sm leading-relaxed">{tier.desc}</p>

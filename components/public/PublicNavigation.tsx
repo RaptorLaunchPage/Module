@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { name: "Incentives", href: "/incentives" },
   { name: "Highlights", href: "/highlight" },
   { name: "Tier Structure", href: "/tier-structure" },
+  { name: "Gallery", href: "/gallery" },
 ]
 
 export function PublicNavigation() {
