@@ -22,7 +22,6 @@ const PUBLIC_ROUTES = [
   '/about',
   '/incentives',
   '/apply',
-  '/raptor',
   '/error',
   '/not-found',
   '/global-error'
