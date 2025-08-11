@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { name: "Home", href: "/public" },
   { name: "About", href: "/about" },
   { name: "Incentives", href: "/incentives" },
-  { name: "Highlights", href: "/highlight" },
+
   { name: "Tier Structure", href: "/tier-structure" },
   { name: "Gallery", href: "/gallery" },
 ]
