@@ -30,10 +30,11 @@ export function PublicNavigation() {
             <Link
               key={name}
               href={href}
-              className={`text-xs sm:text-sm text-white/80 hover:text-white transition-colors pb-0.5 border-b-2 ${
+              className={`text-xs sm:text-sm text-white/80 hover:text-white transition-colors pb-0.5 border-b-2 cursor-pointer ${
                 pathname === href ? "border-white" : "border-transparent hover:border-white/40"
               }`}
               aria-label={`Go to ${name}`}
+              onClick={() => console.log(`🔄 Navigating to: ${href}`)}
             >
               {name}
             </Link>
@@ -43,8 +44,9 @@ export function PublicNavigation() {
         {/* Right: Dashboard button */}
         <div className="ml-auto">
           <Link
-            href="/dashboard"
-            className="px-3 py-1.5 rounded-md font-semibold bg-gradient-to-r from-[#00C6FF] via-[#3A7DFF] to-[#B721FF] text-white hover:brightness-110 transition-shadow shadow-[0_0_20px_rgba(58,125,255,0.35)] text-xs sm:text-sm"
+            href="/auth/login"
+            className="px-3 py-1.5 rounded-md font-semibold bg-gradient-to-r from-[#00C6FF] via-[#3A7DFF] to-[#B721FF] text-white hover:brightness-110 transition-shadow shadow-[0_0_20px_rgba(58,125,255,0.35)] text-xs sm:text-sm cursor-pointer"
+            onClick={() => console.log('🔄 Dashboard button clicked - redirecting to login')}
           >
             Dashboard
           </Link>

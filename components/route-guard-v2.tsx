@@ -83,10 +83,8 @@ const RouteGuardV2 = memo(function RouteGuardV2({ children }: RouteGuardV2Props)
           return
         }
 
-        // For public routes, initialize auth silently without showing loading
-        // For protected routes, initialize with loading indicator
-        const shouldShowLoading = !isPublicRoute(pathname)
-        await authFlowV2.initialize(shouldShowLoading)
+        // Initialize auth flow once - don't reinitialize on pathname changes
+        await authFlowV2.initialize(true)
       } catch (error: any) {
         // Fallback to allow access if auth fails completely
         setIsInitialized(true)
@@ -101,7 +99,7 @@ const RouteGuardV2 = memo(function RouteGuardV2({ children }: RouteGuardV2Props)
         unsubscribe()
       }
     }
-  }, [pathname])
+  }, []) // Remove pathname dependency to prevent re-initialization
 
   // Handle route protection logic
   useEffect(() => {
@@ -111,6 +109,7 @@ const RouteGuardV2 = memo(function RouteGuardV2({ children }: RouteGuardV2Props)
 
     // Only handle basic route protection for unauthenticated users
     if (!authState.isAuthenticated && !isPublicRoute(pathname)) {
+      console.log(`🚫 Unauthenticated user trying to access protected route: ${pathname}`)
       safeRedirect('/auth/login')
       return
     }

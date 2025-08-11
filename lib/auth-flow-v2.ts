@@ -380,7 +380,7 @@ class AuthFlowV2Manager {
         }
       }
 
-      // Priority 3: Only redirect on explicit request (login, signup confirmation)
+      // Priority 3: Redirect to appropriate page based on user state
       if (shouldRedirect) {
         // Check for intended route
         let redirectPath = '/dashboard'
@@ -392,6 +392,7 @@ class AuthFlowV2Manager {
           }
         }
 
+        console.log(`🔄 Redirecting authenticated user to: ${redirectPath}`)
         return {
           success: true,
           shouldRedirect: true,
@@ -587,6 +588,7 @@ class AuthFlowV2Manager {
           isLoading: false,
           error: error.message || 'Sign in failed'
         })
+        this.loadingManager.completeLoading('auth', 'error', error.message)
         return { success: false, shouldRedirect: false, error: error.message }
       }
 
@@ -609,6 +611,9 @@ class AuthFlowV2Manager {
         isLoading: false
       })
       
+      // Also clear the global loading state
+      this.loadingManager.completeLoading('auth')
+      
       return result
     } catch (error: any) {
       console.error('❌ Sign in error:', error)
@@ -616,6 +621,7 @@ class AuthFlowV2Manager {
         isLoading: false,
         error: error.message || 'Sign in failed'
       })
+      this.loadingManager.completeLoading('auth', 'error', error.message)
       return { success: false, shouldRedirect: false, error: error.message }
     }
   }
