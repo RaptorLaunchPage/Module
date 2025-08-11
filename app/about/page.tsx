@@ -76,7 +76,7 @@ export default function AboutPage() {
           <FadeInOnScroll>
             <h2 className="text-3xl font-bold text-white mb-6">Milestones</h2>
           </FadeInOnScroll>
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl ml-0 mr-auto">
             <FadeInOnScroll>
               <TimelineCard year="2025" items={[
                 "May — Organization established.",

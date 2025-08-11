@@ -10,8 +10,7 @@ import { getButtonStyle } from "@/lib/global-theme"
 const NAV_ITEMS = [
   { name: "Home", href: "/public" },
   { name: "About", href: "/about" },
-  { name: "Incentives", href: "/incentives" },
-
+  { name: "Rewards", href: "/incentives" },
   { name: "Tier", href: "/tier-structure" },
   { name: "Gallery", href: "/gallery" },
   { name: "Join", href: "/join-us" },

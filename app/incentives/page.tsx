@@ -31,7 +31,7 @@ export default function IncentivesPage() {
         {/* Incentives List */}
         <section className="max-w-6xl mx-auto px-4 py-10">
           <FadeInOnScroll>
-            <h2 className="text-3xl font-bold text-white mb-6">Incentives</h2>
+            <h2 className="text-3xl font-bold text-white mb-6">Rewards</h2>
           </FadeInOnScroll>
           <div className="grid md:grid-cols-3 gap-6">
             <FadeInOnScroll delayMs={0}>
@@ -138,7 +138,7 @@ export default function IncentivesPage() {
               </div>
             ))}
           </div>
-          <div className="mt-3 text-center text-white/80">More Wins = Bigger Cuts.</div>
+          <div className="mt-3 text-center text-white/80">More Wins = Bigger Rewards and Opportunity.</div>
         </FadeInOnScroll>
 
         <PublicFooter />
