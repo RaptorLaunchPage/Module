@@ -125,7 +125,7 @@ export default function TierStructurePage() {
                 body: "Higher tiers face tougher competition and gain access to greater rewards.",
               },
               {
-                title: "Incentives & Perks",
+                title: "Rewards & Perks",
                 body: "Incentives include performance perks like wildcard entries, gear, and other benefits.",
               },
               {

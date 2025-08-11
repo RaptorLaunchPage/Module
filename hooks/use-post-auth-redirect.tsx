@@ -25,7 +25,7 @@ export function usePostAuthRedirect(options: UsePostAuthRedirectOptions = {}) {
     redirectDelay = 100
   } = options
 
-  const { user, profile, isLoading, isAuthenticated } = useAuth()
+  const { user, profile, isLoading, isAuthenticated, agreementStatus } = useAuth()
   const { safeRedirect } = useSafeRedirect()
   const router = useRouter()
   const pathname = usePathname()
@@ -47,9 +47,12 @@ export function usePostAuthRedirect(options: UsePostAuthRedirectOptions = {}) {
 
     console.log(`🚀 Post-auth redirect: User authenticated on ${pathname}, determining redirect...`)
 
-    // Determine correct redirect path
+    // Determine correct redirect path with agreement priority
     let targetPath = '/dashboard'
-    if (profile.role === 'pending_player' && !profile.onboarding_completed) {
+    if (agreementStatus?.requiresAgreement) {
+      targetPath = '/agreement-review'
+      console.log('📝 Agreement required — redirecting to agreement review')
+    } else if (profile.role === 'pending_player' && !profile.onboarding_completed) {
       targetPath = '/onboarding'
       console.log('🔄 New user needs onboarding')
     } else {
@@ -74,7 +77,7 @@ export function usePostAuthRedirect(options: UsePostAuthRedirectOptions = {}) {
     const isHomepageRedirect = pathname === '/'
     const actualDelay = isHomepageRedirect ? 50 : redirectDelay
 
-    console.log(`⚡ Executing post-auth redirect to: ${targetPath} (delay: ${actualDelay}ms)`)
+    console.log(`⚡ Executing post-auth redirect to: ${targetPath} (delay: ${actualDelay}ms)`) 
 
     // Perform redirect with delay
     redirectTimeout.current = setTimeout(() => {
@@ -103,7 +106,8 @@ export function usePostAuthRedirect(options: UsePostAuthRedirectOptions = {}) {
     redirectFromPages, 
     redirectDelay, 
     router, 
-    safeRedirect
+    safeRedirect,
+    agreementStatus
   ])
 
   // Reset redirect flag when auth state changes
@@ -122,9 +126,13 @@ export function usePostAuthRedirect(options: UsePostAuthRedirectOptions = {}) {
     }
   }, [])
 
+  const computedTarget = agreementStatus?.requiresAgreement
+    ? '/agreement-review'
+    : (profile?.role === 'pending_player' && !profile?.onboarding_completed ? '/onboarding' : '/dashboard')
+
   return {
     shouldRedirect: !isLoading && isAuthenticated && user && profile && !hasRedirected.current,
-    targetPath: profile?.role === 'pending_player' && !profile?.onboarding_completed ? '/onboarding' : '/dashboard',
+    targetPath: computedTarget,
     isRedirecting: hasRedirected.current
   }
 }
@@ -133,7 +141,7 @@ export function usePostAuthRedirect(options: UsePostAuthRedirectOptions = {}) {
  * Hook for manual redirect triggering (for buttons, etc.)
  */
 export function useManualRedirect() {
-  const { user, profile } = useAuth()
+  const { user, profile, agreementStatus } = useAuth()
   const router = useRouter()
 
   const triggerRedirect = () => {
@@ -142,9 +150,11 @@ export function useManualRedirect() {
       return
     }
 
-    const targetPath = profile.role === 'pending_player' && !profile.onboarding_completed 
-      ? '/onboarding' 
-      : '/dashboard'
+    const targetPath = agreementStatus?.requiresAgreement
+      ? '/agreement-review'
+      : (profile.role === 'pending_player' && !profile.onboarding_completed 
+        ? '/onboarding' 
+        : '/dashboard')
 
     console.log(`🔄 Manual redirect triggered to: ${targetPath}`)
     router.replace(targetPath)
@@ -152,7 +162,9 @@ export function useManualRedirect() {
 
   return {
     triggerRedirect,
-    targetPath: profile?.role === 'pending_player' && !profile?.onboarding_completed ? '/onboarding' : '/dashboard',
+    targetPath: agreementStatus?.requiresAgreement
+      ? '/agreement-review'
+      : (profile?.role === 'pending_player' && !profile?.onboarding_completed ? '/onboarding' : '/dashboard'),
     canRedirect: !!(user && profile)
   }
 }

@@ -23,6 +23,8 @@ const PUBLIC_ROUTES = [
   '/tier-structure',
   '/gallery',
   '/apply',
+  '/join-us',
+  '/contact',
   '/error',
   '/not-found',
   '/global-error'

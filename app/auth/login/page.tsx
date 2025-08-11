@@ -15,14 +15,19 @@ import { PublicNavigation } from "@/components/public/PublicNavigation"
 import { PublicFooter } from "@/components/public/PublicFooter"
 import { Eye, EyeOff, LogIn, RefreshCw, Home, Shield } from "lucide-react"
 import { COMPONENT_STYLES, getButtonStyle } from "@/lib/global-theme"
+import { useRouter, usePathname } from "next/navigation"
+import { useManualRedirect } from "@/hooks/use-post-auth-redirect"
 
 export default function LoginPage() {
+  const router = useRouter()
+  const pathname = usePathname()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showLoginAnimation, setShowLoginAnimation] = useState(false)
   const { signIn, signInWithDiscord, isAuthenticated, error } = useAuth()
+  const { triggerRedirect, canRedirect } = useManualRedirect()
   
   // Use unified post-auth redirect hook
   usePostAuthRedirect({
@@ -60,6 +65,23 @@ export default function LoginPage() {
           console.log("🔄 Login animation complete, auth hook will handle redirect")
           // Don't manually redirect - let the auth hook handle it
         }, 1500) // Brief animation duration
+        // Mobile-safe fallback: if still on login and authenticated after ~2.2s, force a redirect
+        setTimeout(() => {
+          try {
+            if (typeof window !== 'undefined') {
+              const stillOnAuth = window.location.pathname.startsWith('/auth')
+              if (stillOnAuth && isAuthenticated) {
+                if (canRedirect) {
+                  console.log('⚡ Fallback redirect: using manual profile-based target')
+                  triggerRedirect()
+                } else {
+                  console.log('⚡ Fallback redirect: defaulting to /dashboard')
+                  router.replace('/dashboard')
+                }
+              }
+            }
+          } catch {}
+        }, 2200)
       } else {
         // Error case - make sure to reset submitting state
         setIsSubmitting(false)

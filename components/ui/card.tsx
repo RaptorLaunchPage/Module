@@ -9,16 +9,13 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      // Base styles with improved contrast and visibility
+      // Base styles unified to subtle black background across the app
       "rounded-lg border shadow-xl",
-      // Enhanced glassmorphic background with better contrast
-      "bg-black/80 backdrop-blur-lg border-white/40",
-      // Improved text visibility
+      "bg-black/60 backdrop-blur-lg border-white/15",
       "text-white",
-      // Mobile-optimized styling
       "min-h-fit",
-      // Hover effects for better interactivity
-      "hover:bg-black/85 hover:border-white/50 transition-all duration-200",
+      // Subtle hover
+      "hover:bg-black/70 hover:border-white/25 transition-all duration-200",
       className
     )}
     {...props}
