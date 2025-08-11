@@ -24,7 +24,29 @@ export function PublicNavigation() {
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-30 ${HEADER_BG}`}>
-      <div className="max-w-7xl mx-auto h-14 px-3 sm:px-4 flex items-center">
+      <div className="max-w-7xl mx-auto h-14 px-3 sm:px-4 flex items-center gap-2">
+        {/* Mobile menu (left) */}
+        <div className="md:hidden">
+          <Sheet>
+            <SheetTrigger aria-label="Open menu" className="p-2 rounded-md border border-white/15 bg-black/50 backdrop-blur-sm text-white">
+              <Menu className="h-5 w-5" />
+            </SheetTrigger>
+            <SheetContent side="left" className="bg-black/50 backdrop-blur-lg border-white/15 text-white w-72">
+              <div className="mt-8 flex flex-col gap-3">
+                {NAV_ITEMS.map(({ name, href }) => (
+                  <Link
+                    key={name}
+                    href={href}
+                    className={`px-3 py-2 rounded-md text-sm ${pathname === href ? 'bg-white/10 border border-white/20' : 'hover:bg-white/10'} transition-colors`}
+                  >
+                    {name}
+                  </Link>
+                ))}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+
         {/* Brand left with gradient */}
         <Link href="/public" className="font-extrabold tracking-wide text-transparent bg-gradient-to-r from-[#00C6FF] via-[#3A7DFF] to-[#B721FF] bg-clip-text drop-shadow-xl hover:brightness-110 transition-all">
           RAPTOR ESPORTS
@@ -47,31 +69,8 @@ export function PublicNavigation() {
           ))}
         </nav>
         
-        {/* Right side: Mobile menu + Dashboard button */}
+        {/* Right side: Dashboard button */}
         <div className="ml-auto flex items-center gap-2">
-          {/* Mobile menu */}
-          <div className="md:hidden">
-            <Sheet>
-              <SheetTrigger aria-label="Open menu" className={`p-2 rounded-md ${getButtonStyle('secondary')}`}>
-                <Menu className="h-5 w-5" />
-              </SheetTrigger>
-              <SheetContent side="right" className="bg-black/80 backdrop-blur-lg border-white/15 text-white w-72">
-                <div className="mt-8 flex flex-col gap-3">
-                  {NAV_ITEMS.map(({ name, href }) => (
-                    <Link
-                      key={name}
-                      href={href}
-                      className={`px-3 py-2 rounded-md text-sm ${pathname === href ? 'bg-white/10 border border-white/20' : 'hover:bg-white/10'} transition-colors`}
-                    >
-                      {name}
-                    </Link>
-                  ))}
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-
-          {/* Dashboard */}
           <Link
             href="/auth/login"
             className={`px-3 py-1.5 rounded-md font-semibold text-xs sm:text-sm cursor-pointer ${getButtonStyle('primary')}`}
