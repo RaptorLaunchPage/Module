@@ -46,7 +46,7 @@ export default function GalleryPage() {
         <PublicNavigation />
 
         {/* SECTION 1 — Hero */}
-        <section className="relative h-[52vh] sm:h-[60vh] w-full pt-14">
+        <section className="relative h-[45vh] sm:h-[52vh] w-full pt-14">
           <div className="absolute inset-0">
             <div className="h-full w-full bg-gradient-to-b from-black/70 via-black/40 to-transparent" />
           </div>
@@ -63,7 +63,7 @@ export default function GalleryPage() {
         </section>
 
         {/* SECTION 2 — Tabs */}
-        <section className="max-w-6xl mx-auto px-4 py-8">
+        <section className="max-w-6xl mx-auto px-4 py-6">
           <ResponsiveTabs
             tabs={tabs}
             defaultValue="all"
@@ -80,7 +80,7 @@ export default function GalleryPage() {
         </section>
 
         {/* SECTION 3 — Image Grid */}
-        <section className="max-w-6xl mx-auto px-4 pb-10">
+        <section className="max-w-6xl mx-auto px-4 pb-8">
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
             {filtered.map((img, idx) => (
               <FadeInOnScroll key={img.id} delayMs={idx * 60}>
@@ -107,7 +107,7 @@ export default function GalleryPage() {
         </section>
 
         {/* SECTION 4 — Highlight Strip (Optional) */}
-        <FadeInOnScroll as="section" className="w-full">
+        <FadeInOnScroll as="section" className="w-full pt-2">
           <div className="max-w-6xl mx-auto px-4 pb-10">
             <div className="overflow-x-auto no-scrollbar">
               <div className="flex gap-3 min-w-max">
@@ -131,13 +131,13 @@ export default function GalleryPage() {
         {/* SECTION 5 — CTA */}
         <section className="w-full">
           <div className="max-w-6xl mx-auto px-4 pb-12">
-            <div className={`rounded-xl p-8 sm:p-10 text-center bg-gradient-to-r from-[#00C6FF] via-[#3A7DFF] to-[#B721FF]`}>
+            <div className={`rounded-xl p-8 sm:p-10 text-center`}>
               <FadeInOnScroll>
                 <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4">Be part of the action. Your next moment could be here.</h3>
               </FadeInOnScroll>
               <FadeInOnScroll delayMs={120}>
                 <Link href="/recruitment" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle('primary')}`}>
-                  Join Us
+                  Apply Now
                 </Link>
               </FadeInOnScroll>
             </div>

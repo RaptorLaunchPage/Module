@@ -17,13 +17,13 @@ export default function TierStructurePage() {
         <PublicNavigation />
 
         {/* SECTION 1 — Hero / Header */}
-        <section className="relative h-[52vh] sm:h-[60vh] w-full pt-14">
+        <section className="relative h-[45vh] sm:h-[52vh] w-full pt-14">
           <div className="absolute inset-0">
             <div className="h-full w-full bg-gradient-to-b from-black/70 via-black/40 to-transparent" />
           </div>
           <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
             <FadeInOnScroll>
-              <h1 className="text-4xl sm:text-5xl font-extrabold text-white drop-shadow-xl">Rise Through the Raptor Ranks</h1>
+              <h1 className="text-4xl sm:text-5xl font-extrabold text-white drop-shadow-xl">Rise Through Raptor Esports</h1>
             </FadeInOnScroll>
             <FadeInOnScroll delayMs={120}>
               <p className="mt-3 max-w-3xl text-white/80">
@@ -34,7 +34,7 @@ export default function TierStructurePage() {
         </section>
 
         {/* SECTION 2 — Tier Levels */}
-        <section className="max-w-6xl mx-auto px-4 py-10">
+        <section className="max-w-6xl mx-auto px-4 py-8">
           <FadeInOnScroll>
             <h2 className="text-3xl font-bold text-white mb-6">Tier Levels</h2>
           </FadeInOnScroll>
@@ -90,7 +90,7 @@ export default function TierStructurePage() {
         </section>
 
         {/* SECTION 3 — How Promotion Works */}
-        <section className="max-w-6xl mx-auto px-4 py-10">
+        <section className="max-w-6xl mx-auto px-4 py-8">
           <FadeInOnScroll>
             <h2 className="text-3xl font-bold text-white mb-6">How Promotion Works</h2>
           </FadeInOnScroll>
@@ -113,7 +113,7 @@ export default function TierStructurePage() {
         </section>
 
         {/* SECTION 4 — Performance & Rewards */}
-        <section className="max-w-6xl mx-auto px-4 py-10">
+        <section className="max-w-6xl mx-auto px-4 py-8">
           <FadeInOnScroll>
             <h2 className="text-3xl font-bold text-white mb-6">Performance & Rewards</h2>
           </FadeInOnScroll>
@@ -148,8 +148,8 @@ export default function TierStructurePage() {
         </section>
 
         {/* SECTION 5 — Why It’s Gamified */}
-        <section className="w-full bg-black/60">
-          <div className="max-w-6xl mx-auto px-4 py-12">
+        <section className="w-full">
+          <div className="max-w-6xl mx-auto px-4 py-8">
             <FadeInOnScroll>
               <h2 className="text-3xl font-bold text-white mb-4">Why It’s Gamified</h2>
             </FadeInOnScroll>
@@ -163,10 +163,10 @@ export default function TierStructurePage() {
 
         {/* SECTION 6 — Call to Action */}
         <section className="w-full">
-          <div className="max-w-6xl mx-auto px-4 py-12">
-            <div className={`rounded-xl p-8 sm:p-10 text-center bg-gradient-to-r from-[#00C6FF] via-[#3A7DFF] to-[#B721FF]`}>
+          <div className="max-w-6xl mx-auto px-4 py-8">
+            <div className={`rounded-xl p-8 sm:p-10 text-center`}>
               <FadeInOnScroll>
-                <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4">Think your team has what it takes? Join the Raptor Ranks today.</h3>
+                <h3 className="text-2xl sm:text-3xl font-bold text-white mb-4">Think your team has what it takes? Join Raptor Esports today.</h3>
               </FadeInOnScroll>
               <FadeInOnScroll delayMs={120}>
                 <Link href="/recruitment" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle('primary')}`}>
