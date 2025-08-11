@@ -39,7 +39,7 @@ export default function AboutPage() {
         <section className="max-w-6xl mx-auto px-4 py-10">
           <div className="grid md:grid-cols-3 gap-6">
             <FadeInOnScroll delayMs={0}>
-              <Card className="bg-black/50 border-white/10">
+              <Card>
                 <CardHeader>
                   <CardTitle>Our Vision</CardTitle>
                 </CardHeader>
@@ -49,7 +49,7 @@ export default function AboutPage() {
               </Card>
             </FadeInOnScroll>
             <FadeInOnScroll delayMs={200}>
-              <Card className="bg-black/50 border-white/10">
+              <Card>
                 <CardHeader>
                   <CardTitle>What Drives Us</CardTitle>
                 </CardHeader>
@@ -59,7 +59,7 @@ export default function AboutPage() {
               </Card>
             </FadeInOnScroll>
             <FadeInOnScroll delayMs={400}>
-              <Card className="bg-black/50 border-white/10">
+              <Card>
                 <CardHeader>
                   <CardTitle>Players First</CardTitle>
                 </CardHeader>
@@ -95,7 +95,7 @@ export default function AboutPage() {
           </FadeInOnScroll>
           <div className="grid md:grid-cols-3 gap-6">
             <FadeInOnScroll delayMs={0}>
-              <Card className="bg-black/50 border-white/10">
+              <Card>
                 <CardHeader>
                   <CardTitle>Sponsorship</CardTitle>
                 </CardHeader>
@@ -105,7 +105,7 @@ export default function AboutPage() {
               </Card>
             </FadeInOnScroll>
             <FadeInOnScroll delayMs={200}>
-              <Card className="bg-black/50 border-white/10">
+              <Card>
                 <CardHeader>
                   <CardTitle>Training</CardTitle>
                 </CardHeader>
@@ -115,7 +115,7 @@ export default function AboutPage() {
               </Card>
             </FadeInOnScroll>
             <FadeInOnScroll delayMs={400}>
-              <Card className="bg-black/50 border-white/10">
+              <Card>
                 <CardHeader>
                   <CardTitle>Data Tools</CardTitle>
                 </CardHeader>
@@ -134,7 +134,7 @@ export default function AboutPage() {
           </FadeInOnScroll>
           <div className="grid md:grid-cols-3 gap-6">
             <FadeInOnScroll delayMs={0}>
-              <Card className="bg-black/50 border-white/10">
+              <Card>
                 <CardHeader>
                   <CardTitle>2025 Establishment</CardTitle>
                 </CardHeader>
@@ -142,7 +142,7 @@ export default function AboutPage() {
               </Card>
             </FadeInOnScroll>
             <FadeInOnScroll delayMs={200}>
-              <Card className="bg-black/50 border-white/10">
+              <Card>
                 <CardHeader>
                   <CardTitle>AI Platform</CardTitle>
                 </CardHeader>
@@ -150,7 +150,7 @@ export default function AboutPage() {
               </Card>
             </FadeInOnScroll>
             <FadeInOnScroll delayMs={400}>
-              <Card className="bg-black/50 border-white/10">
+              <Card>
                 <CardHeader>
                   <CardTitle>Scrim Success</CardTitle>
                 </CardHeader>
@@ -168,7 +168,7 @@ export default function AboutPage() {
 
 function TimelineCard({ year, items }: { year: string; items: string[] }) {
   return (
-    <Card className="bg-black/50 border-white/10">
+    <Card>
       <CardHeader>
         <CardTitle>{year}</CardTitle>
       </CardHeader>

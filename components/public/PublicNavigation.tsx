@@ -5,6 +5,8 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { BRAND_GRAD, HEADER_BG } from "@/components/public/public-theme"
 import { getButtonStyle } from "@/lib/global-theme"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Menu } from "lucide-react"
 
 // Clean navigation with fewer tabs
 const NAV_ITEMS = [
@@ -28,7 +30,7 @@ export function PublicNavigation() {
           RAPTOR ESPORTS
         </Link>
         
-        {/* Center nav names */}
+        {/* Center nav names (desktop) */}
         <nav className="mx-auto hidden md:flex items-center gap-3 lg:gap-4 overflow-x-auto no-scrollbar px-2">
           {NAV_ITEMS.map(({ name, href }) => (
             <Link
@@ -45,8 +47,31 @@ export function PublicNavigation() {
           ))}
         </nav>
         
-        {/* Right: Dashboard button */}
-        <div className="ml-auto">
+        {/* Right side: Mobile menu + Dashboard button */}
+        <div className="ml-auto flex items-center gap-2">
+          {/* Mobile menu */}
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger aria-label="Open menu" className={`p-2 rounded-md ${getButtonStyle('secondary')}`}>
+                <Menu className="h-5 w-5" />
+              </SheetTrigger>
+              <SheetContent side="right" className="bg-black/80 backdrop-blur-lg border-white/15 text-white w-72">
+                <div className="mt-8 flex flex-col gap-3">
+                  {NAV_ITEMS.map(({ name, href }) => (
+                    <Link
+                      key={name}
+                      href={href}
+                      className={`px-3 py-2 rounded-md text-sm ${pathname === href ? 'bg-white/10 border border-white/20' : 'hover:bg-white/10'} transition-colors`}
+                    >
+                      {name}
+                    </Link>
+                  ))}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {/* Dashboard */}
           <Link
             href="/auth/login"
             className={`px-3 py-1.5 rounded-md font-semibold text-xs sm:text-sm cursor-pointer ${getButtonStyle('primary')}`}

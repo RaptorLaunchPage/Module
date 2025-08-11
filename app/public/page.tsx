@@ -84,7 +84,7 @@ export default function PublicSitePage() {
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <Card className="bg-black/50 border-white/10">
+    <Card>
       <CardContent className="p-6 text-left text-white">
         <div className="flex items-center gap-2 text-white/80 mb-2">{icon}<span className="text-sm">{label}</span></div>
         <div className="text-3xl font-bold tabular-nums">

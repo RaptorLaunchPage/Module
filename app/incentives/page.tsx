@@ -35,7 +35,7 @@ export default function IncentivesPage() {
           </FadeInOnScroll>
           <div className="grid md:grid-cols-3 gap-6">
             <FadeInOnScroll delayMs={0}>
-              <Card className="bg-black/50 border-white/10">
+              <Card>
                 <CardHeader>
                   <CardTitle>Paid practice scrims</CardTitle>
                 </CardHeader>
@@ -43,7 +43,7 @@ export default function IncentivesPage() {
               </Card>
             </FadeInOnScroll>
             <FadeInOnScroll delayMs={200}>
-              <Card className="bg-black/50 border-white/10">
+              <Card>
                 <CardHeader>
                   <CardTitle>AI performance tools</CardTitle>
                 </CardHeader>
@@ -51,7 +51,7 @@ export default function IncentivesPage() {
               </Card>
             </FadeInOnScroll>
             <FadeInOnScroll delayMs={400}>
-              <Card className="bg-black/50 border-white/10">
+              <Card>
                 <CardHeader>
                   <CardTitle>Attendance monitoring</CardTitle>
                 </CardHeader>
@@ -100,7 +100,7 @@ export default function IncentivesPage() {
         <FadeInOnScroll as="section" className="max-w-6xl mx-auto px-4 py-10">
           <h2 className="text-3xl font-bold text-white mb-4">Winning Share Perks</h2>
           <div className="grid md:grid-cols-2 gap-6">
-            <Card className="bg-black/50 border-white/10">
+            <Card>
               <CardHeader>
                 <CardTitle>Policy Overview</CardTitle>
               </CardHeader>
@@ -109,7 +109,7 @@ export default function IncentivesPage() {
                 <p>After covering costs, surpluses are split fairly with a team-favored approach.</p>
               </CardContent>
             </Card>
-            <Card className="bg-black/50 border-white/10">
+            <Card>
               <CardHeader>
                 <CardTitle>Example</CardTitle>
               </CardHeader>

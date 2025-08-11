@@ -282,7 +282,7 @@ export default function JoinUsPage() {
                             <Send className="h-4 w-4 ml-2" />
                           </Button>
                           <Link href="/incentives" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("secondary")}`}>
-                            Read Incentives
+                            View Rewards
                           </Link>
                         </div>
                       </FadeInOnScroll>
@@ -302,7 +302,7 @@ export default function JoinUsPage() {
                 View Tier Structure
               </Link>
               <Link href="/incentives" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("secondary")}`}>
-                Read Incentives
+                View Rewards
               </Link>
               <a href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("primary")}`}>
                 Join our Discord
