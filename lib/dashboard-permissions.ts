@@ -137,6 +137,16 @@ export const DASHBOARD_MODULES: DashboardModule[] = [
     mobileOrder: 11
   },
   {
+    id: 'media',
+    title: 'Media',
+    description: 'Upload and manage media assets',
+    icon: 'FileText',
+    path: '/dashboard/media',
+    allowedRoles: ['admin'],
+    showInNavigation: true,
+    mobileOrder: 12
+  },
+  {
     id: 'profile',
     title: 'Profile',
     description: 'Personal profile and settings',
