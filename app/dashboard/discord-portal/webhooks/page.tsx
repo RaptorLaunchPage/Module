@@ -468,6 +468,45 @@ export default function WebhooksPage() {
         </Card>
       )}
 
+      {/* Team-specific Automation Management (restored) */}
+      {permissions.manageDiscordPortal && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Automation</span>
+              <div className="flex items-center gap-2">
+                <Label>Team</Label>
+                <Select value={autoTeamId} onValueChange={async (val) => { setAutoTeamId(val); if (val !== 'all') await fetchAutomationSettings(val) }}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Select team" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Teams</SelectItem>
+                    {teams.map(t => (
+                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardTitle>
+            <CardDescription>Manage automation per team or apply to all teams</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {AUTOMATION_SETTINGS.map(s => (
+                <div key={s.key} className="flex items-center justify-between p-3 rounded border">
+                  <div className="space-y-1">
+                    <div className="font-medium">{s.label}</div>
+                    <div className="text-xs text-muted-foreground">{s.key}</div>
+                  </div>
+                  <Switch checked={!!autoSettings[s.key]} disabled={autoLoading} onCheckedChange={(v) => toggleAutomation(s.key, v)} />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Existing Webhooks UI */}
       <div className="flex items-center justify-between mb-8">
         <div>
