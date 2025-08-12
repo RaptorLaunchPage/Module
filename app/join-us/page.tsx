@@ -14,21 +14,13 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { getButtonStyle } from "@/lib/global-theme"
 import { useToast } from "@/hooks/use-toast"
-import { sendToDiscord } from "@/modules/discord-portal/sendToDiscord"
-import { getAdminWebhooks } from "@/modules/discord-portal/webhookService"
+// Public submission endpoint, no auth required
 
 import { Bolt, Send, Link2 } from "lucide-react"
 
 export default function JoinUsPage() {
   const { toast } = useToast()
-  const [selectedWebhookId, setSelectedWebhookId] = useState<string | undefined>(undefined)
-
-  React.useEffect(() => {
-    getAdminWebhooks().then((hooks) => {
-      const first = (hooks || [])[0]
-      if (first?.id) setSelectedWebhookId(first.id as string)
-    }).catch(() => {})
-  }, [])
+  // No webhook selection; handled by public API + env vars
 
   const scrollToForm = () => {
     const el = document.getElementById("application-form")
@@ -84,13 +76,15 @@ export default function JoinUsPage() {
         tier: playerForm.tier,
         results: playerForm.results,
       }
-      const resp = await sendToDiscord({
-        messageType: 'system_alert',
-        data: { title: 'New Application Submission', message: JSON.stringify(payload, null, 2), severity: 'info' },
-        webhookTypes: ['admin','global'],
-        webhookId: selectedWebhookId,
+      const res = await fetch('/api/public/submit/application', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       })
-      if (!resp.success) throw new Error(resp.error || 'Failed to send to Discord')
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        throw new Error(e.error || 'Failed to submit')
+      }
       toast({ title: "Application submitted", description: "We will review your application within 7 days." })
     } catch (err:any) {
       toast({ title: 'Submission failed', description: err.message || 'Please try again later', variant: 'destructive' })
@@ -114,13 +108,15 @@ export default function JoinUsPage() {
     }
     try {
       const payload = { ...brandForm }
-      const resp = await sendToDiscord({
-        messageType: 'system_alert',
-        data: { title: 'New Brand/Collab Submission', message: JSON.stringify(payload, null, 2), severity: 'info' },
-        webhookTypes: ['admin','global'],
-        webhookId: selectedWebhookId,
+      const res = await fetch('/api/public/submit/application', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       })
-      if (!resp.success) throw new Error(resp.error || 'Failed to send to Discord')
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        throw new Error(e.error || 'Failed to submit')
+      }
       toast({ title: "Inquiry sent", description: "Thanks for reaching out. We will get back shortly." })
     } catch (err:any) {
       toast({ title: 'Submission failed', description: err.message || 'Please try again later', variant: 'destructive' })

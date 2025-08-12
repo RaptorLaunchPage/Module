@@ -14,8 +14,7 @@ import { Button } from "@/components/ui/button"
 import { getButtonStyle } from "@/lib/global-theme"
 import { useToast } from "@/hooks/use-toast"
 import { Upload, CheckCircle2 } from "lucide-react"
-import { sendToDiscord } from "@/modules/discord-portal/sendToDiscord"
-import { getAdminWebhooks } from "@/modules/discord-portal/webhookService"
+// Public submission endpoint, no auth required
 
 export default function ContactPage() {
   const { toast } = useToast()
@@ -23,7 +22,7 @@ export default function ContactPage() {
   const [mode, setMode] = useState<"general" | "brand">("general")
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [selectedWebhookId, setSelectedWebhookId] = useState<string | undefined>(undefined)
+  const [selectedWebhookId] = useState<string | undefined>(undefined)
 
   // General inquiry state
   const [general, setGeneral] = useState({
@@ -49,13 +48,7 @@ export default function ContactPage() {
     { value: "other", label: "Other" },
   ]
 
-  React.useEffect(() => {
-    // Load admin/global webhooks and auto-pick one; public page won't expose a selector
-    getAdminWebhooks().then((hooks) => {
-      const first = (hooks || [])[0]
-      if (first?.id) setSelectedWebhookId(first.id as string)
-    }).catch(() => {})
-  }, [])
+  // No webhook selection; handled by public API + env vars
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -90,7 +83,6 @@ export default function ContactPage() {
 
     setSubmitting(true)
     try {
-      // Prepare payload for Discord embed generator
       const payload = mode === 'general' ? {
         topic: 'General Inquiry',
         name: general.name,
@@ -102,16 +94,16 @@ export default function ContactPage() {
         contactName: brand.contactName,
         website: brand.website,
         collabType: brand.collabType,
-        details: brand.details,
+        message: brand.details,
       }
-      const resp = await sendToDiscord({
-        messageType: 'system_alert',
-        data: { title: 'New Contact Submission', message: JSON.stringify(payload, null, 2), severity: 'info' },
-        webhookTypes: ['admin','global'],
-        webhookId: selectedWebhookId,
+      const res = await fetch('/api/public/submit/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
       })
-      if (!resp.success) {
-        throw new Error(resp.error || 'Failed to send to Discord')
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        throw new Error(e.error || 'Failed to submit')
       }
       setSubmitted(true)
     } catch (err:any) {
