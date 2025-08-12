@@ -23,7 +23,6 @@ export default function ContactPage() {
   const [mode, setMode] = useState<"general" | "brand">("general")
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [webhooks, setWebhooks] = useState<{ id: string; name: string }[]>([])
   const [selectedWebhookId, setSelectedWebhookId] = useState<string | undefined>(undefined)
 
   // General inquiry state
@@ -51,11 +50,10 @@ export default function ContactPage() {
   ]
 
   React.useEffect(() => {
-    // Load admin/global webhooks for selection (admin can configure these elsewhere)
+    // Load admin/global webhooks and auto-pick one; public page won't expose a selector
     getAdminWebhooks().then((hooks) => {
-      const mapped = (hooks || []).map(h => ({ id: h.id as string, name: h.channel_name || 'Admin/Global Webhook' }))
-      setWebhooks(mapped)
-      if (mapped.length > 0) setSelectedWebhookId(mapped[0].id)
+      const first = (hooks || [])[0]
+      if (first?.id) setSelectedWebhookId(first.id as string)
     }).catch(() => {})
   }, [])
 
@@ -181,19 +179,7 @@ export default function ContactPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-2">
-                        <label className="text-sm text-white/90">Submission Webhook</label>
-                        <Select value={selectedWebhookId} onValueChange={(v: any) => setSelectedWebhookId(v)}>
-                          <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                            <SelectValue placeholder="Select Webhook (Admin configured)" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {webhooks.map(w => (
-                              <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {/* Webhook selection removed from public UI; uses admin-configured webhook automatically */}
                     </div>
 
                     {/* General Inquiry */}

@@ -24,6 +24,7 @@ import {
   Loader2
 } from "lucide-react"
 import { DashboardPermissions } from "@/lib/dashboard-permissions"
+import { Select as UiSelect, SelectTrigger as UiSelectTrigger, SelectValue as UiSelectValue, SelectContent as UiSelectContent, SelectItem as UiSelectItem } from "@/components/ui/select"
 
 interface DiscordWebhook {
   id: string
@@ -62,6 +63,7 @@ export default function WebhooksPage() {
   })
   const [validating, setValidating] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [defaultContactWebhookId, setDefaultContactWebhookId] = useState<string>("")
 
   const AUTOMATION_SETTINGS = [
     { key: 'auto_slot_create', label: 'Slot Creation' },
@@ -100,7 +102,8 @@ export default function WebhooksPage() {
         }),
         fetch('/api/teams', {
           headers: { 'Authorization': `Bearer ${token}` }
-        })
+        }),
+        fetch('/api/discord-portal/settings?global=true', { headers: { 'Authorization': `Bearer ${token}` } })
       ])
 
       if (webhooksRes.ok) {
@@ -116,6 +119,17 @@ export default function WebhooksPage() {
           setAutoTeamId(teamsData[0].id)
           await fetchAutomationSettings(teamsData[0].id)
         }
+      }
+
+      // Load default contact submission webhook setting
+      const settingsRes = arguments?.[0] as any
+      // We can't access Promise.all array directly here; fetch again for clarity
+      const settingsRes2 = await fetch('/api/discord-portal/settings?global=true', { headers: { 'Authorization': `Bearer ${token}` } })
+      if (settingsRes2.ok) {
+        const settingsData = await settingsRes2.json()
+        const list = Array.isArray(settingsData) ? settingsData : settingsData?.settings || []
+        const entry = list.find((s: any) => s.setting_key === 'contact_submission_default_webhook')
+        if (entry?.setting_value) setDefaultContactWebhookId(entry.setting_value as unknown as string)
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -380,6 +394,44 @@ export default function WebhooksPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
+      {/* Default Contact Submission Webhook (Admin) */}
+      {permissions.manageDiscordPortal && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact Form Submission Webhook</CardTitle>
+            <CardDescription>
+              Select which admin/global webhook receives public Contact form submissions.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center gap-3">
+            <UiSelect value={defaultContactWebhookId} onValueChange={(v) => setDefaultContactWebhookId(v)}>
+              <UiSelectTrigger className="w-80">
+                <UiSelectValue placeholder="Choose a webhook" />
+              </UiSelectTrigger>
+              <UiSelectContent>
+                {webhooks.filter(w => w.type === 'admin' || w.type === 'global').map(w => (
+                  <UiSelectItem key={w.id} value={w.id}>{w.channel_name || `${w.type.toUpperCase()} Webhook`}</UiSelectItem>
+                ))}
+              </UiSelectContent>
+            </UiSelect>
+            <Button onClick={async () => {
+              try {
+                const token = await getToken()
+                const res = await fetch('/api/discord-portal/settings', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                  body: JSON.stringify({ settingKey: 'contact_submission_default_webhook', enabled: true, teamId: undefined, isGlobal: true, value: defaultContactWebhookId })
+                })
+                if (!res.ok) throw new Error('Failed to save setting')
+                toast({ title: 'Saved', description: 'Default contact submission webhook updated.' })
+              } catch (e) {
+                toast({ title: 'Error', description: 'Failed to update default webhook', variant: 'destructive' })
+              }
+            }}>Save</Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Automation Management */}
       {permissions.manageDiscordPortal && (
         <Card>
