@@ -417,10 +417,10 @@ export default function WebhooksPage() {
             <Button onClick={async () => {
               try {
                 const token = await getToken()
-                const res = await fetch('/api/discord-portal/settings', {
+                const res = await fetch('/api/discord-portal/settings/default-webhook', {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                  body: JSON.stringify({ settingKey: 'contact_submission_default_webhook', enabled: true, teamId: undefined, isGlobal: true, value: defaultContactWebhookId })
+                  body: JSON.stringify({ value: defaultContactWebhookId })
                 })
                 if (!res.ok) throw new Error('Failed to save setting')
                 toast({ title: 'Saved', description: 'Default contact submission webhook updated.' })
