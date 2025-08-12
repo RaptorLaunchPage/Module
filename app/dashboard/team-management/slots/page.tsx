@@ -78,24 +78,11 @@ export default function SlotsPage() {
 
   const fetchTeams = async () => {
     try {
-      const userRole = profile?.role as UserRole
-      const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
-      
-      let query = supabase.from("teams").select("*").order("name")
-
-      // Filter teams based on role permissions
-      if (!shouldSeeAllData) {
-        if (userRole === "coach") {
-          query = query.eq("coach_id", profile.id)
-        } else if (userRole === "player") {
-          query = query.eq("id", profile.team_id!)
-        }
-      }
-      // Admin and manager see all teams (no filtering)
-
-      const { data, error } = await query
-      if (error) throw error
-      setTeams(data || [])
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to fetch teams')
+      const data = await res.json()
+      setTeams(Array.isArray(data) ? data : [])
       if (data && data.length > 0 && !newSlotData.team_id) {
         setNewSlotData((prev) => ({ ...prev, team_id: data[0].id }))
         // Auto-fill slot rate based on team tier
@@ -115,38 +102,14 @@ export default function SlotsPage() {
   const fetchSlots = async (view: 'current' | 'archived' | 'all' = 'current', month?: string) => {
     setLoading(true)
     try {
-      const userRole = profile?.role as UserRole
-      const shouldSeeAllData = DashboardPermissions.shouldSeeAllData(userRole)
-      
-      let query = supabase.from("slots").select("*, team:team_id(name, tier)").order("date", { ascending: false })
-
-      // Filter slots based on role permissions  
-      if (!shouldSeeAllData) {
-        if (userRole === "coach" || userRole === "player") {
-          query = query.eq("team_id", profile.team_id!)
-        }
-      }
-      // Admin and manager see all slots (no filtering)
-
-      // Date filtering based on view
-      const today = format(new Date(), 'yyyy-MM-dd')
-      
-      if (view === 'current') {
-        query = query.eq('date', today)
-      } else if (view === 'archived') {
-        if (month) {
-          const monthDate = new Date(month + '-01')
-          const startDate = format(startOfMonth(monthDate), 'yyyy-MM-dd')
-          const endDate = format(endOfMonth(monthDate), 'yyyy-MM-dd')
-          query = query.gte('date', startDate).lte('date', endDate)
-        } else {
-          query = query.lt('date', today)
-        }
-      }
-      // 'all' view has no date filtering
-
-      const { data, error } = await query
-      if (error) throw error
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const params = new URLSearchParams()
+      params.set('view', view)
+      if (view === 'archived' && month) params.set('month', month)
+      const res = await fetch(`/api/slots?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to fetch slots')
+      const payload = await res.json()
+      const data = Array.isArray(payload) ? payload : (payload.slots || [])
       setSlots(data || [])
     } catch (error: any) {
       console.error("Error fetching slots:", error)
@@ -162,8 +125,9 @@ export default function SlotsPage() {
 
   const fetchTierDefaults = async () => {
     try {
-      const { data, error } = await supabase.from("tier_defaults").select("*").order("tier")
-      if (error) throw error
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/tier-defaults', { headers: { Authorization: `Bearer ${token}` } })
+      const data = res.ok ? await res.json() : []
       setTierDefaults(data || [])
     } catch (error) {
       console.error("Error fetching tier defaults:", error)
@@ -203,56 +167,23 @@ export default function SlotsPage() {
         return
       }
 
-      const { data: slotInsertData, error: slotError } = await supabase.from("slots").insert({
-        team_id: newSlotData.team_id,
-        organizer: newSlotData.organizer,
-        time_range: newSlotData.time_range,
-        number_of_slots: newSlotData.number_of_slots,
-        slot_rate: newSlotData.slot_rate,
-        match_count: newSlotData.match_count || 0,
-        notes: newSlotData.notes,
-        date: format(newSlotData.date, "yyyy-MM-dd"),
-      }).select()
-
-      if (slotError) throw slotError
-
-      // Insert into slot_expenses
-      const newSlot = slotInsertData && slotInsertData[0]
-      if (newSlot && newSlot.id) {
-        const { error: expenseError } = await supabase.from("slot_expenses").insert({
-          slot_id: newSlot.id,
-          team_id: newSlot.team_id,
-          rate: newSlot.slot_rate,
-          total: newSlot.slot_rate * newSlot.number_of_slots,
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          team_id: newSlotData.team_id,
+          organizer: newSlotData.organizer,
+          time_range: newSlotData.time_range,
+          number_of_slots: newSlotData.number_of_slots,
+          slot_rate: newSlotData.slot_rate,
+          match_count: newSlotData.match_count || 0,
+          notes: newSlotData.notes,
+          date: format(newSlotData.date, "yyyy-MM-dd"),
         })
-        
-        // Send Discord notification for slot creation (if automation is enabled)
-        try {
-          const { notifySlotCreated } = await import('@/modules/discord-portal')
-          await notifySlotCreated({
-            slot_id: newSlot.id,
-            team_id: newSlot.team_id,
-            team_name: selectedTeam.name,
-            organizer: newSlot.organizer,
-            date: format(newSlotData.date, "PPP"),
-            time_range: newSlot.time_range,
-            match_count: newSlot.match_count,
-            slot_rate: newSlot.slot_rate,
-            created_by_name: profile?.name || profile?.email || 'Unknown',
-            created_by_id: profile?.id || ''
-          })
-        } catch (commError) {
-          // Don't fail slot creation if Discord notification fails
-          console.warn('Discord notification failed:', commError)
-        }
-        if (expenseError) {
-          toast({
-            title: "Warning",
-            description: "Slot booked, but failed to add to expenses.",
-            variant: "destructive",
-          })
-        }
-      }
+      })
+
+      if (!res.ok) throw new Error('Failed to book slot')
 
       toast({
         title: "Success",
@@ -290,8 +221,9 @@ export default function SlotsPage() {
     }
     setFormLoading(true)
     try {
-      const { error } = await supabase.from("slots").delete().eq("id", slotId)
-      if (error) throw error
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch(`/api/slots?id=${slotId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to delete slot')
       toast({ title: "Success", description: "Slot deleted successfully." })
       fetchSlots(currentView, filterMonth ? format(filterMonth, 'yyyy-MM') : undefined)
     } catch (error: any) {
@@ -308,13 +240,9 @@ export default function SlotsPage() {
 
   const updateTierDefault = async (tier: string, rate: number) => {
     try {
-      const { error } = await supabase
-        .from("tier_defaults")
-        .update({ default_slot_rate: rate, updated_at: new Date().toISOString() })
-        .eq("tier", tier)
-
-      if (error) throw error
-
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/tier-defaults', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ tier, default_slot_rate: rate }) })
+      if (!res.ok) throw new Error('Failed to update tier default')
       toast({ title: "Success", description: `Default rate for ${tier} updated to ₹${rate}` })
       fetchTierDefaults()
     } catch (error: any) {

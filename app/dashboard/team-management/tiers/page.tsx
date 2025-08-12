@@ -253,8 +253,9 @@ export default function TeamTierManagementPage() {
 
   async function fetchTierDefaults() {
     try {
-      const { data, error } = await supabase.from('tier_defaults').select('tier, default_slot_rate')
-      if (error) throw error
+      const res = await fetch('/api/tier-defaults', { headers: await authHeader() })
+      if (!res.ok) return
+      const data = await res.json()
       setTierDefaults(data || [])
     } catch (e) {
       // non-fatal
@@ -593,8 +594,9 @@ export default function TeamTierManagementPage() {
                                 const idx = Math.min(order.indexOf(current) + 1, order.length - 1)
                                 const newTier = order[idx]
                                 try {
-                                  const { error } = await supabase.from('teams').update({ tier: newTier }).eq('id', r.team_id)
-                                  if (error) throw error
+                                  // TODO: replace with /api/teams/manage when available
+                                  const res = await fetch('/api/teams/monthly', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify({ ...r, updated_tier: newTier }) })
+                                  if (!res.ok) throw new Error('Failed to update tier')
                                   toast({ title: 'Tier Updated', description: `Team tier set to ${newTier}` })
                                   fetchMonthly()
                                 } catch (e: any) {
@@ -610,8 +612,9 @@ export default function TeamTierManagementPage() {
                                 const idx = Math.max(order.indexOf(current) - 1, 0)
                                 const newTier = order[idx]
                                 try {
-                                  const { error } = await supabase.from('teams').update({ tier: newTier }).eq('id', r.team_id)
-                                  if (error) throw error
+                                  // TODO: replace with /api/teams/manage when available
+                                  const res = await fetch('/api/teams/monthly', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify({ ...r, updated_tier: newTier }) })
+                                  if (!res.ok) throw new Error('Failed to update tier')
                                   toast({ title: 'Tier Updated', description: `Team tier set to ${newTier}` })
                                   fetchMonthly()
                                 } catch (e: any) {
