@@ -42,20 +42,11 @@ export default function TeamsPage() {
   const fetchTeams = async () => {
     setLoading(true)
     try {
-      let query = supabase.from("teams").select("*, coach:coach_id(name, email)").order("name")
-
-      // Admin and manager can see all teams
-      if (profile?.role === "coach") {
-        query = query.eq("coach_id", profile.id)
-      } else if (profile?.role === "player") {
-        query = query.eq("id", profile.team_id!)
-      }
-      // No filtering for admin/manager - they see all teams
-
-      const { data, error } = await query
-
-      if (error) throw error
-      setTeams(data || [])
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to fetch teams')
+      const data = await res.json()
+      setTeams(Array.isArray(data) ? data : [])
     } catch (error: any) {
       console.error("Error fetching teams:", error)
       toast({
@@ -70,9 +61,11 @@ export default function TeamsPage() {
 
   const fetchCoaches = async () => {
     try {
-      const { data, error } = await supabase.from("users").select("*").eq("role", "coach")
-      if (error) throw error
-      setCoaches(data || [])
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to fetch users')
+      const data = await res.json()
+      setCoaches((Array.isArray(data) ? data : []).filter((u: any) => u.role === 'coach'))
     } catch (error) {
       console.error("Error fetching coaches:", error)
     }

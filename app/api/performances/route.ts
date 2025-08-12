@@ -88,6 +88,17 @@ export async function GET(request: NextRequest) {
       .from("performances")
       .select("*")
 
+    const { searchParams } = new URL(request.url)
+    const timeframe = parseInt(searchParams.get('timeframe') || '0')
+    const teamId = searchParams.get('teamId')
+    const playerId = searchParams.get('playerId')
+    const map = searchParams.get('map')
+
+    if (timeframe > 0) {
+      const start = new Date(); start.setDate(start.getDate() - timeframe)
+      query = query.gte('created_at', start.toISOString())
+    }
+
     // Apply role-based filtering
     if (userData!.role === "player") {
       // Players can see their own performance AND their team's performance
@@ -100,6 +111,17 @@ export async function GET(request: NextRequest) {
       query = query.eq("team_id", userData!.team_id)
     }
     // Admin, manager, and analyst can see all performances (no filtering)
+
+    // Additional filters
+    if (teamId && (userData!.role === 'admin' || userData!.role === 'manager')) {
+      query = query.eq('team_id', teamId)
+    }
+    if (playerId) {
+      query = query.eq('player_id', playerId)
+    }
+    if (map) {
+      query = query.eq('map', map)
+    }
 
     const { data, error: queryError } = await query.order("created_at", { ascending: false })
 

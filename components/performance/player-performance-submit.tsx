@@ -34,21 +34,20 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
 
   // Move useEffect before conditional returns
   useEffect(() => {
-    if (!profile?.team_id) return
-    const fetchTeamAndSlots = async () => {
-      setSlotsLoading(true)
-      setTeam(null)
-      setTeamSlots([])
-      // Fetch team info
-      const { data: teamData } = await supabase.from("teams").select("*").eq("id", profile.team_id).single()
-      setTeam(teamData || null)
-      // Fetch slots for this team
-      const { data: slotsData } = await supabase.from("slots").select("id, time_range, date").eq("team_id", profile.team_id)
-      setTeamSlots(slotsData || [])
-      setSlotsLoading(false)
+    async function init() {
+      if (!profile?.team_id) return
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      // Fetch team via API
+      const teamsRes = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+      const teams = teamsRes.ok ? await teamsRes.json() : []
+      setTeam(Array.isArray(teams) && teams.length ? teams[0] : null)
+      // Fetch slots via API
+      const slotsRes = await fetch(`/api/slots?team_id=${profile.team_id}`, { headers: { Authorization: `Bearer ${token}` } })
+      const slots = slotsRes.ok ? await slotsRes.json() : []
+      setTeamSlots(Array.isArray(slots) ? slots : (slots.slots || []))
     }
-    fetchTeamAndSlots()
-  }, [profile.team_id])
+    init()
+  }, [profile?.team_id])
 
   // Defensive: Only allow players with valid profile
   if (!profile || profile.role !== "player") return null
@@ -103,20 +102,13 @@ export function PlayerPerformanceSubmit({ onPerformanceAdded }: { onPerformanceA
         })
         localStorage.setItem("debug-logs", JSON.stringify(logs.slice(-500)))
       }
-      const { error } = await supabase.from("performances").insert(payload)
-      if (error) {
-        // Log error
-        if (typeof window !== "undefined") {
-          const logs = JSON.parse(localStorage.getItem("debug-logs") || "[]")
-          logs.push({
-            level: "error",
-            message: "Supabase insert error: " + (error.message || JSON.stringify(error)),
-            time: new Date().toISOString(),
-          })
-          localStorage.setItem("debug-logs", JSON.stringify(logs.slice(-500)))
-        }
-        throw error
-      }
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/performances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) throw new Error('Failed to submit performance')
       toast({ title: "Performance Submitted!", description: "Performance recorded successfully" })
       setFormData({ match_number: "", slot: "", map: "", placement: "", kills: "", assists: "", damage: "", survival_time: "" })
       onPerformanceAdded()

@@ -311,67 +311,75 @@ export default function OptimizedDashboardPage() {
     try {
       console.log('🚀 Loading dashboard data...')
       const startTime = Date.now()
-      
-      // Use optimized data service with caching
-      // Apply role-aware parameters for safer aggregation
-      const baseDays = parseInt(selectedTimeframe)
-      const roleAwareTeamId = (userRole === 'coach' || userRole === 'player' || userRole === 'analyst') ? (profile.team_id || undefined) : undefined
-      const roleAwarePlayerId = (userRole === 'player') ? profile.id : undefined
 
-      // Fetch performances constrained by role
-      const roleScopedPerformances = await dataService.getPerformances({ 
-        days: baseDays, 
-        limit: 1000,
-        ...(roleAwarePlayerId && { playerId: roleAwarePlayerId }),
-        ...(roleAwareTeamId && { teamId: roleAwareTeamId })
+      const token = await getToken()
+      const params = new URLSearchParams()
+      params.set('timeframe', selectedTimeframe)
+
+      const res = await fetch(`/api/dashboard/overview?${params.toString()}` , {
+        headers: { Authorization: `Bearer ${token}` }
       })
 
-      // Compute stats from role-scoped dataset
-      const computedStats = (() => {
-        const totalMatches = roleScopedPerformances.length
-        const totalKills = roleScopedPerformances.reduce((sum: number, p: any) => sum + (p.kills || 0), 0)
-        const totalDamage = roleScopedPerformances.reduce((sum: number, p: any) => sum + (p.damage || 0), 0)
-        const totalSurvival = roleScopedPerformances.reduce((sum: number, p: any) => sum + (p.survival_time || 0), 0)
-        const today = new Date(); today.setHours(0,0,0,0)
-        const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7)
-        const todayMatches = roleScopedPerformances.filter((p: any) => new Date(p.created_at) >= today).length
-        const weekMatches = roleScopedPerformances.filter((p: any) => new Date(p.created_at) >= weekAgo).length
-        const placements = roleScopedPerformances.map((p: any) => p.placement).filter((x: any) => x > 0)
-        const avgPlacement = placements.length > 0 ? Math.round(placements.reduce((a: number, b: number) => a + b, 0) / placements.length) : 0
-        return {
-          totalMatches,
-          totalKills,
-          avgDamage: totalMatches ? totalDamage / totalMatches : 0,
-          avgSurvival: totalMatches ? totalSurvival / totalMatches : 0,
-          kdRatio: totalMatches ? totalKills / totalMatches : 0,
-          totalExpense: 0,
-          totalProfitLoss: 0,
-          activeTeams: 0,
-          activePlayers: 0,
-          todayMatches,
-          weekMatches,
-          avgPlacement,
-        }
-      })()
+      let baseStats: any
+      if (res.ok) {
+        const payload = await res.json()
+        baseStats = payload.stats
+      } else {
+        // Fallback to role-scoped client computation
+        const baseDays = parseInt(selectedTimeframe)
+        const roleAwareTeamId = (userRole === 'coach' || userRole === 'player' || userRole === 'analyst') ? (profile.team_id || undefined) : undefined
+        const roleAwarePlayerId = (userRole === 'player') ? profile.id : undefined
+        const roleScopedPerformances = await dataService.getPerformances({ 
+          days: baseDays, 
+          limit: 1000,
+          ...(roleAwarePlayerId && { playerId: roleAwarePlayerId }),
+          ...(roleAwareTeamId && { teamId: roleAwareTeamId })
+        })
+        baseStats = (() => {
+          const totalMatches = roleScopedPerformances.length
+          const totalKills = roleScopedPerformances.reduce((sum: number, p: any) => sum + (p.kills || 0), 0)
+          const totalDamage = roleScopedPerformances.reduce((sum: number, p: any) => sum + (p.damage || 0), 0)
+          const totalSurvival = roleScopedPerformances.reduce((sum: number, p: any) => sum + (p.survival_time || 0), 0)
+          const today = new Date(); today.setHours(0,0,0,0)
+          const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7)
+          const todayMatches = roleScopedPerformances.filter((p: any) => new Date(p.created_at) >= today).length
+          const weekMatches = roleScopedPerformances.filter((p: any) => new Date(p.created_at) >= weekAgo).length
+          const placements = roleScopedPerformances.map((p: any) => p.placement).filter((x: any) => x > 0)
+          const avgPlacement = placements.length > 0 ? Math.round(placements.reduce((a: number, b: number) => a + b, 0) / placements.length) : 0
+          return {
+            totalMatches,
+            totalKills,
+            avgDamage: totalMatches ? totalDamage / totalMatches : 0,
+            avgSurvival: totalMatches ? totalSurvival / totalMatches : 0,
+            kdRatio: totalMatches ? totalKills / totalMatches : 0,
+            totalExpense: 0,
+            totalProfitLoss: 0,
+            activeTeams: 0,
+            activePlayers: 0,
+            todayMatches,
+            weekMatches,
+            avgPlacement,
+            overallAttendanceRate: 0,
+          }
+        })()
+      }
       
       // Enhance stats for admin/manager roles
       if (['admin', 'manager'].includes(userRole)) {
-        const enhancedStats = await loadEnhancedAdminStats(computedStats)
+        const enhancedStats = await loadEnhancedAdminStats(baseStats)
         setStats(enhancedStats)
       } else {
-        setStats(normalizeStats(computedStats))
+        setStats(normalizeStats(baseStats))
       }
       
-      // Load recent performances with caching, role-scoped
-      const performances = await dataService.getPerformances({ 
-        days: 7, 
-        limit: 10,
-        ...(userRole === 'player' && { playerId: profile.id }),
-        ...(userRole !== 'player' && roleAwareTeamId && { teamId: roleAwareTeamId })
-      })
+      // Load recent performances via API-scoped call
+      const perfParams = new URLSearchParams(); perfParams.set('timeframe', '7')
+      if (userRole === 'player') perfParams.set('playerId', profile.id)
+      const perfRes = await fetch(`/api/performances?${perfParams.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
+      const performances = perfRes.ok ? await perfRes.json() : []
       setRecentPerformances(performances)
       
-      // Calculate top performers using role-scoped dataset timeframe
+      // Calculate top performers
       await calculateTopPerformers()
       
       const endTime = Date.now()

@@ -56,21 +56,26 @@ export function AddPerformance({ users, onPerformanceAdded }: AddPerformanceProp
     try {
       const selectedPlayer = users.find((u) => u.id === formData.player_id)
 
-      const { error } = await supabase.from("performances").insert({
-        player_id: formData.player_id,
-        team_id: selectedPlayer?.team_id || null,
-        match_number: Number.parseInt(formData.match_number),
-        slot: formData.slot || null,
-        map: formData.map,
-        placement: formData.placement ? Number.parseInt(formData.placement) : null,
-        kills: Number.parseInt(formData.kills) || 0,
-        assists: Number.parseInt(formData.assists) || 0,
-        damage: Number.parseFloat(formData.damage) || 0,
-        survival_time: Number.parseFloat(formData.survival_time) || 0,
-        added_by: profile.id,
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/performances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          player_id: formData.player_id,
+          team_id: selectedPlayer?.team_id || null,
+          match_number: Number.parseInt(formData.match_number),
+          slot: formData.slot || null,
+          map: formData.map,
+          placement: formData.placement ? Number.parseInt(formData.placement) : null,
+          kills: Number.parseInt(formData.kills) || 0,
+          assists: Number.parseInt(formData.assists) || 0,
+          damage: Number.parseFloat(formData.damage) || 0,
+          survival_time: Number.parseFloat(formData.survival_time) || 0,
+          added_by: profile.id,
+        })
       })
 
-      if (error) throw error
+      if (!res.ok) throw new Error('Failed to add performance')
 
       toast({
         title: "Success",

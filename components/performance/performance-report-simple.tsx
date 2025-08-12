@@ -39,51 +39,27 @@ export function PerformanceReportSimple() {
           // Load real performance data
           console.log('📊 Loading performance data...')
           
-          // Get all performances (with role-based filtering)
-          let performancesQuery = supabase.from('performances').select('*')
+          // Get all performances via API (with role-based filtering)
+          const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+          const perfParams = new URLSearchParams()
+          if (profile.role === 'player') perfParams.set('playerId', profile.id)
+          if (profile.role === 'coach' && profile.team_id) perfParams.set('teamId', profile.team_id)
+          const perfsRes = await fetch(`/api/performances?${perfParams.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
+          const performancesData = perfsRes.ok ? await perfsRes.json() : []
+          console.log('✅ Loaded', performancesData?.length || 0, 'performances')
+          setPerformances(performancesData || [])
           
-          if (profile.role === 'player') {
-            performancesQuery = performancesQuery.eq('player_id', profile.id)
-          } else if (profile.role === 'coach' && profile.team_id) {
-            performancesQuery = performancesQuery.eq('team_id', profile.team_id)
-          }
+          // Load users data via API
+          const usersRes = await fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } })
+          const usersData = usersRes.ok ? await usersRes.json() : []
+          console.log('✅ Loaded', usersData?.length || 0, 'users')
+          setUsers(usersData || [])
           
-          const { data: performancesData, error: perfError } = await performancesQuery
-            .order('created_at', { ascending: false })
-            .limit(50)
-          
-          if (perfError) {
-            console.error('Error loading performances:', perfError)
-          } else {
-            console.log('✅ Loaded', performancesData?.length || 0, 'performances')
-            setPerformances(performancesData || [])
-          }
-          
-          // Load users data
-          const { data: usersData, error: usersError } = await supabase
-            .from('users')
-            .select('id, name, email, role')
-            .order('name')
-          
-          if (usersError) {
-            console.warn('Warning loading users:', usersError)
-          } else {
-            console.log('✅ Loaded', usersData?.length || 0, 'users')
-            setUsers(usersData || [])
-          }
-          
-          // Load teams data
-          const { data: teamsData, error: teamsError } = await supabase
-            .from('teams')
-            .select('id, name')
-            .order('name')
-          
-          if (teamsError) {
-            console.warn('Warning loading teams:', teamsError)
-          } else {
-            console.log('✅ Loaded', teamsData?.length || 0, 'teams')
-            setTeams(teamsData || [])
-          }
+          // Load teams data via API
+          const teamsRes = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+          const teamsData = teamsRes.ok ? await teamsRes.json() : []
+          console.log('✅ Loaded', teamsData?.length || 0, 'teams')
+          setTeams(teamsData || [])
           
           // Calculate statistics
           if (performancesData && performancesData.length > 0) {

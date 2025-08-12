@@ -63,41 +63,36 @@ export function EnhancedPlayerPerformanceSubmit({ onPerformanceAdded }: { onPerf
 
   // Fetch initial data based on role
   useEffect(() => {
-    const fetchInitialData = async () => {
-      if (isPlayer && profile?.team_id) {
-        // For players - just fetch their team
-        const { data: teamData } = await supabase.from("teams").select("*").eq("id", profile.team_id).single()
-        setTeam(teamData || null)
-        setFormData(prev => ({ 
-          ...prev, 
-          player_id: profile.id || "",
-          team_id: profile.team_id || ""
-        }))
-      } else if (isStaff) {
-        // For staff - fetch teams and players based on permissions
-        if (profile?.role === 'coach' && profile?.team_id) {
-          // Coaches see their team only
-          const { data: teamData } = await supabase.from("teams").select("*").eq("id", profile.team_id).single()
-          setTeams(teamData ? [teamData] : [])
-          const { data: playersData } = await supabase.from("users").select("*").eq("team_id", profile.team_id).eq("role", "player")
-          setPlayers(playersData || [])
-          // Preselect coach's team
-          setFormData(prev => ({
-            ...prev,
-            team_id: profile.team_id || prev.team_id
-          }))
-        } else if (['admin', 'manager'].includes(profile?.role || '')) {
-          // Admins and managers see all teams
-          const { data: teamsData } = await supabase.from("teams").select("*").order("name")
-          setTeams(teamsData || [])
+    async function bootstrap() {
+      if (!profile) return
+      const token = await getToken()
+      try {
+        if (profile.role === 'player') {
+          // Fetch team via API
+          const teamsRes = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+          const teams = teamsRes.ok ? await teamsRes.json() : []
+          setTeam(Array.isArray(teams) && teams.length ? teams[0] : null)
+        } else if (profile.role === 'coach') {
+          const teamsRes = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+          const teams = teamsRes.ok ? await teamsRes.json() : []
+          setTeams(teams)
+          if (profile.team_id) {
+            // Players of team
+            const playersRes = await fetch(`/api/teams/${profile.team_id}/players`, { headers: { Authorization: `Bearer ${token}` } })
+            const players = playersRes.ok ? await playersRes.json() : []
+            setPlayers(players)
+          }
+        } else {
+          const teamsRes = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+          const teams = teamsRes.ok ? await teamsRes.json() : []
+          setTeams(teams)
         }
+      } catch (e) {
+        console.warn('Init error:', e)
       }
     }
-    
-    if (profile) {
-      fetchInitialData()
-    }
-  }, [profile, isPlayer, isStaff])
+    bootstrap()
+  }, [profile])
 
   // Fetch players when staff selects a team (admins/managers)
   useEffect(() => {
