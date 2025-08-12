@@ -5,7 +5,7 @@ import { VideoBackground } from "@/components/video-background"
 import { Card, CardContent } from "@/components/ui/card"
 import { FadeInOnScroll } from "@/components/ui/fade-in-on-scroll"
 import { CountUp } from "@/components/ui/count-up"
-import { Trophy, Users, Calendar } from "lucide-react"
+import { Trophy, Users, Calendar, IndianRupee } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { PublicNavigation } from "@/components/public/PublicNavigation"
 import { PublicFooter } from "@/components/public/PublicFooter"
@@ -14,23 +14,27 @@ import { getButtonStyle } from "@/lib/global-theme"
 export default function PublicSitePage() {
   const [teamsCount, setTeamsCount] = useState<number>(0)
   const [playersCount, setPlayersCount] = useState<number>(0)
+  const [totalMatches, setTotalMatches] = useState<number>(0)
+  const [totalWWCD, setTotalWWCD] = useState<number>(0)
+  const [costCovered, setCostCovered] = useState<number>(0)
 
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const teamsRes = await supabase.from('teams').select('*', { count: 'exact', head: true })
-        if (typeof teamsRes.count === 'number') setTeamsCount(teamsRes.count)
-      } catch {}
-      try {
-        const playersRes = await supabase
-          .from('users')
-          .select('*', { count: 'exact', head: true })
-          .eq('role', 'player')
-          .eq('status', 'Active')
-        if (typeof playersRes.count === 'number') setPlayersCount(playersRes.count)
+        const res = await fetch('/api/public/stats', { cache: 'no-store' })
+        if (!res.ok) throw new Error('Failed to fetch stats')
+        const payload = await res.json()
+        const s = payload.stats || {}
+        setTeamsCount(Number(s.activeTeams || 0))
+        setPlayersCount(Number(s.activePlayers || 0))
+        setTotalMatches(Number(s.totalMatches || 0))
+        setTotalWWCD(Number(s.totalWWCD || 0))
+        setCostCovered(Number(s.costCovered || 0))
       } catch {}
     }
     fetchCounts()
+    const interval = setInterval(fetchCounts, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   return (
@@ -67,11 +71,12 @@ export default function PublicSitePage() {
 
           {/* Stats */}
           <FadeInOnScroll as="section" className="max-w-6xl mx-auto px-4 py-10">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <Stat icon={<Users className="h-5 w-5" />} label="Active Teams" value={teamsCount} />
               <Stat icon={<Users className="h-5 w-5" />} label="Active Players" value={playersCount} />
-              <Stat icon={<Calendar className="h-5 w-5" />} label="Total Matches" value={1248} />
-              <Stat icon={<Trophy className="h-5 w-5" />} label="Total WWCD" value={439} />
+              <Stat icon={<Calendar className="h-5 w-5" />} label="Total Matches" value={totalMatches} />
+              <Stat icon={<Trophy className="h-5 w-5" />} label="Total WWCD" value={totalWWCD} />
+              <Stat icon={<IndianRupee className="h-5 w-5" />} label="Cost Covered" value={costCovered} prefix="₹" />
             </div>
           </FadeInOnScroll>
         </div>
@@ -82,9 +87,12 @@ export default function PublicSitePage() {
   )
 }
 
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+function Stat({ icon, label, value, prefix }: { icon: React.ReactNode; label: string; value: number; prefix?: string }) {
   const display = value > 0 ? (
-    <CountUp value={value} duration={2000} delay={500} />
+    <>
+      {prefix ? <span className="mr-1">{prefix}</span> : null}
+      <CountUp value={value} duration={2000} delay={500} />
+    </>
   ) : (
     <span className="opacity-70">—</span>
   )

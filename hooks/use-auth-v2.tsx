@@ -372,11 +372,9 @@ const AuthProviderV2 = memo(function AuthProviderV2({ children }: { children: Re
         description: 'You have been signed out successfully.'
       })
       
-      // Redirect to homepage (not login page) after a brief delay
-      setTimeout(() => {
-        console.log('🏠 Redirecting to homepage after sign out')
-        safeRedirect('/', { delay: 500 })
-      }, 500)
+      // Redirect to homepage immediately to avoid flicker
+      console.log('🏠 Redirecting to homepage after sign out')
+      safeRedirect('/')
       
     } catch (error: any) {
       console.error('❌ Sign out error:', error)

@@ -28,6 +28,7 @@ const PUBLIC_ROUTES = [
   '/faq',
   '/error',
   '/not-found',
+  '/_not-found',
   '/global-error'
 ]
 

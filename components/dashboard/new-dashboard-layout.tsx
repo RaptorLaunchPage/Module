@@ -77,22 +77,11 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
   }
 
   if (!profile) {
-    return (
-      <VideoBackground>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center space-y-4 bg-black/70 backdrop-blur-lg border border-white/30 rounded-xl p-8 max-w-md relative z-20">
-            <h2 className="text-2xl font-bold text-white">Profile Required</h2>
-            <p className="text-white/80">Please complete your profile setup to access the dashboard.</p>
-            <Button 
-              onClick={() => router.push('/')}
-              className="bg-primary hover:bg-primary/90 text-white"
-            >
-              Return Home
-            </Button>
-          </div>
-        </div>
-      </VideoBackground>
-    )
+    // If profile is missing (likely signed out), redirect to homepage and render nothing to avoid flicker
+    if (typeof window !== 'undefined') {
+      router.replace('/');
+    }
+    return null
   }
 
   const userRole = profile.role as UserRole
