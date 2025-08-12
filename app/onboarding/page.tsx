@@ -57,8 +57,8 @@ export default function OnboardingPage() {
         safeRedirect("/dashboard")
       }
     } else if (!authLoading && !profile) {
-      console.log('🔄 No profile found, redirecting to login')
-      safeRedirect("/auth/login")
+      console.log('🔄 No profile found, redirecting to homepage')
+      safeRedirect("/")
     }
   }, [profile, authLoading, safeRedirect])
 

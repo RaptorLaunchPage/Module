@@ -84,10 +84,10 @@ export function NewDashboardLayout({ children }: NewDashboardLayoutProps) {
             <h2 className="text-2xl font-bold text-white">Profile Required</h2>
             <p className="text-white/80">Please complete your profile setup to access the dashboard.</p>
             <Button 
-              onClick={() => router.push('/auth/login')}
+              onClick={() => router.push('/')}
               className="bg-primary hover:bg-primary/90 text-white"
             >
-              Return to Login
+              Return Home
             </Button>
           </div>
         </div>

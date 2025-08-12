@@ -195,7 +195,7 @@ export default function AgreementReviewPage() {
   }
 
   if (!user || !profile) {
-    router.push('/auth/login')
+    router.push('/')
     return null
   }
 
