@@ -75,30 +75,22 @@ export default function TeamsPage() {
     e.preventDefault()
     setFormLoading(true)
     try {
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
       if (editingTeam) {
-        // Update team
-        const { error } = await supabase
-          .from("teams")
-          .update({
-            name: newTeamName,
-            tier: newTeamTier,
-            coach_id: newTeamCoach,
-            status: newTeamStatus,
-          })
-          .eq("id", editingTeam.id)
-
-        if (error) throw error
+        const res = await fetch('/api/teams/manage', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ id: editingTeam.id, name: newTeamName, tier: newTeamTier, coach_id: newTeamCoach, status: newTeamStatus })
+        })
+        if (!res.ok) throw new Error('Failed to update team')
         toast({ title: "Success", description: "Team updated successfully." })
       } else {
-        // Create team
-        const { error } = await supabase.from("teams").insert({
-          name: newTeamName,
-          tier: newTeamTier,
-          coach_id: newTeamCoach,
-          status: newTeamStatus,
+        const res = await fetch('/api/teams/manage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ name: newTeamName, tier: newTeamTier, coach_id: newTeamCoach, status: newTeamStatus })
         })
-
-        if (error) throw error
+        if (!res.ok) throw new Error('Failed to create team')
         toast({ title: "Success", description: "Team created successfully." })
       }
       resetForm()
@@ -121,8 +113,9 @@ export default function TeamsPage() {
     }
     setFormLoading(true)
     try {
-      const { error } = await supabase.from("teams").delete().eq("id", teamId)
-      if (error) throw error
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch(`/api/teams/manage?id=${teamId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to delete team')
       toast({ title: "Success", description: "Team deleted successfully." })
       fetchTeams()
     } catch (error: any) {
