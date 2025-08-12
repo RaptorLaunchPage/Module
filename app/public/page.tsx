@@ -97,10 +97,10 @@ function Stat({ icon, label, value, prefix }: { icon: React.ReactNode; label: st
     <span className="opacity-70">—</span>
   )
   return (
-    <Card>
-      <CardContent className="p-6 text-left text-white">
-        <div className="flex items-center gap-2 text-white/80 mb-2">{icon}<span className="text-sm">{label}</span></div>
-        <div className="text-3xl font-bold tabular-nums">
+    <Card className="h-full">
+      <CardContent className="p-5 sm:p-6 text-left text-white h-full flex flex-col justify-between">
+        <div className="flex items-center gap-2 text-white/80 mb-2">{icon}<span className="text-xs sm:text-sm">{label}</span></div>
+        <div className="font-bold tabular-nums leading-tight break-words text-[clamp(1.125rem,3.5vw,1.75rem)]">
           {display}
         </div>
       </CardContent>
