@@ -22,13 +22,19 @@ export async function GET() {
 
     const activeTeams = (teamsCountRes.count || 0)
     const activePlayers = (playersCountRes.count || 0)
-    const totalMatches = (matchesCountRes.count || 0)
-    const totalWWCD = (winsCountRes.count || 0)
+    const liveMatches = (matchesCountRes.count || 0)
+    const liveWWCD = (winsCountRes.count || 0)
     const expenses = (expensesSumRes.data || []) as Array<{ total: number | null }>
     const expensesSum = expenses.reduce((sum, e) => sum + (e.total || 0), 0)
 
+    // Base figures
     const baseUnderdogPractice = 37800
+    const baseMatches = 3240
+    const baseWWCD = 1134
+
     const costCovered = baseUnderdogPractice + expensesSum
+    const totalMatches = baseMatches + liveMatches
+    const totalWWCD = baseWWCD + liveWWCD
 
     return NextResponse.json({
       success: true,
