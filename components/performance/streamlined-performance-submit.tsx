@@ -220,7 +220,8 @@ export function StreamlinedPerformanceSubmit({ onPerformanceAdded }: Streamlined
       }
 
       const data = await response.json()
-      setSlots(Array.isArray(data) ? data : [])
+      const slotsList: any[] = Array.isArray(data) ? data : (data.slots || [])
+      setSlots(slotsList)
     } catch (error) {
       console.error('Error loading slots:', error)
       // Don't show error for slots as they might not exist

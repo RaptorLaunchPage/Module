@@ -313,26 +313,65 @@ export default function OptimizedDashboardPage() {
       const startTime = Date.now()
       
       // Use optimized data service with caching
-      const dashboardStats = await dataService.getDashboardStats(profile.id, selectedTimeframe)
+      // Apply role-aware parameters for safer aggregation
+      const baseDays = parseInt(selectedTimeframe)
+      const roleAwareTeamId = (userRole === 'coach' || userRole === 'player' || userRole === 'analyst') ? (profile.team_id || undefined) : undefined
+      const roleAwarePlayerId = (userRole === 'player') ? profile.id : undefined
+
+      // Fetch performances constrained by role
+      const roleScopedPerformances = await dataService.getPerformances({ 
+        days: baseDays, 
+        limit: 1000,
+        ...(roleAwarePlayerId && { playerId: roleAwarePlayerId }),
+        ...(roleAwareTeamId && { teamId: roleAwareTeamId })
+      })
+
+      // Compute stats from role-scoped dataset
+      const computedStats = (() => {
+        const totalMatches = roleScopedPerformances.length
+        const totalKills = roleScopedPerformances.reduce((sum: number, p: any) => sum + (p.kills || 0), 0)
+        const totalDamage = roleScopedPerformances.reduce((sum: number, p: any) => sum + (p.damage || 0), 0)
+        const totalSurvival = roleScopedPerformances.reduce((sum: number, p: any) => sum + (p.survival_time || 0), 0)
+        const today = new Date(); today.setHours(0,0,0,0)
+        const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7)
+        const todayMatches = roleScopedPerformances.filter((p: any) => new Date(p.created_at) >= today).length
+        const weekMatches = roleScopedPerformances.filter((p: any) => new Date(p.created_at) >= weekAgo).length
+        const placements = roleScopedPerformances.map((p: any) => p.placement).filter((x: any) => x > 0)
+        const avgPlacement = placements.length > 0 ? Math.round(placements.reduce((a: number, b: number) => a + b, 0) / placements.length) : 0
+        return {
+          totalMatches,
+          totalKills,
+          avgDamage: totalMatches ? totalDamage / totalMatches : 0,
+          avgSurvival: totalMatches ? totalSurvival / totalMatches : 0,
+          kdRatio: totalMatches ? totalKills / totalMatches : 0,
+          totalExpense: 0,
+          totalProfitLoss: 0,
+          activeTeams: 0,
+          activePlayers: 0,
+          todayMatches,
+          weekMatches,
+          avgPlacement,
+        }
+      })()
       
       // Enhance stats for admin/manager roles
       if (['admin', 'manager'].includes(userRole)) {
-        const enhancedStats = await loadEnhancedAdminStats(dashboardStats)
+        const enhancedStats = await loadEnhancedAdminStats(computedStats)
         setStats(enhancedStats)
       } else {
-        setStats(normalizeStats(dashboardStats))
+        setStats(normalizeStats(computedStats))
       }
       
-      // Load recent performances with caching
+      // Load recent performances with caching, role-scoped
       const performances = await dataService.getPerformances({ 
         days: 7, 
         limit: 10,
         ...(userRole === 'player' && { playerId: profile.id }),
-        ...(userRole === 'coach' && profile.team_id && { teamId: profile.team_id })
+        ...(userRole !== 'player' && roleAwareTeamId && { teamId: roleAwareTeamId })
       })
       setRecentPerformances(performances)
       
-      // Calculate top performers
+      // Calculate top performers using role-scoped dataset timeframe
       await calculateTopPerformers()
       
       const endTime = Date.now()
@@ -351,14 +390,18 @@ export default function OptimizedDashboardPage() {
     try {
       const teams = await dataService.getTeams(userRole, profile?.id)
       const users = await dataService.getUsers()
-      const performances = await dataService.getPerformances({ days: parseInt(selectedTimeframe) })
+      const performances = await dataService.getPerformances({ 
+        days: parseInt(selectedTimeframe),
+        ...(userRole === 'player' && { playerId: profile!.id }),
+        ...(((userRole === 'coach' || userRole === 'analyst') && profile?.team_id) && { teamId: profile.team_id })
+      })
       
       if (performances.length === 0) return
 
       // Find top team performance
       const teamPerformances = new Map<string, { kills: number; damage: number; matches: number; placements: number[] }>()
       
-      performances.forEach(perf => {
+      performances.forEach((perf: any) => {
         if (!perf.team_id) return
         
         const existing = teamPerformances.get(perf.team_id) || { kills: 0, damage: 0, matches: 0, placements: [] }
@@ -371,9 +414,9 @@ export default function OptimizedDashboardPage() {
 
       const topTeamEntry = Array.from(teamPerformances.entries())
         .map(([teamId, stats]) => {
-          const team = teams.find(t => t.id === teamId)
+          const team = teams.find((t: any) => t.id === teamId)
           const avgPlacement = stats.placements.reduce((a, b) => a + b, 0) / stats.placements.length
-          const wins = stats.placements.filter(p => p === 1).length
+          const wins = stats.placements.filter((p: number) => p === 1).length
           
           return {
             id: teamId,
@@ -391,7 +434,7 @@ export default function OptimizedDashboardPage() {
       // Find top individual performers
       const playerStats = new Map<string, { kills: number; damage: number; matches: number }>()
       
-      performances.forEach(perf => {
+      performances.forEach((perf: any) => {
         const existing = playerStats.get(perf.player_id) || { kills: 0, damage: 0, matches: 0 }
         existing.kills += perf.kills || 0
         existing.damage += perf.damage || 0
@@ -399,49 +442,24 @@ export default function OptimizedDashboardPage() {
         playerStats.set(perf.player_id, existing)
       })
 
-      const playerEntries = Array.from(playerStats.entries())
+      const topPlayerEntry = Array.from(playerStats.entries())
         .map(([playerId, stats]) => {
-          const user = users.find(u => u.id === playerId)
+          const user = users.find((u: any) => u.id === playerId)
           return {
             id: playerId,
-            name: user?.name || 'Unknown Player',
-            avgKills: stats.kills / stats.matches,
-            avgDamage: stats.damage / stats.matches,
-            totalKills: stats.kills,
-            totalDamage: stats.damage,
-            team: user?.team_id
+            name: user?.name || user?.email || 'Unknown Player',
+            value: Math.round((stats.damage / Math.max(stats.matches, 1)) * 0.3 + (stats.kills / Math.max(stats.matches, 1)) * 20),
+            metric: 'Score'
           }
         })
-
-      const topKillsPlayer = playerEntries.sort((a, b) => b.avgKills - a.avgKills)[0]
-      const topDamagePlayer = playerEntries.sort((a, b) => b.avgDamage - a.avgDamage)[0]
-      const topOverallPlayer = playerEntries.sort((a, b) => (b.avgKills + b.avgDamage/100) - (a.avgKills + a.avgDamage/100))[0]
+        .sort((a, b) => b.value - a.value)[0]
 
       setTopPerformers({
         topTeam: topTeamEntry || null,
-        topPlayer: topOverallPlayer ? {
-          id: topOverallPlayer.id,
-          name: topOverallPlayer.name,
-          value: topOverallPlayer.avgKills + topOverallPlayer.avgDamage/100,
-          metric: 'Overall Score',
-          team: topOverallPlayer.team || undefined
-        } : null,
-        highestKills: topKillsPlayer ? {
-          id: topKillsPlayer.id,
-          name: topKillsPlayer.name,
-          value: topKillsPlayer.avgKills,
-          metric: 'Avg Kills',
-          team: topKillsPlayer.team || undefined
-        } : null,
-        highestDamage: topDamagePlayer ? {
-          id: topDamagePlayer.id,
-          name: topDamagePlayer.name,
-          value: topDamagePlayer.avgDamage,
-          metric: 'Avg Damage',
-          team: topDamagePlayer.team || undefined
-        } : null
+        topPlayer: topPlayerEntry || null,
+        highestKills: null,
+        highestDamage: null
       })
-
     } catch (error) {
       console.error('Error calculating top performers:', error)
     }

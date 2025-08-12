@@ -17,15 +17,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
+    // Get user profile from users table (source of truth)
+    const { data: userData } = await supabase
+      .from('users')
+      .select('id, role, team_id, name, email')
       .eq('id', user.id)
       .single()
 
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    if (!userData) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     const url = new URL(request.url)
@@ -39,12 +39,17 @@ export async function GET(request: Request) {
       .order('date', { ascending: false })
 
     // Role-based filtering
-    const userRole = profile.role?.toLowerCase()
+    const userRole = (userData.role || '').toLowerCase()
     const shouldSeeAllData = ['admin', 'manager'].includes(userRole)
 
     if (!shouldSeeAllData) {
-      if (userRole === 'coach' || userRole === 'player') {
-        query = query.eq('team_id', profile.team_id!)
+      if (userRole === 'coach' || userRole === 'player' || userRole === 'analyst') {
+        if (userData.team_id) {
+          query = query.eq('team_id', userData.team_id)
+        } else {
+          // No team assigned: return empty result
+          return NextResponse.json({ slots: [], view: 'current', userRole })
+        }
       }
     }
 
@@ -117,19 +122,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
+    // Get user profile from users table
+    const { data: userData } = await supabase
+      .from('users')
+      .select('id, role, team_id, name, email')
       .eq('id', user.id)
       .single()
 
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    if (!userData) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Check permissions
-    const userRole = profile.role?.toLowerCase()
+    const userRole = (userData.role || '').toLowerCase()
     if (!['admin', 'manager', 'coach'].includes(userRole)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
@@ -154,7 +159,7 @@ export async function POST(request: Request) {
     }
 
     // For coaches, ensure they can only create slots for their team
-    if (userRole === 'coach' && team_id !== profile.team_id) {
+    if (userRole === 'coach' && team_id !== userData.team_id) {
       return NextResponse.json({ 
         error: 'Coaches can only create slots for their own team' 
       }, { status: 403 })
@@ -209,8 +214,8 @@ export async function POST(request: Request) {
         time_range: slot.time_range,
         match_count: slot.match_count || 0,
         slot_rate: slot.slot_rate || 0,
-        created_by_name: profile.name || profile.email || 'Unknown',
-        created_by_id: profile.id
+        created_by_name: userData.name || userData.email || 'Unknown',
+        created_by_id: userData.id
       })
     } catch (discordError) {
       console.warn('Discord notification failed:', discordError)
@@ -242,19 +247,19 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
+    // Get user profile from users table
+    const { data: userData } = await supabase
+      .from('users')
+      .select('id, role, team_id')
       .eq('id', user.id)
       .single()
 
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    if (!userData) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Check permissions
-    const userRole = profile.role?.toLowerCase()
+    const userRole = (userData.role || '').toLowerCase()
     if (!['admin', 'manager', 'coach'].includes(userRole)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
@@ -278,7 +283,7 @@ export async function DELETE(request: Request) {
     }
 
     // For coaches, ensure they can only delete slots for their team
-    if (userRole === 'coach' && slot.team_id !== profile.team_id) {
+    if (userRole === 'coach' && slot.team_id !== userData.team_id) {
       return NextResponse.json({ 
         error: 'Coaches can only delete slots for their own team' 
       }, { status: 403 })
