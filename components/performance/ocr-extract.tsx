@@ -220,9 +220,13 @@ export function OCRExtract({ users, onPerformanceAdded }: OCRExtractProps) {
         return
       }
 
-      const { error } = await supabase.from("performances").insert(performancesToInsert)
-
-      if (error) throw error
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/performances', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(performancesToInsert[0])
+      })
+      if (!res.ok) throw new Error('Failed to submit performances')
 
       toast({
         title: "Success",

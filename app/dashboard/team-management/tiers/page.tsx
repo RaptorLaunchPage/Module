@@ -116,13 +116,10 @@ export default function TeamTierManagementPage() {
 
   async function fetchTeams() {
     try {
-      let query = supabase.from('teams').select('*').order('name')
-      if (userRole === 'coach') {
-        query = query.eq('coach_id', profile!.id)
-      }
-      const { data, error } = await query
-      if (error) throw error
-      setTeams(data || [])
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+      const data = res.ok ? await res.json() : []
+      setTeams(Array.isArray(data) ? data : [])
     } catch (e: any) {
       toast({ title: 'Error', description: e.message || 'Failed to fetch teams', variant: 'destructive' })
     }
