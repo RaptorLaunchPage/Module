@@ -25,6 +25,7 @@ const PUBLIC_ROUTES = [
   '/apply',
   '/join-us',
   '/contact',
+  '/faq',
   '/error',
   '/not-found',
   '/global-error'

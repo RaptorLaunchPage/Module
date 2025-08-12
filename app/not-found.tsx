@@ -63,26 +63,7 @@ export default function NotFound() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-              <CardHeader className="pb-4">
-                <div className="mx-auto mb-4">
-                  <Shield className="h-12 w-12 text-white opacity-80" />
-                </div>
-                <CardTitle className="text-white text-lg">Dashboard</CardTitle>
-                <CardDescription className="text-slate-200">
-                  Access your player dashboard and stats
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/dashboard">
-                  <Button className={`w-full ${getButtonStyle('primary')}`}>
-                    <Shield className="w-4 h-4 mr-2" />
-                    Dashboard
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
+            
             <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
               <CardHeader className="pb-4">
                 <div className="mx-auto mb-4">
