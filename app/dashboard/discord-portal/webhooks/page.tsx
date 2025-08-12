@@ -432,28 +432,12 @@ export default function WebhooksPage() {
         </Card>
       )}
 
-      {/* Automation Management */}
+      {/* Automation Webhooks quick editor */}
       {permissions.manageDiscordPortal && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Automation</span>
-              <div className="flex items-center gap-2">
-                <Label>Team</Label>
-                <Select value={autoTeamId} onValueChange={async (val) => { setAutoTeamId(val); if (val !== 'all') await fetchAutomationSettings(val) }}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Select team" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Teams</SelectItem>
-                    {teams.map(t => (
-                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardTitle>
-            <CardDescription>Manage automation per team or apply to all teams</CardDescription>
+            <CardTitle>Automation Webhooks</CardTitle>
+            <CardDescription>Assign or update webhooks for common automations.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -463,7 +447,20 @@ export default function WebhooksPage() {
                     <div className="font-medium">{s.label}</div>
                     <div className="text-xs text-muted-foreground">{s.key}</div>
                   </div>
-                  <Switch checked={!!autoSettings[s.key]} disabled={autoLoading} onCheckedChange={(v) => toggleAutomation(s.key, v)} />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Prefill dialog as admin webhook for automation
+                        setFormData(prev => ({ ...prev, type: 'admin', team_id: '', channel_name: s.label }))
+                        setEditingWebhook(null)
+                        setIsDialogOpen(true)
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
