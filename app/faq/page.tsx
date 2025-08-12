@@ -313,25 +313,9 @@ export default function FAQPage() {
         {/* Content */}
         <main className="flex-1">
           <section className="max-w-6xl mx-auto px-4 py-10">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left: Intro/Help */}
-              <div className="lg:col-span-1">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Need more help?</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-white/80 space-y-3">
-                    <p>If you can’t find what you’re looking for, our team is here to help.</p>
-                    <div className="flex gap-3">
-                      <a href="/contact" className={`px-4 py-2 rounded-md text-sm font-semibold ${getButtonStyle('primary')}`}>Contact Us</a>
-                      <a href="/join-us" className={`px-4 py-2 rounded-md text-sm font-semibold ${getButtonStyle('outline')}`}>Join Us</a>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Right: FAQ Accordions */}
-              <div className="lg:col-span-2 space-y-8">
+            <div className="grid grid-cols-1 gap-6">
+              {/* FAQ Accordions */}
+              <div className="space-y-8">
                 {faq.map(section => (
                   <div key={section.category}>
                     <h2 className="text-2xl font-bold text-white mb-3">{section.category}</h2>
@@ -393,6 +377,19 @@ export default function FAQPage() {
                   </div>
                 ))}
               </div>
+              {/* Need more help - moved to bottom */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Need more help?</CardTitle>
+                </CardHeader>
+                <CardContent className="text-white/80 space-y-3">
+                  <p>If you can’t find what you’re looking for, our team is here to help.</p>
+                  <div className="flex gap-3">
+                    <a href="/contact" className={`px-4 py-2 rounded-md text-sm font-semibold ${getButtonStyle('primary')}`}>Contact Us</a>
+                    <a href="/join-us" className={`px-4 py-2 rounded-md text-sm font-semibold ${getButtonStyle('outline')}`}>Apply</a>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </section>
         </main>

@@ -13,7 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button"
 import { getButtonStyle } from "@/lib/global-theme"
 import { useToast } from "@/hooks/use-toast"
-import { Upload, CheckCircle2, Instagram, Twitter, Youtube } from "lucide-react"
+import { Upload, CheckCircle2 } from "lucide-react"
+import { sendToDiscord } from "@/modules/discord-portal/sendToDiscord"
+import { getAdminWebhooks } from "@/modules/discord-portal/webhookService"
 
 export default function ContactPage() {
   const { toast } = useToast()
@@ -21,6 +23,8 @@ export default function ContactPage() {
   const [mode, setMode] = useState<"general" | "brand">("general")
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [webhooks, setWebhooks] = useState<{ id: string; name: string }[]>([])
+  const [selectedWebhookId, setSelectedWebhookId] = useState<string | undefined>(undefined)
 
   // General inquiry state
   const [general, setGeneral] = useState({
@@ -45,6 +49,15 @@ export default function ContactPage() {
     { value: "content", label: "Content Creation" },
     { value: "other", label: "Other" },
   ]
+
+  React.useEffect(() => {
+    // Load admin/global webhooks for selection (admin can configure these elsewhere)
+    getAdminWebhooks().then((hooks) => {
+      const mapped = (hooks || []).map(h => ({ id: h.id as string, name: h.channel_name || 'Admin/Global Webhook' }))
+      setWebhooks(mapped)
+      if (mapped.length > 0) setSelectedWebhookId(mapped[0].id)
+    }).catch(() => {})
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,9 +91,36 @@ export default function ContactPage() {
     }
 
     setSubmitting(true)
-    await new Promise((r) => setTimeout(r, 1200))
-    setSubmitting(false)
-    setSubmitted(true)
+    try {
+      // Prepare payload for Discord embed generator
+      const payload = mode === 'general' ? {
+        topic: 'General Inquiry',
+        name: general.name,
+        subject: general.subject,
+        message: general.message,
+      } : {
+        topic: 'Brand / Collaboration',
+        brandName: brand.brandName,
+        contactName: brand.contactName,
+        website: brand.website,
+        collabType: brand.collabType,
+        details: brand.details,
+      }
+      const resp = await sendToDiscord({
+        messageType: 'system_alert',
+        data: { title: 'New Contact Submission', message: JSON.stringify(payload, null, 2), severity: 'info' },
+        webhookTypes: ['admin','global'],
+        webhookId: selectedWebhookId,
+      })
+      if (!resp.success) {
+        throw new Error(resp.error || 'Failed to send to Discord')
+      }
+      setSubmitted(true)
+    } catch (err:any) {
+      toast({ title: 'Submission failed', description: err.message || 'Please try again later', variant: 'destructive' })
+    } finally {
+      setSubmitting(false)
+    }
 
     // Smooth scroll to confirmation
     requestAnimationFrame(() => {
@@ -138,6 +178,19 @@ export default function ContactPage() {
                           <SelectContent>
                             <SelectItem value="general">General Inquiry</SelectItem>
                             <SelectItem value="brand">Brand / Collaboration Inquiry</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm text-white/90">Submission Webhook</label>
+                        <Select value={selectedWebhookId} onValueChange={(v: any) => setSelectedWebhookId(v)}>
+                          <SelectTrigger className="bg-white/10 border-white/20 text-white">
+                            <SelectValue placeholder="Select Webhook (Admin configured)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {webhooks.map(w => (
+                              <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -261,26 +314,6 @@ export default function ContactPage() {
               </Card>
             </FadeInOnScroll>
           )}
-        </section>
-
-        {/* Extra Contact Info */}
-        <section className="max-w-5xl mx-auto px-4 pb-12">
-          <FadeInOnScroll>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <a href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer" className={`flex items-center justify-center gap-2 px-5 py-3 rounded-md font-semibold ${getButtonStyle("secondary")} transition-transform hover:scale-[1.02]`}>
-                Discord Invite
-              </a>
-              <a href="https://www.instagram.com/rexigris?igsh=MXVxMDFpMXNhYWQ1cQ==" target="_blank" rel="noreferrer" className={`flex items-center justify-center gap-2 px-5 py-3 rounded-md font-semibold ${getButtonStyle("secondary")} transition-transform hover:scale-[1.02]`}>
-                <Instagram className="h-4 w-4" /> Instagram
-              </a>
-              <a href="https://twitter.com" target="_blank" rel="noreferrer" className={`flex items-center justify-center gap-2 px-5 py-3 rounded-md font-semibold ${getButtonStyle("secondary")} transition-transform hover:scale-[1.02]`}>
-                <Twitter className="h-4 w-4" /> Twitter
-              </a>
-              <a href="https://youtube.com" target="_blank" rel="noreferrer" className={`flex items-center justify-center gap-2 px-5 py-3 rounded-md font-semibold ${getButtonStyle("secondary")} transition-transform hover:scale-[1.02]`}>
-                <Youtube className="h-4 w-4" /> YouTube
-              </a>
-            </div>
-          </FadeInOnScroll>
         </section>
 
         <PublicFooter />

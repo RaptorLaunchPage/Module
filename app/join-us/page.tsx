@@ -281,6 +281,9 @@ export default function JoinUsPage() {
                             Submit Application
                             <Send className="h-4 w-4 ml-2" />
                           </Button>
+                          <Link href="/tier-structure" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("secondary")}`}>
+                            View Tier Structure
+                          </Link>
                           <Link href="/incentives" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("secondary")}`}>
                             View Rewards
                           </Link>
@@ -293,24 +296,6 @@ export default function JoinUsPage() {
           </FadeInOnScroll>
         </section>
 
-
-        {/* Quick Links */}
-        <section className="max-w-6xl mx-auto px-4 py-8">
-          <FadeInOnScroll>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <Link href="/tier-structure" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("secondary")}`}>
-                View Tier Structure
-              </Link>
-              <Link href="/incentives" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("secondary")}`}>
-                View Rewards
-              </Link>
-              <a href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("primary")}`}>
-                Join our Discord
-                <Link2 className="h-4 w-4" />
-              </a>
-            </div>
-          </FadeInOnScroll>
-        </section>
 
         <PublicFooter />
       </div>
