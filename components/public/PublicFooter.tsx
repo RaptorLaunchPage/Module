@@ -1,19 +1,22 @@
 "use client"
 
 import React from "react"
-import { FOOTER_BG, TEXT_DIM } from "@/components/public/public-theme"
+import { FOOTER_BG } from "@/components/public/public-theme"
+import { Instagram, MessageCircle } from "lucide-react"
 
 export function PublicFooter() {
   return (
     <footer className={`h-12 flex items-center justify-between px-3 sm:px-4 ${FOOTER_BG} text-white/70 text-xs sm:text-sm`}>
       <div className="flex items-center gap-4">
-        <a href="#" className="hover:text-white">Privacy</a>
-        <a href="#" className="hover:text-white">Terms</a>
-        <span className="hidden sm:inline">© {new Date().getFullYear()} Raptor Esports. All rights reserved.</span>
+        <span className="hidden sm:inline">© {new Date().getFullYear()} Raptor Esports</span>
       </div>
       <div className="flex items-center gap-3">
-        <a href="https://www.instagram.com/rexigris?igsh=MXVxMDFpMXNhYWQ1cQ==" target="_blank" rel="noreferrer" className="hover:text-white">Instagram: @rexigris</a>
-        <a href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer" className="hover:text-white">Discord: Raptor Esports</a>
+        <a aria-label="Instagram" href="https://www.instagram.com/rexigris?igsh=MXVxMDFpMXNhYWQ1cQ==" target="_blank" rel="noreferrer" className="hover:text-white inline-flex">
+          <Instagram className="h-4 w-4" />
+        </a>
+        <a aria-label="Discord" href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer" className="hover:text-white inline-flex">
+          <MessageCircle className="h-4 w-4" />
+        </a>
       </div>
     </footer>
   )

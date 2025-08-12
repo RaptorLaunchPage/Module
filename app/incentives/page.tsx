@@ -64,7 +64,7 @@ export default function IncentivesPage() {
         {/* Tier-Based Rewards Table */}
         <FadeInOnScroll as="section" className="max-w-6xl mx-auto px-4 py-10">
           <h2 className="text-3xl font-bold text-white mb-6">Tier-Based Rewards</h2>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-white/10 bg-black/40 backdrop-blur-md">
             <table className="min-w-full text-left text-white/90 border-separate border-spacing-y-2">
               <thead className="text-white/70">
                 <tr>
@@ -83,7 +83,7 @@ export default function IncentivesPage() {
                   { tier: "T1", wc: "High", data: "Full + Coaching", gear: "Premium", notes: "Tournament-ready." },
                   { tier: "God Tier", wc: "Max", data: "Elite + Analyst", gear: "Elite", notes: "Top performers." },
                 ].map((r) => (
-                  <tr key={r.tier} className={`bg-white/5 rounded ${r.tier === 'T1' || r.tier === 'God Tier' ? 'outline outline-1 outline-white/20' : ''}`}>
+                  <tr key={r.tier} className={`rounded bg-black/50 backdrop-blur-sm border border-white/10 ${r.tier === 'T1' || r.tier === 'God Tier' ? 'outline outline-1 outline-white/20' : ''}`}>
                     <td className="px-3 py-3 font-semibold">{r.tier}</td>
                     <td className="px-3 py-3">{r.wc}</td>
                     <td className="px-3 py-3">{r.data}</td>
@@ -124,19 +124,28 @@ export default function IncentivesPage() {
         {/* Gamified Visual */}
         <FadeInOnScroll as="section" className="max-w-6xl mx-auto px-4 py-10">
           <h2 className="text-3xl font-bold text-white mb-6">Progression Ladder</h2>
-          <div className="grid sm:grid-cols-5 gap-3">
-            {[
-              { t: "T4", sub: "Start" },
-              { t: "T3", sub: "Growth" },
-              { t: "T2", sub: "Compete" },
-              { t: "T1", sub: "Contend" },
-              { t: "God", sub: "Dominate" },
-            ].map((x, i) => (
-              <div key={x.t} className={`rounded p-4 text-center ${i >= 3 ? 'bg-white/15' : 'bg-white/10'}`}>
-                <div className="text-xl font-bold text-white">{x.t}</div>
-                <div className="text-white/70 text-sm">{x.sub}</div>
-              </div>
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+            {/* On mobile: God at top to T4 bottom; on sm+: left-to-right T4->God visually */}
+            <div className="rounded p-4 text-center bg-white/15 order-1 sm:order-[5]">
+              <div className="text-xl font-bold text-white">God</div>
+              <div className="text-white/70 text-sm">Dominate</div>
+            </div>
+            <div className="rounded p-4 text-center bg-white/15 order-2 sm:order-[4]">
+              <div className="text-xl font-bold text-white">T1</div>
+              <div className="text-white/70 text-sm">Contend</div>
+            </div>
+            <div className="rounded p-4 text-center bg-white/10 order-3 sm:order-[3]">
+              <div className="text-xl font-bold text-white">T2</div>
+              <div className="text-white/70 text-sm">Compete</div>
+            </div>
+            <div className="rounded p-4 text-center bg-white/10 order-4 sm:order-[2]">
+              <div className="text-xl font-bold text-white">T3</div>
+              <div className="text-white/70 text-sm">Growth</div>
+            </div>
+            <div className="rounded p-4 text-center bg-white/10 order-5 sm:order-[1]">
+              <div className="text-xl font-bold text-white">T4</div>
+              <div className="text-white/70 text-sm">Start</div>
+            </div>
           </div>
           <div className="mt-3 text-center text-white/80">More Wins = Bigger Rewards and Opportunity.</div>
         </FadeInOnScroll>

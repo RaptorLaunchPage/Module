@@ -14,11 +14,13 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { getButtonStyle } from "@/lib/global-theme"
 import { useToast } from "@/hooks/use-toast"
+// Public submission endpoint, no auth required
 
 import { Bolt, Send, Link2 } from "lucide-react"
 
 export default function JoinUsPage() {
   const { toast } = useToast()
+  // No webhook selection; handled by public API + env vars
 
   const scrollToForm = () => {
     const el = document.getElementById("application-form")
@@ -62,8 +64,31 @@ export default function JoinUsPage() {
       return
     }
 
-    await new Promise((r) => setTimeout(r, 1000))
-    toast({ title: "Application submitted", description: "We will review your application within 7 days." })
+    try {
+      const payload = {
+        name: playerForm.name,
+        ign: playerForm.ign,
+        email: playerForm.email,
+        phone: playerForm.phone,
+        applicantType: playerForm.applicantType,
+        games: playerForm.games,
+        otherGame: playerForm.otherGame,
+        tier: playerForm.tier,
+        results: playerForm.results,
+      }
+      const res = await fetch('/api/public/submit/application', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        throw new Error(e.error || 'Failed to submit')
+      }
+      toast({ title: "Application submitted", description: "We will review your application within 7 days." })
+    } catch (err:any) {
+      toast({ title: 'Submission failed', description: err.message || 'Please try again later', variant: 'destructive' })
+    }
   }
 
   // Brand/Collab state
@@ -81,8 +106,21 @@ export default function JoinUsPage() {
       toast({ title: "Missing information", description: "Please fill in required fields.", variant: "destructive" })
       return
     }
-    await new Promise((r) => setTimeout(r, 800))
-    toast({ title: "Inquiry sent", description: "Thanks for reaching out. We will get back shortly." })
+    try {
+      const payload = { ...brandForm }
+      const res = await fetch('/api/public/submit/application', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}))
+        throw new Error(e.error || 'Failed to submit')
+      }
+      toast({ title: "Inquiry sent", description: "Thanks for reaching out. We will get back shortly." })
+    } catch (err:any) {
+      toast({ title: 'Submission failed', description: err.message || 'Please try again later', variant: 'destructive' })
+    }
   }
 
   return (
@@ -281,6 +319,9 @@ export default function JoinUsPage() {
                             Submit Application
                             <Send className="h-4 w-4 ml-2" />
                           </Button>
+                          <Link href="/tier-structure" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("secondary")}`}>
+                            View Tier Structure
+                          </Link>
                           <Link href="/incentives" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("secondary")}`}>
                             View Rewards
                           </Link>
@@ -293,24 +334,6 @@ export default function JoinUsPage() {
           </FadeInOnScroll>
         </section>
 
-
-        {/* Quick Links */}
-        <section className="max-w-6xl mx-auto px-4 py-8">
-          <FadeInOnScroll>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              <Link href="/tier-structure" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("secondary")}`}>
-                View Tier Structure
-              </Link>
-              <Link href="/incentives" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("secondary")}`}>
-                View Rewards
-              </Link>
-              <a href="https://discord.gg/6986Kf3eG4" target="_blank" rel="noreferrer" className={`inline-flex items-center gap-2 px-5 py-2 rounded-md font-semibold ${getButtonStyle("primary")}`}>
-                Join our Discord
-                <Link2 className="h-4 w-4" />
-              </a>
-            </div>
-          </FadeInOnScroll>
-        </section>
 
         <PublicFooter />
       </div>

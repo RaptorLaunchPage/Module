@@ -9,18 +9,38 @@ import { RouteGuardV2 } from "@/components/route-guard-v2"
 import { LoadingErrorBoundary } from "@/components/loading-error-boundary"
 import { GlobalLoadingProvider } from "@/lib/global-loading-manager"
 import GlobalLoading from "@/components/ui/global-loading"
+import OrganizationJsonLd from "@/components/seo/OrganizationJsonLd"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Raptor Esports Hub",
-  description: "Official management hub for Raptor Esports - Professional esports team management system",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://raptor-esports.example'),
+  title: {
+    default: "Raptor Esports",
+    template: "%s | Raptor Esports",
+  },
+  description: "Raptor Esports — official hub for teams, players, and fans.",
   generator: 'Raptor Esports Hub v1.0',
-  keywords: ['Raptor Esports', 'esports', 'team management', 'gaming', 'tournament'],
+  keywords: ['Raptor Esports', 'esports', 'gaming', 'tournaments', 'teams', 'players'],
   authors: [{ name: 'Raptor Esports' }],
   creator: 'Raptor Esports',
   publisher: 'Raptor Esports',
-  applicationName: 'Raptor Esports Hub'
+  applicationName: 'Raptor Esports',
+  icons: {
+    icon: '/RLogo.ico',
+    shortcut: '/RLogo.ico',
+    apple: '/RLogo.ico',
+  },
+  openGraph: {
+    siteName: 'Raptor Esports',
+    type: 'website',
+    images: [{ url: '/og-image.jpg' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    creator: '@RaptorEsports',
+    images: ['/og-image.jpg'],
+  }
 }
 
 export default function RootLayout({
@@ -40,6 +60,7 @@ export default function RootLayout({
                 </RouteGuardV2>
                 <GlobalLoading />
                 <Toaster />
+                <OrganizationJsonLd />
               </AuthProviderV2>
             </GlobalLoadingProvider>
           </ThemeProvider>

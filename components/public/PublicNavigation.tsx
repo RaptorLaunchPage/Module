@@ -15,8 +15,9 @@ const NAV_ITEMS = [
   { name: "Rewards", href: "/incentives" },
   { name: "Tier", href: "/tier-structure" },
   { name: "Gallery", href: "/gallery" },
-  { name: "Join", href: "/join-us" },
-  { name: "Contact", href: "/contact" },
+  { name: "Apply", href: "/join-us" },
+  { name: "FAQ", href: "/faq" },
+  { name: "Contact Us", href: "/contact" },
 ]
 
 export function PublicNavigation() {

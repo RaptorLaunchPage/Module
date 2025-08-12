@@ -24,6 +24,7 @@ import {
   Loader2
 } from "lucide-react"
 import { DashboardPermissions } from "@/lib/dashboard-permissions"
+import { Select as UiSelect, SelectTrigger as UiSelectTrigger, SelectValue as UiSelectValue, SelectContent as UiSelectContent, SelectItem as UiSelectItem } from "@/components/ui/select"
 
 interface DiscordWebhook {
   id: string
@@ -62,6 +63,7 @@ export default function WebhooksPage() {
   })
   const [validating, setValidating] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [defaultContactWebhookId, setDefaultContactWebhookId] = useState<string>("")
 
   const AUTOMATION_SETTINGS = [
     { key: 'auto_slot_create', label: 'Slot Creation' },
@@ -100,7 +102,8 @@ export default function WebhooksPage() {
         }),
         fetch('/api/teams', {
           headers: { 'Authorization': `Bearer ${token}` }
-        })
+        }),
+        fetch('/api/discord-portal/settings?global=true', { headers: { 'Authorization': `Bearer ${token}` } })
       ])
 
       if (webhooksRes.ok) {
@@ -116,6 +119,17 @@ export default function WebhooksPage() {
           setAutoTeamId(teamsData[0].id)
           await fetchAutomationSettings(teamsData[0].id)
         }
+      }
+
+      // Load default contact submission webhook setting
+      const settingsRes = arguments?.[0] as any
+      // We can't access Promise.all array directly here; fetch again for clarity
+      const settingsRes2 = await fetch('/api/discord-portal/settings?global=true', { headers: { 'Authorization': `Bearer ${token}` } })
+      if (settingsRes2.ok) {
+        const settingsData = await settingsRes2.json()
+        const list = Array.isArray(settingsData) ? settingsData : settingsData?.settings || []
+        const entry = list.find((s: any) => s.setting_key === 'contact_submission_default_webhook')
+        if (entry?.setting_value) setDefaultContactWebhookId(entry.setting_value as unknown as string)
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -380,7 +394,81 @@ export default function WebhooksPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 space-y-6">
-      {/* Automation Management */}
+      {/* Default Contact Submission Webhook (Admin) */}
+      {permissions.manageDiscordPortal && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact Form Submission Webhook</CardTitle>
+            <CardDescription>
+              Select which admin/global webhook receives public Contact form submissions.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center gap-3">
+            <UiSelect value={defaultContactWebhookId} onValueChange={(v) => setDefaultContactWebhookId(v)}>
+              <UiSelectTrigger className="w-80">
+                <UiSelectValue placeholder="Choose a webhook" />
+              </UiSelectTrigger>
+              <UiSelectContent>
+                {webhooks.filter(w => w.type === 'admin' || w.type === 'global').map(w => (
+                  <UiSelectItem key={w.id} value={w.id}>{w.channel_name || `${w.type.toUpperCase()} Webhook`}</UiSelectItem>
+                ))}
+              </UiSelectContent>
+            </UiSelect>
+            <Button onClick={async () => {
+              try {
+                const token = await getToken()
+                const res = await fetch('/api/discord-portal/settings/default-webhook', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                  body: JSON.stringify({ value: defaultContactWebhookId })
+                })
+                if (!res.ok) throw new Error('Failed to save setting')
+                toast({ title: 'Saved', description: 'Default contact submission webhook updated.' })
+              } catch (e) {
+                toast({ title: 'Error', description: 'Failed to update default webhook', variant: 'destructive' })
+              }
+            }}>Save</Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Automation Webhooks quick editor */}
+      {permissions.manageDiscordPortal && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Automation Webhooks</CardTitle>
+            <CardDescription>Assign or update webhooks for common automations.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {AUTOMATION_SETTINGS.map(s => (
+                <div key={s.key} className="flex items-center justify-between p-3 rounded border">
+                  <div className="space-y-1">
+                    <div className="font-medium">{s.label}</div>
+                    <div className="text-xs text-muted-foreground">{s.key}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Prefill dialog as admin webhook for automation
+                        setFormData(prev => ({ ...prev, type: 'admin', team_id: '', channel_name: s.label }))
+                        setEditingWebhook(null)
+                        setIsDialogOpen(true)
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Team-specific Automation Management (restored) */}
       {permissions.manageDiscordPortal && (
         <Card>
           <CardHeader>

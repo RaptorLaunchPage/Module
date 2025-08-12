@@ -260,38 +260,7 @@ export default function DiscordSettingsPage() {
         </div>
       </div>
 
-      {/* Automation Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Automation Settings
-          </CardTitle>
-          <CardDescription>
-            Control which events automatically trigger Discord notifications
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {AUTOMATION_SETTINGS.map((setting) => (
-            <div key={setting.key} className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="space-y-1">
-                <Label htmlFor={setting.key} className="text-base font-medium">
-                  {setting.label}
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  {setting.description}
-                </p>
-              </div>
-              <Switch
-                id={setting.key}
-                checked={settings[setting.key] || false}
-                onCheckedChange={(checked) => updateSetting(setting.key, checked)}
-                disabled={saving}
-              />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      {/* Automation Settings removed as requested */}
 
       {/* Info Card */}
       <Card>
