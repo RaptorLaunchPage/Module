@@ -11,9 +11,205 @@ import { Link2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { motion } from "framer-motion"
 import { getButtonStyle } from "@/lib/global-theme"
+import Head from "next/head"
 
 // Configurable: allow multiple FAQ items open at once
 const ALLOW_MULTIPLE_OPEN = true
+
+// Plain text QA for JSON-LD
+const faqData = [
+  {
+    category: "General",
+    items: [
+      {
+        id: "joining-fee",
+        q: "Is there any joining fee to be part of Raptor Esports?",
+        a: "No. Raptor Esports never charges a joining fee. Entry is completely free for teams that pass our selection process. All sponsored players also receive free access to our performance platform and tools."
+      },
+      {
+        id: "invest-in-underdogs",
+        q: "Why does Raptor Esports invest in underdog teams?",
+        a: "We believe talent is everywhere — it just needs the right platform, structure, and opportunities to shine. By supporting ambitious but lesser-known teams, we create a healthy competitive scene and discover future champions."
+      },
+      {
+        id: "how-to-join",
+        q: "How do I join Raptor Esports?",
+        a: "Fill out our recruitment form on the Join Us page. If your team meets our criteria, we’ll reach out to arrange trial matches and onboarding."
+      },
+      {
+        id: "location-eligibility",
+        q: "Is Raptor Esports open to players from any location?",
+        a: "Yes, but all teams must be able to participate in our scheduled scrims, training sessions, and tournaments."
+      },
+      {
+        id: "communications",
+        q: "How does Raptor Esports communicate with players and fans?",
+        a: "We operate primarily on Discord. It’s mandatory for all teams, players, and even fans who want updates to join our official Discord server for communication with staff and admins."
+      },
+    ],
+  },
+  {
+    category: "Tiers & Incentives",
+    items: [
+      {
+        id: "tier-system",
+        q: "How does the tier system work?",
+        a: (
+          <p>
+            Our structure ranges from Tier 4 (entry level) up to God Tier (top teams). Teams move up or down based on their win rate in scrims and events.
+          </p>
+        )
+      },
+      {
+        id: "promotion-criteria",
+        q: "How can my team get promoted?",
+        a: (
+          <p>
+            Win more than 50% of your monthly slots/lobbies in your current tier, and you’ll move up to the next tier.
+          </p>
+        )
+      },
+      {
+        id: "winrate-drop",
+        q: "What happens if my win rate drops?",
+        a: (
+          <p>
+            Teams with a win rate below 35% of their monthly slots/lobbies may be moved to a lower tier or removed from the system. Between 35%–50% means you stay in your current tier.
+          </p>
+        )
+      },
+      {
+        id: "rewards-higher-tiers",
+        q: "What are the rewards for higher tiers?",
+        a: (
+          <p>
+            Higher tiers face stronger competition and unlock perks like wildcard tournament entries, performance gear, and other exclusive benefits.
+          </p>
+        )
+      },
+      {
+        id: "prize-pool-sharing",
+        q: "How does prize pool sharing work?",
+        a: (
+          <p>
+            For eligible teams, winnings are shared between the team and the organization after covering basic participation costs. Major tournaments have their own sharing rules.
+          </p>
+        )
+      },
+    ],
+  },
+  {
+    category: "Training & Performance Tools",
+    items: [
+      {
+        id: "tools-provided",
+        q: "What tools do Raptor Esports teams get?",
+        a: (
+          <p>
+            Sponsored teams get free access to our internal performance platform, match analytics, and training attendance monitoring system.
+          </p>
+        )
+      },
+      {
+        id: "ai-tools-public",
+        q: "Are the AI and analytics tools available to the public?",
+        a: (
+          <p>
+            No, these are for internal use by Raptor Esports players, coaches, and analysts only.
+          </p>
+        )
+      },
+      {
+        id: "training-schedule",
+        q: "How often are training sessions held?",
+        a: (
+          <p>
+            Training and scrims are scheduled daily from 1 PM to 12 AM, with a break from 5 PM to 7 PM, except on holidays. These hours include training, scrims, meetings, and other team activities.
+          </p>
+        )
+      },
+    ],
+  },
+  {
+    category: "Player Commitments",
+    items: [
+      {
+        id: "naming-requirements",
+        q: "Are there any naming requirements for selected players/teams?",
+        a: (
+          <p>
+            Yes. Selected teams or players are required to change all in-game names (IGNs) to include our official Raptor Esports tag.
+          </p>
+        )
+      },
+      {
+        id: "rename-card-costs",
+        q: "Who is responsible for rename card costs?",
+        a: (
+          <p>
+            Any costs related to in-game rename cards are the player’s or team’s responsibility.
+          </p>
+        )
+      },
+      {
+        id: "attendance-policy",
+        q: "Do players have to attend all scheduled sessions?",
+        a: (
+          <p>
+            Yes. Commitment to the training and scrim schedule is mandatory unless prior approval is granted by the management team.
+          </p>
+        )
+      },
+    ],
+  },
+  {
+    category: "Collaboration",
+    items: [
+      {
+        id: "collaborations",
+        q: "How can I collaborate with Raptor Esports?",
+        a: (
+          <p>
+            Use the Contact Us page to send a brand or partnership inquiry.
+          </p>
+        )
+      },
+      {
+        id: "content-creators",
+        q: "Do you work with content creators or streamers?",
+        a: (
+          <p>
+            Yes — if your content aligns with our brand and values, we’re open to collaboration.
+          </p>
+        )
+      },
+    ],
+  },
+  {
+    category: "Future Plans",
+    items: [
+      {
+        id: "future-roadmap",
+        q: "What are Raptor Esports’ future plans?",
+        a: (
+          <div className="space-y-2">
+            <p>
+              We aim to become one of the most competitive and professionally structured esports organizations in our region. Our roadmap includes:
+            </p>
+            <ul className="list-disc pl-5 space-y-1 text-white/85">
+              <li>Expanding our competitive roster across multiple games.</li>
+              <li>Introducing advanced training programs with AI and human coaching.</li>
+              <li>Increasing national and international event participation.</li>
+              <li>Enhancing infrastructure.</li>
+              <li>Growing community engagement.</li>
+              <li>Building strategic partnerships for sustainable growth.</li>
+            </ul>
+          </div>
+        )
+      },
+    ],
+  },
+]
 
 // Utility to ensure stable, human-friendly IDs
 const faq = [
@@ -233,6 +429,19 @@ const faq = [
 
 export default function FAQPage() {
   const { toast } = useToast()
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://raptor-esports.example'
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqData.flatMap(section => section.items.map(item => ({
+      "@type": "Question",
+      "name": item.q,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": item.a
+      }
+    })))
+  }
 
   // Track open items (single vs multiple)
   const [openValues, setOpenValues] = useState<string[]>([])
@@ -295,12 +504,27 @@ export default function FAQPage() {
 
   return (
     <VideoBackground>
+      <Head>
+        <title>FAQ | Raptor Esports</title>
+        <meta name="description" content="Everything about tiers, incentives, commitments, and more." />
+        <meta name="keywords" content="Raptor Esports, FAQ, tiers, incentives, training, players" />
+        <link rel="canonical" href={`${siteUrl}/faq`} />
+        <meta property="og:title" content="FAQ | Raptor Esports" />
+        <meta property="og:description" content="Everything about tiers, incentives, commitments, and more." />
+        <meta property="og:image" content={`${siteUrl}/og-image.jpg`} />
+        <meta property="og:url" content={`${siteUrl}/faq`} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="FAQ | Raptor Esports" />
+        <meta name="twitter:description" content="Everything about tiers, incentives, commitments, and more." />
+        <meta name="twitter:image" content={`${siteUrl}/og-image.jpg`} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      </Head>
       <div className="relative min-h-screen w-full overflow-x-hidden overflow-y-auto flex flex-col">
         <PublicNavigation />
 
         {/* Hero */}
         <section className="relative h-[38vh] sm:h-[46vh] w-full pt-14">
-          <div className="absolute inset-0">
+          <div className="absolute inset-0" aria-hidden>
             <div className="h-full w-full bg-[url('/images/faq-hero.jpg')] bg-cover bg-center blur-[2px] brightness-[.65]" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
           </div>
