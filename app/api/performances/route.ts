@@ -86,13 +86,18 @@ export async function GET(request: NextRequest) {
     // Try a simplified query first without relationships
     let query = userSupabase
       .from("performances")
-      .select("*")
+      .select("*", { count: 'exact' })
 
     const { searchParams } = new URL(request.url)
     const timeframe = parseInt(searchParams.get('timeframe') || '0')
     const teamId = searchParams.get('teamId')
     const playerId = searchParams.get('playerId')
     const map = searchParams.get('map')
+    const limitParam = searchParams.get('limit')
+    const offsetParam = searchParams.get('offset')
+    const isPaginated = !!(limitParam || offsetParam)
+    const limit = Math.min(parseInt(limitParam || '0') || 0, 100)
+    const offset = Math.max(parseInt(offsetParam || '0') || 0, 0)
 
     if (timeframe > 0) {
       const start = new Date(); start.setDate(start.getDate() - timeframe)
@@ -123,7 +128,12 @@ export async function GET(request: NextRequest) {
       query = query.eq('map', map)
     }
 
-    const { data, error: queryError } = await query.order("created_at", { ascending: false })
+    let finalQuery = query.order("created_at", { ascending: false })
+    if (isPaginated && limit > 0) {
+      finalQuery = finalQuery.range(offset, offset + limit - 1)
+    }
+
+    const { data, error: queryError, count } = await finalQuery
 
     if (queryError) {
       console.error('Error fetching performances:', queryError)
@@ -133,6 +143,9 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    if (isPaginated) {
+      return NextResponse.json({ items: data || [], total: count ?? (data?.length || 0) })
+    }
     return NextResponse.json(data || [])
 
   } catch (error) {

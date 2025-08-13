@@ -106,6 +106,8 @@ export default function OptimizedDashboardPage() {
     highestDamage: null
   })
   const [recentPerformances, setRecentPerformances] = useState<any[]>([])
+  const [recentPage, setRecentPage] = useState(1)
+  const recentLimit = 10
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dataFetched, setDataFetched] = useState(false)
@@ -388,7 +390,8 @@ export default function OptimizedDashboardPage() {
 
       // Recent performances from API
       const performances = recentPerfRes.ok ? await recentPerfRes.json() : []
-      setRecentPerformances(performances)
+      const perfItems = Array.isArray(performances) ? performances : (performances.items || [])
+      setRecentPerformances(perfItems)
 
       // Compute top performers from already-fetched datasets (avoid extra calls)
       if (Array.isArray(perfForTop) && perfForTop.length > 0) {
@@ -1128,6 +1131,22 @@ export default function OptimizedDashboardPage() {
                         </Badge>
                       </div>
                     ))}
+                    <div className="flex justify-center">
+                      <Button variant="outline" size="sm" onClick={async () => {
+                        try {
+                          const token = await getToken()
+                          const params = new URLSearchParams(); params.set('limit', String(recentLimit)); params.set('offset', String(recentPage * recentLimit))
+                          const nextRes = await fetch(`/api/performances?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
+                          if (!nextRes.ok) return
+                          const payload = await nextRes.json()
+                          const items = Array.isArray(payload) ? payload : (payload.items || [])
+                          if (items.length > 0) {
+                            setRecentPerformances(prev => [...prev, ...items])
+                            setRecentPage(p => p + 1)
+                          }
+                        } catch {}
+                      }}>Load more</Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">

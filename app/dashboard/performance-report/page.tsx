@@ -58,6 +58,9 @@ export default function PerformanceReportPage() {
   const { toast } = useToast()
   
   const [performances, setPerformances] = useState<PerformanceData[]>([])
+  const [page, setPage] = useState(1)
+  const [limit, setLimit] = useState(10)
+  const [total, setTotal] = useState(0)
   const [summaryStats, setSummaryStats] = useState<SummaryStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [teams, setTeams] = useState<any[]>([])
@@ -116,7 +119,7 @@ export default function PerformanceReportPage() {
       }
       loadPerformanceData()
     }
-  }, [profile, appliedFilters, teams])
+  }, [profile, appliedFilters, teams, page, limit])
 
   const loadFilterOptions = async () => {
     try {
@@ -162,11 +165,14 @@ export default function PerformanceReportPage() {
       if (appliedFilters.teamId && appliedFilters.teamId !== 'all') params.set('teamId', appliedFilters.teamId)
       if (appliedFilters.playerId && appliedFilters.playerId !== 'all') params.set('playerId', appliedFilters.playerId)
       if (appliedFilters.map && appliedFilters.map !== 'all') params.set('map', appliedFilters.map)
-      // Dates and matchNumber would require extended API; skipping for now for parity
+      params.set('limit', String(limit))
+      params.set('offset', String((page - 1) * limit))
 
       const res = await fetch(`/api/performances?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
       if (!res.ok) throw new Error('Failed to fetch performances')
-      const data = await res.json()
+      const payload = await res.json()
+      const data = Array.isArray(payload) ? payload : (payload.items || [])
+      const totalCount = Array.isArray(payload) ? payload.length : (payload.total || 0)
 
       const transformedData: PerformanceData[] = (Array.isArray(data) ? data : []).map((p: any) => ({
         match_number: p.match_number,
@@ -186,6 +192,7 @@ export default function PerformanceReportPage() {
       }))
 
       setPerformances(transformedData)
+      setTotal(totalCount)
       calculateSummaryStats(transformedData)
 
     } catch (error) {
@@ -554,6 +561,13 @@ export default function PerformanceReportPage() {
                   ))}
                 </TableBody>
               </Table>
+              <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-muted-foreground">Page {page} of {Math.max(1, Math.ceil(total / limit) || 1)} • {total} total</div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Prev</Button>
+                  <Button variant="outline" size="sm" disabled={(page * limit) >= total} onClick={() => setPage(p => p + 1)}>Next</Button>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
