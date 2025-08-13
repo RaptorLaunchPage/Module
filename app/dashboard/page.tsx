@@ -41,6 +41,26 @@ import {
 import Link from 'next/link'
 // Removed PerformanceDashboard import as we're using a simplified version
 
+const ROLE_COLOR_TO_BG: Record<string, string> = {
+  blue: 'bg-blue-500/20',
+  green: 'bg-green-500/20',
+  orange: 'bg-orange-500/20',
+  purple: 'bg-purple-500/20',
+  pink: 'bg-pink-500/20',
+  indigo: 'bg-indigo-500/20',
+  teal: 'bg-teal-500/20',
+  violet: 'bg-violet-500/20',
+  amber: 'bg-amber-500/20',
+  cyan: 'bg-cyan-500/20',
+  slate: 'bg-slate-500/20',
+  red: 'bg-red-500/20'
+}
+
+function getRoleAccentBg(color?: string): string {
+  if (!color) return 'bg-slate-500/20'
+  return ROLE_COLOR_TO_BG[color] || 'bg-slate-500/20'
+}
+
 interface DashboardStats {
   totalMatches: number
   totalKills: number
@@ -678,7 +698,7 @@ export default function OptimizedDashboardPage() {
           <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
             <CardHeader>
               <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
-                <div className={`p-2 rounded-lg bg-${roleInfo.color}-500/20`}>
+                <div className={`p-2 rounded-lg ${getRoleAccentBg(roleInfo.color)}`}>
                   <Users className="h-6 w-6 text-white" />
                 </div>
                 {isPlayer ? 'My Performance Dashboard' : 

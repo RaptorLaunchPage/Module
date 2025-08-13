@@ -334,6 +334,30 @@ export function RoleBasedDashboard({ userRole, profile, stats }: RoleDashboardPr
   // Get role information
   const roleInfo = DashboardPermissions.getRoleInfo(userRole)
 
+  const COLOR_BG_900: Record<string, string> = {
+    blue: 'bg-blue-900/20',
+    green: 'bg-green-900/20',
+    orange: 'bg-orange-900/20',
+    purple: 'bg-purple-900/20',
+    pink: 'bg-pink-900/20',
+    indigo: 'bg-indigo-900/20',
+    teal: 'bg-teal-900/20',
+    violet: 'bg-violet-900/20',
+    amber: 'bg-amber-900/20',
+    cyan: 'bg-cyan-900/20',
+    slate: 'bg-slate-900/20',
+    red: 'bg-red-900/20'
+  }
+  const COLOR_BORDER_400: Record<string, string> = {
+    blue: 'border-blue-400', green: 'border-green-400', orange: 'border-orange-400', purple: 'border-purple-400', pink: 'border-pink-400', indigo: 'border-indigo-400', teal: 'border-teal-400', violet: 'border-violet-400', amber: 'border-amber-400', cyan: 'border-cyan-400', slate: 'border-slate-400', red: 'border-red-400'
+  }
+  const COLOR_TEXT_400: Record<string, string> = {
+    blue: 'text-blue-400', green: 'text-green-400', orange: 'text-orange-400', purple: 'text-purple-400', pink: 'text-pink-400', indigo: 'text-indigo-400', teal: 'text-teal-400', violet: 'text-violet-400', amber: 'text-amber-400', cyan: 'text-cyan-400', slate: 'text-slate-400', red: 'text-red-400'
+  }
+  const color = roleInfo.color || 'slate'
+  const badgeClass = `${COLOR_BORDER_400[color] || 'border-slate-400'} ${COLOR_TEXT_400[color] || 'text-slate-400'} ${COLOR_BG_900[color] || 'bg-slate-900/20'}`
+  const iconWrapClass = `${COLOR_BG_900[color] || 'bg-slate-900/20'} ${(COLOR_BORDER_400[color] || 'border-slate-400')}/20 border`
+  
   return (
     <div className="space-y-8">
       {/* Role Header */}
@@ -345,7 +369,7 @@ export function RoleBasedDashboard({ userRole, profile, stats }: RoleDashboardPr
             </h1>
             <Badge 
               variant="outline" 
-              className={`border-${roleInfo.color}-400 text-${roleInfo.color}-400 bg-${roleInfo.color}-900/20`}
+              className={badgeClass}
             >
               {roleInfo.label}
             </Badge>
@@ -356,7 +380,7 @@ export function RoleBasedDashboard({ userRole, profile, stats }: RoleDashboardPr
         </div>
         
         {/* Role Icon */}
-        <div className={`p-4 rounded-full bg-${roleInfo.color}-900/20 border border-${roleInfo.color}-400/20`}>
+        <div className={`p-4 rounded-full ${iconWrapClass}`}>
           {getRoleIcon(userRole)}
         </div>
       </div>
