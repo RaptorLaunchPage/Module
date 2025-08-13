@@ -587,12 +587,28 @@ CREATE TABLE IF NOT EXISTS public.user_agreements (
 -- ====================================================================
 
 -- Add unique constraint for profiles table
-ALTER TABLE public.profiles 
-ADD CONSTRAINT IF NOT EXISTS profiles_user_id_unique UNIQUE (user_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'profiles_user_id_unique'
+    ) THEN
+        ALTER TABLE public.profiles 
+        ADD CONSTRAINT profiles_user_id_unique UNIQUE (user_id);
+    END IF;
+END $$;
 
 -- Add unique constraint for communication settings
-ALTER TABLE public.communication_settings 
-ADD CONSTRAINT IF NOT EXISTS communication_settings_team_setting_key_unique UNIQUE (team_id, setting_key);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'communication_settings_team_setting_key_unique'
+    ) THEN
+        ALTER TABLE public.communication_settings 
+        ADD CONSTRAINT communication_settings_team_setting_key_unique UNIQUE (team_id, setting_key);
+    END IF;
+END $$;
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_team_id ON public.users(team_id);
