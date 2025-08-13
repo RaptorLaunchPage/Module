@@ -106,7 +106,9 @@ export default function PerformanceReportPage() {
 
   // Load filter options
   useEffect(() => {
-    loadFilterOptions()
+    const controller = new AbortController()
+    loadFilterOptions(controller.signal)
+    return () => controller.abort()
   }, [profile])
 
   // Load performance data
@@ -117,20 +119,22 @@ export default function PerformanceReportPage() {
       if (currentIsCoach && teams.length === 0) {
         return // Don't load performance data yet for coaches until teams are loaded
       }
-      loadPerformanceData()
+      const controller = new AbortController()
+      loadPerformanceData(controller.signal)
+      return () => controller.abort()
     }
   }, [profile, appliedFilters, teams, page, limit])
 
-  const loadFilterOptions = async () => {
+  const loadFilterOptions = async (signal?: AbortSignal) => {
     try {
       const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
       // Load teams
-      const teamsRes = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+      const teamsRes = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` }, signal })
       const teamsData = teamsRes.ok ? await teamsRes.json() : []
       setTeams(Array.isArray(teamsData) ? teamsData : [])
 
       // Load players
-      const usersRes = await fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } })
+      const usersRes = await fetch('/api/users', { headers: { Authorization: `Bearer ${token}` }, signal })
       const allUsers = usersRes.ok ? await usersRes.json() : []
       let filteredUsers = Array.isArray(allUsers) ? allUsers : []
       if (isPlayer) filteredUsers = filteredUsers.filter((u: any) => u.id === profile?.id)
@@ -141,13 +145,13 @@ export default function PerformanceReportPage() {
       setPlayers(filteredUsers)
 
       // Load maps from performances via API
-      const perfRes = await fetch('/api/performances?timeframe=365', { headers: { Authorization: `Bearer ${token}` } })
+      const perfRes = await fetch('/api/performances?timeframe=365', { headers: { Authorization: `Bearer ${token}` }, signal })
       const perfs = perfRes.ok ? await perfRes.json() : []
       const uniqueMaps = [...new Set((Array.isArray(perfs) ? perfs : []).map((p: any) => p.map).filter(Boolean))]
       setMaps(uniqueMaps)
 
       // Load slots via API
-      const slotsRes = await fetch('/api/slots?view=all', { headers: { Authorization: `Bearer ${token}` } })
+      const slotsRes = await fetch('/api/slots?view=all', { headers: { Authorization: `Bearer ${token}` }, signal })
       const payload = slotsRes.ok ? await slotsRes.json() : []
       const slotsData = Array.isArray(payload) ? payload : (payload.slots || [])
       setSlots(slotsData || [])
@@ -157,7 +161,7 @@ export default function PerformanceReportPage() {
     }
   }
 
-  const loadPerformanceData = async () => {
+  const loadPerformanceData = async (signal?: AbortSignal) => {
     setLoading(true)
     try {
       const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
@@ -168,7 +172,7 @@ export default function PerformanceReportPage() {
       params.set('limit', String(limit))
       params.set('offset', String((page - 1) * limit))
 
-      const res = await fetch(`/api/performances?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
+      const res = await fetch(`/api/performances?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` }, signal })
       if (!res.ok) throw new Error('Failed to fetch performances')
       const payload = await res.json()
       const data = Array.isArray(payload) ? payload : (payload.items || [])
