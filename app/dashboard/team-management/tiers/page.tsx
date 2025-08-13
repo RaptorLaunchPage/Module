@@ -591,8 +591,20 @@ export default function TeamTierManagementPage() {
                                 const idx = Math.min(order.indexOf(current) + 1, order.length - 1)
                                 const newTier = order[idx]
                                 try {
-                                  // TODO: replace with /api/teams/manage when available
-                                  const res = await fetch('/api/teams/monthly', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify({ ...r, updated_tier: newTier }) })
+                                  const payload = {
+                                    teamId: r.team_id,
+                                    month: r.month,
+                                    currentTier: r.current_tier,
+                                    slotsPlayed: r.slots_played,
+                                    slotsWon: r.slots_won,
+                                    slotPricePerSlot: r.slot_price_per_slot,
+                                    slotCostPerSlot: (r as any).slot_cost_per_slot || r.slot_price_per_slot,
+                                    trialPhase: r.trial_phase,
+                                    trialWeeksUsed: r.trial_weeks_used,
+                                    tournamentWinnings: r.tournament_winnings,
+                                    updated_tier: newTier
+                                  }
+                                  const res = await fetch('/api/teams/monthly', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify(payload) })
                                   if (!res.ok) throw new Error('Failed to update tier')
                                   toast({ title: 'Tier Updated', description: `Team tier set to ${newTier}` })
                                   fetchMonthly()
@@ -609,8 +621,20 @@ export default function TeamTierManagementPage() {
                                 const idx = Math.max(order.indexOf(current) - 1, 0)
                                 const newTier = order[idx]
                                 try {
-                                  // TODO: replace with /api/teams/manage when available
-                                  const res = await fetch('/api/teams/monthly', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify({ ...r, updated_tier: newTier }) })
+                                  const payload = {
+                                    teamId: r.team_id,
+                                    month: r.month,
+                                    currentTier: r.current_tier,
+                                    slotsPlayed: r.slots_played,
+                                    slotsWon: r.slots_won,
+                                    slotPricePerSlot: r.slot_price_per_slot,
+                                    slotCostPerSlot: (r as any).slot_cost_per_slot || r.slot_price_per_slot,
+                                    trialPhase: r.trial_phase,
+                                    trialWeeksUsed: r.trial_weeks_used,
+                                    tournamentWinnings: r.tournament_winnings,
+                                    updated_tier: newTier
+                                  }
+                                  const res = await fetch('/api/teams/monthly', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify(payload) })
                                   if (!res.ok) throw new Error('Failed to update tier')
                                   toast({ title: 'Tier Updated', description: `Team tier set to ${newTier}` })
                                   fetchMonthly()
