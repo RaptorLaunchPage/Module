@@ -116,13 +116,10 @@ export default function TeamTierManagementPage() {
 
   async function fetchTeams() {
     try {
-      let query = supabase.from('teams').select('*').order('name')
-      if (userRole === 'coach') {
-        query = query.eq('coach_id', profile!.id)
-      }
-      const { data, error } = await query
-      if (error) throw error
-      setTeams(data || [])
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+      const data = res.ok ? await res.json() : []
+      setTeams(Array.isArray(data) ? data : [])
     } catch (e: any) {
       toast({ title: 'Error', description: e.message || 'Failed to fetch teams', variant: 'destructive' })
     }
@@ -253,8 +250,9 @@ export default function TeamTierManagementPage() {
 
   async function fetchTierDefaults() {
     try {
-      const { data, error } = await supabase.from('tier_defaults').select('tier, default_slot_rate')
-      if (error) throw error
+      const res = await fetch('/api/tier-defaults', { headers: await authHeader() })
+      if (!res.ok) return
+      const data = await res.json()
       setTierDefaults(data || [])
     } catch (e) {
       // non-fatal
@@ -593,8 +591,21 @@ export default function TeamTierManagementPage() {
                                 const idx = Math.min(order.indexOf(current) + 1, order.length - 1)
                                 const newTier = order[idx]
                                 try {
-                                  const { error } = await supabase.from('teams').update({ tier: newTier }).eq('id', r.team_id)
-                                  if (error) throw error
+                                  const payload = {
+                                    teamId: r.team_id,
+                                    month: r.month,
+                                    currentTier: r.current_tier,
+                                    slotsPlayed: r.slots_played,
+                                    slotsWon: r.slots_won,
+                                    slotPricePerSlot: r.slot_price_per_slot,
+                                    slotCostPerSlot: (r as any).slot_cost_per_slot || r.slot_price_per_slot,
+                                    trialPhase: r.trial_phase,
+                                    trialWeeksUsed: r.trial_weeks_used,
+                                    tournamentWinnings: r.tournament_winnings,
+                                    updated_tier: newTier
+                                  }
+                                  const res = await fetch('/api/teams/monthly', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify(payload) })
+                                  if (!res.ok) throw new Error('Failed to update tier')
                                   toast({ title: 'Tier Updated', description: `Team tier set to ${newTier}` })
                                   fetchMonthly()
                                 } catch (e: any) {
@@ -610,8 +621,21 @@ export default function TeamTierManagementPage() {
                                 const idx = Math.max(order.indexOf(current) - 1, 0)
                                 const newTier = order[idx]
                                 try {
-                                  const { error } = await supabase.from('teams').update({ tier: newTier }).eq('id', r.team_id)
-                                  if (error) throw error
+                                  const payload = {
+                                    teamId: r.team_id,
+                                    month: r.month,
+                                    currentTier: r.current_tier,
+                                    slotsPlayed: r.slots_played,
+                                    slotsWon: r.slots_won,
+                                    slotPricePerSlot: r.slot_price_per_slot,
+                                    slotCostPerSlot: (r as any).slot_cost_per_slot || r.slot_price_per_slot,
+                                    trialPhase: r.trial_phase,
+                                    trialWeeksUsed: r.trial_weeks_used,
+                                    tournamentWinnings: r.tournament_winnings,
+                                    updated_tier: newTier
+                                  }
+                                  const res = await fetch('/api/teams/monthly', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await authHeader()) }, body: JSON.stringify(payload) })
+                                  if (!res.ok) throw new Error('Failed to update tier')
                                   toast({ title: 'Tier Updated', description: `Team tier set to ${newTier}` })
                                   fetchMonthly()
                                 } catch (e: any) {

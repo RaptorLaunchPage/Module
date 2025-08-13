@@ -464,10 +464,16 @@ class AuthFlowV2Manager {
 
       console.log(`✅ ${provider} session processed successfully`)
       
-      // UNIFIED BEHAVIOR: All authentication methods (email, Discord, etc.) use same redirect logic
-      console.log(`🔄 ${provider} authentication complete, will redirect to appropriate page`)
-      
-      return await this.setAuthenticatedState(sessionData, profile, true)
+      // Redirect only when on public/auth pages; on protected pages (hard refresh), avoid extra redirect
+      let shouldRedirect = true
+      if (typeof window !== 'undefined') {
+        const path = window.location.pathname
+        const redirectFrom = ['/', '/auth/login', '/auth/signup', '/auth/confirm', '/auth/forgot', '/auth/reset-password']
+        if (!redirectFrom.includes(path)) {
+          shouldRedirect = false
+        }
+      }
+      return await this.setAuthenticatedState(sessionData, profile, shouldRedirect)
 
     } catch (error: any) {
       console.error('❌ Session handling failed:', error)

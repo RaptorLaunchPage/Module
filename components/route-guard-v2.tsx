@@ -28,6 +28,7 @@ const PUBLIC_ROUTES = [
   '/faq',
   '/error',
   '/not-found',
+  '/_not-found',
   '/global-error'
 ]
 
@@ -113,7 +114,7 @@ const RouteGuardV2 = memo(function RouteGuardV2({ children }: RouteGuardV2Props)
     // Only handle basic route protection for unauthenticated users
     if (!authState.isAuthenticated && !isPublicRoute(pathname)) {
       console.log(`🚫 Unauthenticated user trying to access protected route: ${pathname}`)
-      safeRedirect('/auth/login')
+      safeRedirect('/')
       return
     }
 

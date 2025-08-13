@@ -67,6 +67,8 @@ export async function GET(request: NextRequest) {
     const teamId = searchParams.get('teamId')
     const playerId = searchParams.get('playerId')
     const analysisType = searchParams.get('type') || 'overview'
+    const limitParam = parseInt(searchParams.get('limit') || '0')
+    const limit = limitParam > 0 ? Math.min(limitParam, 1000) : 0
 
     // Calculate date range
     const endDate = new Date()
@@ -76,11 +78,11 @@ export async function GET(request: NextRequest) {
     // Build performance query with role-based filtering
     let performanceQuery = userSupabase
       .from('performances')
-      .select(`
-        *,
-        users:player_id(id, name, email),
-        teams:team_id(id, name)
-      `)
+      .select(
+        analysisType === 'overview' || analysisType === 'team'
+          ? 'kills,damage,survival_time,placement,created_at,player_id,team_id,map'
+          : '*, users:player_id(id, name, email), teams:team_id(id, name)'
+      )
       .gte('created_at', startDate.toISOString())
       .lte('created_at', endDate.toISOString())
 
@@ -106,8 +108,11 @@ export async function GET(request: NextRequest) {
       performanceQuery = performanceQuery.eq('player_id', playerId)
     }
 
-    const { data: performances, error: perfError } = await performanceQuery
-      .order('created_at', { ascending: false })
+    let finalQuery = performanceQuery.order('created_at', { ascending: false })
+    if (limit > 0) {
+      finalQuery = finalQuery.limit(limit)
+    }
+    const { data: performances, error: perfError } = await finalQuery
 
     if (perfError) {
       throw new Error(`Failed to fetch performance data: ${perfError.message}`)

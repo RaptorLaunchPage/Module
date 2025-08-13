@@ -103,13 +103,11 @@ export function SmartSlotSelector({ value, onValueChange, required, teamId }: Sm
 
   const fetchTeams = async () => {
     try {
-      const { data, error } = await supabase
-        .from("teams")
-        .select("*")
-        .order("name")
-      
-      if (error) throw error
-      setTeams(data || [])
+      const token = await getToken()
+      const res = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to fetch teams')
+      const data = await res.json()
+      setTeams(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Error fetching teams:', error)
     }
@@ -121,20 +119,27 @@ export function SmartSlotSelector({ value, onValueChange, required, teamId }: Sm
         return
       }
 
-      const { data, error } = await supabase.from("slots").insert({
-        organizer: quickAddData.organizer,
-        time_range: quickAddData.time_range,
-        date: format(quickAddData.date, 'yyyy-MM-dd'),
-        team_id: quickAddData.team_id,
-        slot_rate: quickAddData.slot_rate,
-        match_count: 0 // Default value
-      }).select("*, team:team_id(name)").single()
+      const token = await getToken()
+      const res = await fetch('/api/slots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          organizer: quickAddData.organizer,
+          time_range: quickAddData.time_range,
+          date: format(quickAddData.date, 'yyyy-MM-dd'),
+          team_id: quickAddData.team_id,
+          slot_rate: quickAddData.slot_rate,
+          match_count: 0
+        })
+      })
 
-      if (error) throw error
+      if (!res.ok) throw new Error('Failed to create slot')
+      const payload = await res.json()
+      const newSlot = payload.slot
 
       // Only present the newly created slot as options and select it
-      setSlots([data])
-      onValueChange(data.id)
+      setSlots([newSlot])
+      onValueChange(newSlot.id)
       setShowQuickAdd(false)
       
       // Reset form

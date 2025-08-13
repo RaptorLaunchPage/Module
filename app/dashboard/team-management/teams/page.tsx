@@ -42,20 +42,11 @@ export default function TeamsPage() {
   const fetchTeams = async () => {
     setLoading(true)
     try {
-      let query = supabase.from("teams").select("*, coach:coach_id(name, email)").order("name")
-
-      // Admin and manager can see all teams
-      if (profile?.role === "coach") {
-        query = query.eq("coach_id", profile.id)
-      } else if (profile?.role === "player") {
-        query = query.eq("id", profile.team_id!)
-      }
-      // No filtering for admin/manager - they see all teams
-
-      const { data, error } = await query
-
-      if (error) throw error
-      setTeams(data || [])
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to fetch teams')
+      const data = await res.json()
+      setTeams(Array.isArray(data) ? data : [])
     } catch (error: any) {
       console.error("Error fetching teams:", error)
       toast({
@@ -70,9 +61,11 @@ export default function TeamsPage() {
 
   const fetchCoaches = async () => {
     try {
-      const { data, error } = await supabase.from("users").select("*").eq("role", "coach")
-      if (error) throw error
-      setCoaches(data || [])
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to fetch users')
+      const data = await res.json()
+      setCoaches((Array.isArray(data) ? data : []).filter((u: any) => u.role === 'coach'))
     } catch (error) {
       console.error("Error fetching coaches:", error)
     }
@@ -82,30 +75,22 @@ export default function TeamsPage() {
     e.preventDefault()
     setFormLoading(true)
     try {
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
       if (editingTeam) {
-        // Update team
-        const { error } = await supabase
-          .from("teams")
-          .update({
-            name: newTeamName,
-            tier: newTeamTier,
-            coach_id: newTeamCoach,
-            status: newTeamStatus,
-          })
-          .eq("id", editingTeam.id)
-
-        if (error) throw error
+        const res = await fetch('/api/teams/manage', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ id: editingTeam.id, name: newTeamName, tier: newTeamTier, coach_id: newTeamCoach, status: newTeamStatus })
+        })
+        if (!res.ok) throw new Error('Failed to update team')
         toast({ title: "Success", description: "Team updated successfully." })
       } else {
-        // Create team
-        const { error } = await supabase.from("teams").insert({
-          name: newTeamName,
-          tier: newTeamTier,
-          coach_id: newTeamCoach,
-          status: newTeamStatus,
+        const res = await fetch('/api/teams/manage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ name: newTeamName, tier: newTeamTier, coach_id: newTeamCoach, status: newTeamStatus })
         })
-
-        if (error) throw error
+        if (!res.ok) throw new Error('Failed to create team')
         toast({ title: "Success", description: "Team created successfully." })
       }
       resetForm()
@@ -128,8 +113,9 @@ export default function TeamsPage() {
     }
     setFormLoading(true)
     try {
-      const { error } = await supabase.from("teams").delete().eq("id", teamId)
-      if (error) throw error
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch(`/api/teams/manage?id=${teamId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to delete team')
       toast({ title: "Success", description: "Team deleted successfully." })
       fetchTeams()
     } catch (error: any) {

@@ -100,109 +100,29 @@ export default function AnalyticsPage() {
         setLoading(false)
         return
       }
-      // Calculate date range
-      const timeframeDate = new Date()
-      timeframeDate.setDate(timeframeDate.getDate() - parseInt(selectedTimeframe))
-      
-      // Build query with filters
-      let performanceQuery = supabase
-        .from('performances')
-        .select(`
-          *,
-          users:player_id(id, name, email),
-          teams:team_id(id, name)
-        `)
-        .gte('created_at', timeframeDate.toISOString())
-      
-      // Apply role-based filtering
-      if (profile.role === 'player') {
-        // Players can see their own performance AND their team's performance
-        if (profile.team_id) {
-          performanceQuery = performanceQuery.or(`player_id.eq.${profile.id},team_id.eq.${profile.team_id}`)
-        } else {
-          performanceQuery = performanceQuery.eq('player_id', profile.id)
-        }
-      } else if (profile.role === 'coach' && profile.team_id) {
-        performanceQuery = performanceQuery.eq('team_id', profile.team_id)
-      }
-      
-      // Apply user filters
-      if (selectedTeam !== 'all') {
-        performanceQuery = performanceQuery.eq('team_id', selectedTeam)
-      }
-      if (selectedMap !== 'all') {
-        performanceQuery = performanceQuery.eq('map', selectedMap)
-      }
-      
-      const { data: performances, error: perfError } = await performanceQuery.order('created_at', { ascending: false })
-      
-      if (perfError) {
-        console.error('Performance query error:', perfError)
-        throw new Error(`Failed to fetch performance data: ${perfError.message}`)
-      }
-      
-      console.log('✅ Fetched performances:', performances?.length || 0)
-      
-      // Load teams and maps for filters with error handling
-      const [teamsResult, mapsResult] = await Promise.all([
-        // Try to fetch teams via API for proper role-based access
-        fetch('/api/teams', {
-          headers: {
-            'Authorization': `Bearer ${await supabase.auth.getSession().then(s => s.data.session?.access_token)}`
-          }
-        }).then(async (response) => {
-          if (response.ok) {
-            const data = await response.json()
-            return { data, error: null }
-          } else {
-            // If API fails, for players we can create a minimal team object from their profile
-            if (profile.role === 'player' && profile.team_id) {
-              // Get team name from performances data if available
-              const teamName = performances?.find(p => p.teams?.id === profile.team_id)?.teams?.name || 'My Team'
-              return { 
-                data: [{ id: profile.team_id, name: teamName }], 
-                error: null 
-              }
-            }
-            console.warn('Teams API error:', response.status, await response.text())
-            return { data: [], error: `Teams API Error ${response.status}` }
-          }
-        }).catch(error => {
-          console.warn('Teams fetch error:', error)
-          // Fallback for players - create team object from profile
-          if (profile.role === 'player' && profile.team_id) {
-            const teamName = performances?.find(p => p.teams?.id === profile.team_id)?.teams?.name || 'My Team'
-            return { 
-              data: [{ id: profile.team_id, name: teamName }], 
-              error: null 
-            }
-          }
-          return { data: [], error: error.message }
-        }),
-        supabase.from('performances').select('map').not('map', 'is', null).then(result => {
-          if (result.error) {
-            console.warn('Maps fetch error:', result.error)
-            return { data: [], error: result.error }
-          }
-          return result
-        })
-      ])
-      
-      if (teamsResult.data) {
-        setTeams(teamsResult.data)
-        console.log('✅ Fetched teams:', teamsResult.data.length)
-        
-        // Auto-select team for players
-        if (profile.role === 'player' && profile.team_id && selectedTeam === 'all') {
-          setSelectedTeam(profile.team_id)
-        }
-      }
-      if (mapsResult.data) {
-        const uniqueMaps = [...new Set(mapsResult.data.map(p => p.map).filter(Boolean))]
-        setMaps(uniqueMaps)
-        console.log('✅ Fetched maps:', uniqueMaps.length)
-      }
-      
+
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const params = new URLSearchParams()
+      params.set('timeframe', selectedTimeframe)
+      if (selectedTeam !== 'all') params.set('teamId', selectedTeam)
+      if (selectedMap !== 'all') params.set('map', selectedMap)
+
+      // Fetch performances through API
+      const perfsRes = await fetch(`/api/performances?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!perfsRes.ok) throw new Error(`Failed to fetch performances: ${perfsRes.status}`)
+      const performances = await perfsRes.json()
+
+      // Fetch teams via API
+      const teamsRes = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+      const teamsData = teamsRes.ok ? await teamsRes.json() : []
+      setTeams(Array.isArray(teamsData) ? teamsData : [])
+
+      // Build maps from performances locally
+      const uniqueMaps = [...new Set((performances || []).map((p: any) => p.map).filter(Boolean))]
+      setMaps(uniqueMaps)
+
       // Calculate analytics stats
       const calculatedStats = calculateAnalyticsStats(performances || [])
       setStats(calculatedStats)

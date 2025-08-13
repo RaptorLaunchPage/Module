@@ -52,48 +52,17 @@ export default function RosterPage() {
 
   const fetchTeams = async () => {
     try {
-      let query = supabase.from("teams").select("*").order("name")
-
-      // Admin and manager can see all teams
-      if (profile?.role === "coach") {
-        query = query.eq("coach_id", profile.id)
-      } else if (profile?.role === "player") {
-        if (!profile.team_id) {
-          toast({
-            title: "Team Assignment Required",
-            description: "You need to be assigned to a team to view roster data.",
-            variant: "destructive",
-          })
-          setTeams([])
-          setLoading(false)
-          return
-        }
-        query = query.eq("id", profile.team_id)
-      }
-      // No filtering for admin/manager - they see all teams
-
-      const { data, error } = await query
-      if (error) {
-        console.error("Teams fetch error:", error)
-        toast({
-          title: "Error Loading Teams",
-          description: error.message || "Failed to fetch teams data.",
-          variant: "destructive",
-        })
-        return
-      }
-      
-      setTeams(data || [])
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/teams', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to fetch teams')
+      const data = await res.json()
+      setTeams(Array.isArray(data) ? data : [])
       if (data && data.length > 0 && !selectedTeamId) {
         setSelectedTeamId(data[0].id) // Auto-select first team
       }
     } catch (error: any) {
       console.error("Error fetching teams:", error)
-      toast({
-        title: "Connection Error",
-        description: "Unable to connect to the database. Please try again.",
-        variant: "destructive",
-      })
+      toast({ title: "Connection Error", description: error.message || 'Unable to fetch teams', variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -102,21 +71,14 @@ export default function RosterPage() {
   const fetchRoster = async (teamId: string) => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from("rosters")
-        .select("*, user:user_id(id, name, email)")
-        .eq("team_id", teamId)
-        .order("created_at", { ascending: true })
-
-      if (error) throw error
-      setRoster(data || [])
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch(`/api/rosters?teamId=${teamId}`, { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to fetch roster')
+      const data = await res.json()
+      setRoster(Array.isArray(data) ? data : [])
     } catch (error: any) {
       console.error("Error fetching roster:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to fetch roster.",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: error.message || "Failed to fetch roster.", variant: "destructive" })
     } finally {
       setLoading(false)
     }
@@ -124,30 +86,16 @@ export default function RosterPage() {
 
   const fetchAvailablePlayers = async () => {
     try {
-      // Fetch all users who are players and not already in a roster (or not in the current selected team's roster)
-      const { data, error } = await supabase.from("users").select("*").eq("role", "player")
-      if (error) {
-        console.error("Players fetch error:", error)
-        toast({
-          title: "Error Loading Players",
-          description: error.message || "Failed to fetch player data.",
-          variant: "destructive",
-        })
-        return
-      }
-
-      // Filter out players already in the current roster
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch('/api/users', { headers: { Authorization: `Bearer ${token}` } })
+      const data = res.ok ? await res.json() : []
+      const players = (Array.isArray(data) ? data : []).filter((u: any) => u.role === 'player')
       const currentRosterUserIds = new Set(roster.map((entry) => entry.user_id))
-      const filteredPlayers = data?.filter((player) => !currentRosterUserIds.has(player.id)) || []
-
+      const filteredPlayers = players.filter((player: any) => !currentRosterUserIds.has(player.id))
       setAvailablePlayers(filteredPlayers)
     } catch (error: any) {
       console.error("Error fetching available players:", error)
-      toast({
-        title: "Connection Error",
-        description: "Unable to fetch player data. Please try again.",
-        variant: "destructive",
-      })
+      toast({ title: "Connection Error", description: 'Unable to fetch player data', variant: "destructive" })
     }
   }
 
@@ -159,59 +107,26 @@ export default function RosterPage() {
     }
     setFormLoading(true)
     try {
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
       if (editingRosterEntry) {
-        // Update roster entry
-        const { error } = await supabase
-          .from("rosters")
-          .update({
-            in_game_role: newInGameRole,
-            contact_number: newContactNumber,
-            device_info: newDeviceInfo,
-          })
-          .eq("id", editingRosterEntry.id)
-
-        if (error) throw error
+        const res = await fetch('/api/rosters', { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ id: editingRosterEntry.id, in_game_role: newInGameRole, contact_number: newContactNumber, device_info: newDeviceInfo }) })
+        if (!res.ok) throw new Error('Failed to update roster entry')
         toast({ title: "Success", description: "Roster entry updated successfully." })
       } else {
-        // Add new player to roster
         if (!newPlayerUserId) {
           toast({ title: "Error", description: "Please select a player.", variant: "destructive" })
           return
         }
-        // Use transaction to update both roster and user's team_id
-        const { error: rosterError } = await supabase.from("rosters").insert({
-          team_id: selectedTeamId,
-          user_id: newPlayerUserId,
-          in_game_role: newInGameRole,
-          contact_number: newContactNumber,
-          device_info: newDeviceInfo,
-        })
-
-        if (rosterError) throw rosterError
-        
-        // Update the user's team_id to match the roster assignment
-        const { error: userUpdateError } = await supabase
-          .from("users")
-          .update({ team_id: selectedTeamId })
-          .eq("id", newPlayerUserId)
-        
-        if (userUpdateError) {
-          console.warn("Warning: Failed to update user's team_id:", userUpdateError)
-          // Don't throw error here as roster was successfully added
-        }
-
+        const res = await fetch('/api/rosters', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ team_id: selectedTeamId, user_id: newPlayerUserId, in_game_role: newInGameRole, contact_number: newContactNumber, device_info: newDeviceInfo }) })
+        if (!res.ok) throw new Error('Failed to add player to roster')
         toast({ title: "Success", description: "Player added to roster successfully." })
       }
       resetForm()
       fetchRoster(selectedTeamId)
-      fetchAvailablePlayers() // Refresh available players list
+      fetchAvailablePlayers()
     } catch (error: any) {
       console.error("Error saving roster entry:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save roster entry.",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: error.message || "Failed to save roster entry.", variant: "destructive" })
     } finally {
       setFormLoading(false)
     }
@@ -223,44 +138,17 @@ export default function RosterPage() {
     }
     setFormLoading(true)
     try {
-      // First get the roster entry to find the user_id
-      const { data: rosterEntry, error: fetchError } = await supabase
-        .from("rosters")
-        .select("user_id")
-        .eq("id", rosterId)
-        .single()
-      
-      if (fetchError) throw fetchError
-      
-      // Delete the roster entry
-      const { error: deleteError } = await supabase.from("rosters").delete().eq("id", rosterId)
-      if (deleteError) throw deleteError
-      
-      // Clear the user's team_id
-      if (rosterEntry?.user_id) {
-        const { error: userUpdateError } = await supabase
-          .from("users")
-          .update({ team_id: null })
-          .eq("id", rosterEntry.user_id)
-        
-        if (userUpdateError) {
-          console.warn("Warning: Failed to clear user's team_id:", userUpdateError)
-          // Don't throw error here as roster was successfully removed
-        }
-      }
-      
+      const token = await supabase.auth.getSession().then(s => s.data.session?.access_token)
+      const res = await fetch(`/api/rosters?id=${rosterId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) throw new Error('Failed to remove player')
       toast({ title: "Success", description: "Player removed from roster." })
       if (selectedTeamId) {
         fetchRoster(selectedTeamId)
-        fetchAvailablePlayers() // Refresh available players list
+        fetchAvailablePlayers()
       }
     } catch (error: any) {
       console.error("Error deleting roster entry:", error)
-      toast({
-        title: "Error",
-        description: error.message || "Failed to remove player from roster.",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: error.message || "Failed to remove player from roster.", variant: "destructive" })
     } finally {
       setFormLoading(false)
     }

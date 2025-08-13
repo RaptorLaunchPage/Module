@@ -131,6 +131,31 @@ The application uses a comprehensive database schema including:
 - **Slots**: Tournament slots and scheduling
 - **Rosters**: Team roster management
 
+## Database Performance Recommendations
+
+For faster queries in dashboard and analytics, add these indexes in Supabase (SQL editor):
+
+```sql
+-- Performances hot paths
+create index if not exists idx_performances_created_at on performances (created_at desc);
+create index if not exists idx_performances_team_id_created on performances (team_id, created_at desc);
+create index if not exists idx_performances_player_id_created on performances (player_id, created_at desc);
+
+-- Attendance
+create index if not exists idx_attendances_team_id_created on attendances (team_id, created_at desc);
+create index if not exists idx_attendances_created_at on attendances (created_at desc);
+
+-- Expenses and winnings
+create index if not exists idx_slot_expenses_team_id_created on slot_expenses (team_id, created_at desc);
+create index if not exists idx_winnings_team_id_created on winnings (team_id, created_at desc);
+
+-- Teams and users filters
+create index if not exists idx_teams_status on teams (status);
+create index if not exists idx_users_role on users (role);
+```
+
+These indexes target the exact filters used by the APIs (timeframe windows and role-scoped team/player filters) and should significantly reduce response times under load.
+
 ## 🔧 Recent Updates & Fixes
 
 ### ✅ Completed Improvements

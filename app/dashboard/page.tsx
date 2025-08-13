@@ -41,6 +41,26 @@ import {
 import Link from 'next/link'
 // Removed PerformanceDashboard import as we're using a simplified version
 
+const ROLE_COLOR_TO_BG: Record<string, string> = {
+  blue: 'bg-blue-500/20',
+  green: 'bg-green-500/20',
+  orange: 'bg-orange-500/20',
+  purple: 'bg-purple-500/20',
+  pink: 'bg-pink-500/20',
+  indigo: 'bg-indigo-500/20',
+  teal: 'bg-teal-500/20',
+  violet: 'bg-violet-500/20',
+  amber: 'bg-amber-500/20',
+  cyan: 'bg-cyan-500/20',
+  slate: 'bg-slate-500/20',
+  red: 'bg-red-500/20'
+}
+
+function getRoleAccentBg(color?: string): string {
+  if (!color) return 'bg-slate-500/20'
+  return ROLE_COLOR_TO_BG[color] || 'bg-slate-500/20'
+}
+
 interface DashboardStats {
   totalMatches: number
   totalKills: number
@@ -106,6 +126,8 @@ export default function OptimizedDashboardPage() {
     highestDamage: null
   })
   const [recentPerformances, setRecentPerformances] = useState<any[]>([])
+  const [recentPage, setRecentPage] = useState(1)
+  const recentLimit = 10
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dataFetched, setDataFetched] = useState(false)
@@ -160,8 +182,10 @@ export default function OptimizedDashboardPage() {
   useEffect(() => {
     if (profile) {
       loadDashboardData()
-      // Preload essential data in background
-      dataService.preloadEssentialData(profile.id, profile.role)
+      // Defer preload to after first paint to avoid competing with initial load
+      setTimeout(() => {
+        dataService.preloadEssentialData(profile!.id, profile!.role)
+      }, 0)
     }
   }, [profile, selectedTimeframe])
 
@@ -311,30 +335,137 @@ export default function OptimizedDashboardPage() {
     try {
       console.log('🚀 Loading dashboard data...')
       const startTime = Date.now()
-      
-      // Use optimized data service with caching
-      const dashboardStats = await dataService.getDashboardStats(profile.id, selectedTimeframe)
-      
-      // Enhance stats for admin/manager roles
-      if (['admin', 'manager'].includes(userRole)) {
-        const enhancedStats = await loadEnhancedAdminStats(dashboardStats)
-        setStats(enhancedStats)
+
+      const token = await getToken()
+      const headers = { Authorization: `Bearer ${token}` }
+      const params = new URLSearchParams(); params.set('timeframe', selectedTimeframe)
+
+      // Prepare filters
+      const roleAwareTeamId = (userRole === 'coach' || userRole === 'player' || userRole === 'analyst') ? (profile.team_id || undefined) : undefined
+      const roleAwarePlayerId = (userRole === 'player') ? profile.id : undefined
+
+      // Prepare performance queries
+      const perfParams = new URLSearchParams(); perfParams.set('timeframe', '7')
+      if (userRole === 'player') perfParams.set('playerId', profile.id)
+
+      // Run major IO in parallel to minimize latency
+      const [overviewRes, recentPerfRes, teams, users, perfForTop] = await Promise.all([
+        fetch(`/api/dashboard/overview?${params.toString()}`, { headers }),
+        fetch(`/api/performances?${perfParams.toString()}`, { headers }),
+        dataService.getTeams(userRole, profile.id),
+        dataService.getUsers(),
+        dataService.getPerformances({
+          days: parseInt(selectedTimeframe),
+          limit: 1000,
+          ...(roleAwarePlayerId && { playerId: roleAwarePlayerId }),
+          ...(roleAwareTeamId && { teamId: roleAwareTeamId })
+        })
+      ])
+
+      // Parse overview (with client fallback only if needed)
+      let baseStats: any
+      if (overviewRes.ok) {
+        const payload = await overviewRes.json()
+        baseStats = payload.stats
       } else {
-        setStats(normalizeStats(dashboardStats))
+        // Client fallback
+        const roleScopedPerformances = perfForTop
+        baseStats = (() => {
+          const totalMatches = roleScopedPerformances.length
+          const totalKills = roleScopedPerformances.reduce((sum: number, p: any) => sum + (p.kills || 0), 0)
+          const totalDamage = roleScopedPerformances.reduce((sum: number, p: any) => sum + (p.damage || 0), 0)
+          const totalSurvival = roleScopedPerformances.reduce((sum: number, p: any) => sum + (p.survival_time || 0), 0)
+          const today = new Date(); today.setHours(0,0,0,0)
+          const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7)
+          const todayMatches = roleScopedPerformances.filter((p: any) => new Date(p.created_at) >= today).length
+          const weekMatches = roleScopedPerformances.filter((p: any) => new Date(p.created_at) >= weekAgo).length
+          const placements = roleScopedPerformances.map((p: any) => p.placement).filter((x: any) => x > 0)
+          const avgPlacement = placements.length > 0 ? Math.round(placements.reduce((a: number, b: number) => a + b, 0) / placements.length) : 0
+          return {
+            totalMatches,
+            totalKills,
+            avgDamage: totalMatches ? totalDamage / totalMatches : 0,
+            avgSurvival: totalMatches ? totalSurvival / totalMatches : 0,
+            kdRatio: totalMatches ? totalKills / totalMatches : 0,
+            totalExpense: 0,
+            totalProfitLoss: 0,
+            activeTeams: 0,
+            activePlayers: 0,
+            todayMatches,
+            weekMatches,
+            avgPlacement,
+            overallAttendanceRate: 0,
+          }
+        })()
       }
-      
-      // Load recent performances with caching
-      const performances = await dataService.getPerformances({ 
-        days: 7, 
-        limit: 10,
-        ...(userRole === 'player' && { playerId: profile.id }),
-        ...(userRole === 'coach' && profile.team_id && { teamId: profile.team_id })
-      })
-      setRecentPerformances(performances)
-      
-      // Calculate top performers
-      await calculateTopPerformers()
-      
+
+      // Enhance stats for admin/manager roles without blocking other UI updates
+      let finalStats = normalizeStats(baseStats)
+      if (['admin', 'manager'].includes(userRole)) {
+        try {
+          finalStats = await loadEnhancedAdminStats(baseStats)
+        } catch {}
+      }
+      setStats(finalStats)
+
+      // Recent performances from API
+      const performances = recentPerfRes.ok ? await recentPerfRes.json() : []
+      const perfItems = Array.isArray(performances) ? performances : (performances.items || [])
+      setRecentPerformances(perfItems)
+
+      // Compute top performers from already-fetched datasets (avoid extra calls)
+      if (Array.isArray(perfForTop) && perfForTop.length > 0) {
+        const teamPerformances = new Map<string, { kills: number; damage: number; matches: number; placements: number[] }>()
+        perfForTop.forEach((perf: any) => {
+          if (!perf.team_id) return
+          const existing = teamPerformances.get(perf.team_id) || { kills: 0, damage: 0, matches: 0, placements: [] }
+          existing.kills += perf.kills || 0
+          existing.damage += perf.damage || 0
+          existing.matches += 1
+          existing.placements.push(perf.placement || 0)
+          teamPerformances.set(perf.team_id, existing)
+        })
+        const topTeamEntry = Array.from(teamPerformances.entries())
+          .map(([teamId, s]) => {
+            const team = (teams as any[]).find((t: any) => t.id === teamId)
+            const avgPlacement = s.placements.reduce((a, b) => a + b, 0) / Math.max(s.placements.length, 1)
+            const wins = s.placements.filter((p: number) => p === 1).length
+            return {
+              id: teamId,
+              name: team?.name || 'Unknown Team',
+              totalMatches: s.matches,
+              avgKills: s.kills / Math.max(s.matches, 1),
+              avgDamage: s.damage / Math.max(s.matches, 1),
+              avgPlacement,
+              kdRatio: s.kills / Math.max(s.matches - wins, 1),
+              winRate: (wins / Math.max(s.matches, 1)) * 100
+            }
+          })
+          .sort((a, b) => b.winRate - a.winRate)[0] || null
+
+        const playerStats = new Map<string, { kills: number; damage: number; matches: number }>()
+        perfForTop.forEach((perf: any) => {
+          const existing = playerStats.get(perf.player_id) || { kills: 0, damage: 0, matches: 0 }
+          existing.kills += perf.kills || 0
+          existing.damage += perf.damage || 0
+          existing.matches += 1
+          playerStats.set(perf.player_id, existing)
+        })
+        const topPlayerEntry = Array.from(playerStats.entries())
+          .map(([playerId, s]) => {
+            const user = (users as any[]).find((u: any) => u.id === playerId)
+            return {
+              id: playerId,
+              name: user?.name || user?.email || 'Unknown Player',
+              value: Math.round((s.damage / Math.max(s.matches, 1)) * 0.3 + (s.kills / Math.max(s.matches, 1)) * 20),
+              metric: 'Score'
+            }
+          })
+          .sort((a, b) => b.value - a.value)[0] || null
+
+        setTopPerformers({ topTeam: topTeamEntry, topPlayer: topPlayerEntry, highestKills: null, highestDamage: null })
+      }
+
       const endTime = Date.now()
       console.log(`✅ Dashboard loaded in ${endTime - startTime}ms`)
       setDataFetched(true)
@@ -351,14 +482,18 @@ export default function OptimizedDashboardPage() {
     try {
       const teams = await dataService.getTeams(userRole, profile?.id)
       const users = await dataService.getUsers()
-      const performances = await dataService.getPerformances({ days: parseInt(selectedTimeframe) })
+      const performances = await dataService.getPerformances({ 
+        days: parseInt(selectedTimeframe),
+        ...(userRole === 'player' && { playerId: profile!.id }),
+        ...(((userRole === 'coach' || userRole === 'analyst') && profile?.team_id) && { teamId: profile.team_id })
+      })
       
       if (performances.length === 0) return
 
       // Find top team performance
       const teamPerformances = new Map<string, { kills: number; damage: number; matches: number; placements: number[] }>()
       
-      performances.forEach(perf => {
+      performances.forEach((perf: any) => {
         if (!perf.team_id) return
         
         const existing = teamPerformances.get(perf.team_id) || { kills: 0, damage: 0, matches: 0, placements: [] }
@@ -371,9 +506,9 @@ export default function OptimizedDashboardPage() {
 
       const topTeamEntry = Array.from(teamPerformances.entries())
         .map(([teamId, stats]) => {
-          const team = teams.find(t => t.id === teamId)
+          const team = teams.find((t: any) => t.id === teamId)
           const avgPlacement = stats.placements.reduce((a, b) => a + b, 0) / stats.placements.length
-          const wins = stats.placements.filter(p => p === 1).length
+          const wins = stats.placements.filter((p: number) => p === 1).length
           
           return {
             id: teamId,
@@ -391,7 +526,7 @@ export default function OptimizedDashboardPage() {
       // Find top individual performers
       const playerStats = new Map<string, { kills: number; damage: number; matches: number }>()
       
-      performances.forEach(perf => {
+      performances.forEach((perf: any) => {
         const existing = playerStats.get(perf.player_id) || { kills: 0, damage: 0, matches: 0 }
         existing.kills += perf.kills || 0
         existing.damage += perf.damage || 0
@@ -399,49 +534,24 @@ export default function OptimizedDashboardPage() {
         playerStats.set(perf.player_id, existing)
       })
 
-      const playerEntries = Array.from(playerStats.entries())
+      const topPlayerEntry = Array.from(playerStats.entries())
         .map(([playerId, stats]) => {
-          const user = users.find(u => u.id === playerId)
+          const user = users.find((u: any) => u.id === playerId)
           return {
             id: playerId,
-            name: user?.name || 'Unknown Player',
-            avgKills: stats.kills / stats.matches,
-            avgDamage: stats.damage / stats.matches,
-            totalKills: stats.kills,
-            totalDamage: stats.damage,
-            team: user?.team_id
+            name: user?.name || user?.email || 'Unknown Player',
+            value: Math.round((stats.damage / Math.max(stats.matches, 1)) * 0.3 + (stats.kills / Math.max(stats.matches, 1)) * 20),
+            metric: 'Score'
           }
         })
-
-      const topKillsPlayer = playerEntries.sort((a, b) => b.avgKills - a.avgKills)[0]
-      const topDamagePlayer = playerEntries.sort((a, b) => b.avgDamage - a.avgDamage)[0]
-      const topOverallPlayer = playerEntries.sort((a, b) => (b.avgKills + b.avgDamage/100) - (a.avgKills + a.avgDamage/100))[0]
+        .sort((a, b) => b.value - a.value)[0]
 
       setTopPerformers({
         topTeam: topTeamEntry || null,
-        topPlayer: topOverallPlayer ? {
-          id: topOverallPlayer.id,
-          name: topOverallPlayer.name,
-          value: topOverallPlayer.avgKills + topOverallPlayer.avgDamage/100,
-          metric: 'Overall Score',
-          team: topOverallPlayer.team || undefined
-        } : null,
-        highestKills: topKillsPlayer ? {
-          id: topKillsPlayer.id,
-          name: topKillsPlayer.name,
-          value: topKillsPlayer.avgKills,
-          metric: 'Avg Kills',
-          team: topKillsPlayer.team || undefined
-        } : null,
-        highestDamage: topDamagePlayer ? {
-          id: topDamagePlayer.id,
-          name: topDamagePlayer.name,
-          value: topDamagePlayer.avgDamage,
-          metric: 'Avg Damage',
-          team: topDamagePlayer.team || undefined
-        } : null
+        topPlayer: topPlayerEntry || null,
+        highestKills: null,
+        highestDamage: null
       })
-
     } catch (error) {
       console.error('Error calculating top performers:', error)
     }
@@ -588,7 +698,7 @@ export default function OptimizedDashboardPage() {
           <Card className="bg-black/40 backdrop-blur-lg border border-white/20 shadow-2xl">
             <CardHeader>
               <CardTitle className="text-xl font-semibold text-white flex items-center gap-3">
-                <div className={`p-2 rounded-lg bg-${roleInfo.color}-500/20`}>
+                <div className={`p-2 rounded-lg ${getRoleAccentBg(roleInfo.color)}`}>
                   <Users className="h-6 w-6 text-white" />
                 </div>
                 {isPlayer ? 'My Performance Dashboard' : 
@@ -1041,6 +1151,22 @@ export default function OptimizedDashboardPage() {
                         </Badge>
                       </div>
                     ))}
+                    <div className="flex justify-center">
+                      <Button variant="outline" size="sm" onClick={async () => {
+                        try {
+                          const token = await getToken()
+                          const params = new URLSearchParams(); params.set('limit', String(recentLimit)); params.set('offset', String(recentPage * recentLimit))
+                          const nextRes = await fetch(`/api/performances?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` } })
+                          if (!nextRes.ok) return
+                          const payload = await nextRes.json()
+                          const items = Array.isArray(payload) ? payload : (payload.items || [])
+                          if (items.length > 0) {
+                            setRecentPerformances(prev => [...prev, ...items])
+                            setRecentPage(p => p + 1)
+                          }
+                        } catch {}
+                      }}>Load more</Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8">
