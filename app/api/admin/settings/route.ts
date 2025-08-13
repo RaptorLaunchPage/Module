@@ -1,101 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getUser } from '@/lib/auth-utils'
-import { supabase } from '@/lib/supabase'
+import getSupabaseAdmin from '@/lib/supabase-admin'
+import { createClient } from '@supabase/supabase-js'
 
-// Force dynamic rendering
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+async function getCaller(request: NextRequest) {
+  if (!supabaseUrl || !supabaseAnonKey) return { status: 503, error: 'Service unavailable' as const }
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader) return { status: 401, error: 'Authorization required' as const }
+  const token = authHeader.replace('Bearer ', '')
+  const userClient = createClient(supabaseUrl, supabaseAnonKey, { global: { headers: { Authorization: `Bearer ${token}` } } })
+  const { data: { user } } = await userClient.auth.getUser(token)
+  if (!user) return { status: 401, error: 'Invalid token' as const }
+  const { data: profile } = await userClient.from('users').select('id, role').eq('id', user.id).single()
+  if (!profile) return { status: 404, error: 'User not found' as const }
+  if (profile.role !== 'admin') return { status: 403, error: 'Forbidden' as const }
+  return { status: 200 as const, user: profile }
+}
+
 export const dynamic = 'force-dynamic'
 
-// GET /api/admin/settings - Get system settings
 export async function GET(request: NextRequest) {
   try {
-    const { user } = await getUser(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const caller = await getCaller(request)
+    if ('error' in caller) return NextResponse.json({ error: caller.error }, { status: caller.status })
 
-    // Check if user is admin
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (userError || userData?.role !== 'admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
-
-    // Get all admin config settings
-    const { data: settings, error: settingsError } = await supabase
+    const supabaseAdmin = getSupabaseAdmin()
+    const { data: settings, error: settingsError } = await supabaseAdmin
       .from('admin_config')
       .select('key, value')
 
     if (settingsError) {
-      console.error('Settings fetch error:', settingsError)
       return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })
     }
 
-    // Convert to key-value object
-    const settingsMap = settings.reduce((acc, setting) => {
-      acc[setting.key] = setting.value
-      return acc
-    }, {} as Record<string, string>)
-
-    return NextResponse.json({ settings: settingsMap })
-
+    return NextResponse.json({ settings: settings || [] })
   } catch (error) {
-    console.error('Admin settings error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// POST /api/admin/settings - Update system settings
 export async function POST(request: NextRequest) {
   try {
-    const { user } = await getUser(request)
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check if user is admin
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (userError || userData?.role !== 'admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
-
     const body = await request.json()
-    const { settings } = body
+    const action = body.action as string
+    const caller = await getCaller(request)
+    if ('error' in caller) return NextResponse.json({ error: caller.error }, { status: caller.status })
 
-    if (!settings || typeof settings !== 'object') {
-      return NextResponse.json({ error: 'Settings object is required' }, { status: 400 })
+    if (action === 'purge_non_admin_data') {
+      const supabaseAdmin = getSupabaseAdmin()
+      const tables = [
+        'attendances',
+        'performances',
+        'rosters',
+        'slots',
+        'sessions',
+        'slot_expenses',
+        'winnings'
+      ]
+      for (const table of tables) {
+        await supabaseAdmin.from(table).delete().neq('id', null)
+      }
+      await supabaseAdmin.from('users').delete().neq('role', 'admin')
+      return NextResponse.json({ success: true })
     }
 
-    // Update each setting
-    const updates = []
-    for (const [key, value] of Object.entries(settings)) {
-      updates.push(
-        supabase
-          .from('admin_config')
-          .upsert({ key, value: String(value) }, { onConflict: 'key' })
-      )
-    }
-
-    const results = await Promise.allSettled(updates)
-    const failures = results.filter(result => result.status === 'rejected')
-
-    if (failures.length > 0) {
-      console.error('Settings update failures:', failures)
-      return NextResponse.json({ error: 'Some settings failed to update' }, { status: 500 })
-    }
-
-    return NextResponse.json({ message: 'Settings updated successfully' })
-
-  } catch (error) {
-    console.error('Admin settings update error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Internal error' }, { status: 500 })
   }
 }
