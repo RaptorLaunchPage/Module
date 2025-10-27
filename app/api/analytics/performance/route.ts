@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Process data based on analysis type
-    let analyticsData = {}
+    let analyticsData: any = {}
 
     switch (analysisType) {
       case 'trends':
@@ -135,6 +135,9 @@ export async function GET(request: NextRequest) {
       default:
         analyticsData = generateOverviewAnalysis(performances || [])
     }
+
+    // Curated insights based on filtered dataset
+    analyticsData.insights = generateInsights(performances || [], analysisType)
 
     return NextResponse.json({
       success: true,
@@ -415,7 +418,7 @@ function calculateImprovements(trendData: any[]) {
   const olderAvgKills = older.reduce((sum, d) => sum + parseFloat(d.avgKills), 0) / older.length
   
   return {
-    kills: ((recentAvgKills - olderAvgKills) / olderAvgKills * 100).toFixed(1),
+    kills: ((recentAvgKills - olderAvgKills) / Math.max(olderAvgKills, 1e-6) * 100).toFixed(1),
     damage: 0, // Calculate similarly
     placement: 0 // Calculate similarly
   }
@@ -430,7 +433,7 @@ function calculateConsistency(performances: any[]) {
   const stdDev = Math.sqrt(variance)
   
   // Lower std dev = higher consistency (normalized to 0-100)
-  return Math.max(0, 100 - (stdDev / avg * 100))
+  return Math.max(0, 100 - (stdDev / Math.max(avg, 1e-6) * 100))
 }
 
 function generatePlayerTrend(performances: any[]) {
@@ -440,4 +443,101 @@ function generatePlayerTrend(performances: any[]) {
     damage: perf.damage || 0,
     placement: perf.placement || 0
   }))
+}
+
+// Generate curated insights based on the filtered dataset
+function generateInsights(performances: any[], analysisType: string) {
+  const insights: Array<{ title: string; description: string; category: string }> = []
+  if (!performances || performances.length === 0) return insights
+
+  const total = performances.length
+  const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0)
+  const kills = performances.map(p => p.kills || 0)
+  const damage = performances.map(p => p.damage || 0)
+  const survival = performances.map(p => p.survival_time || 0)
+  const placement = performances.map(p => p.placement || 0)
+
+  const avgKills = sum(kills) / total
+  const avgDamage = sum(damage) / total
+  const avgSurvival = sum(survival) / total
+  const avgPlacement = sum(placement) / Math.max(total, 1)
+
+  // Trend: compare last 5 vs previous 5
+  if (total >= 8) {
+    const recent = performances.slice(0, 5)
+    const older = performances.slice(5, 10)
+    const recentKills = recent.reduce((a, p) => a + (p.kills || 0), 0) / recent.length
+    const olderKills = older.reduce((a, p) => a + (p.kills || 0), 0) / older.length
+    if (recentKills > olderKills * 1.15) {
+      insights.push({
+        title: 'Trending Upward',
+        description: 'Recent matches show a clear upward trend in kills. Double down on current strategies to sustain momentum.',
+        category: 'trend'
+      })
+    } else if (recentKills < olderKills * 0.85) {
+      insights.push({
+        title: 'Performance Dip Detected',
+        description: 'A recent decline in kills suggests fatigue or strategic mismatch. Consider reviewing drop locations and early rotations.',
+        category: 'trend'
+      })
+    }
+  }
+
+  // Survival vs damage heuristic
+  if (avgSurvival < 12 && avgDamage > 1200) {
+    insights.push({
+      title: 'High Damage, Low Survival',
+      description: 'You are dealing good damage but dying early. Adopt safer early-game routes and stabilize before mid-game fights.',
+      category: 'tactics'
+    })
+  }
+
+  // Placement improvement needed
+  if (avgPlacement > 8 && avgKills < 3) {
+    insights.push({
+      title: 'Placement Focus Needed',
+      description: 'Average placement is low with limited kills. Prioritize zone control and disengage low-value fights to improve rankings.',
+      category: 'strategy'
+    })
+  }
+
+  // Consistency check
+  const consistency = calculateConsistency(performances)
+  if (consistency < 50) {
+    insights.push({
+      title: 'Inconsistent Performance',
+      description: 'Match-to-match variance is high. Establish consistent drop spots and defined roles to stabilize outcomes.',
+      category: 'consistency'
+    })
+  } else if (consistency > 80) {
+    insights.push({
+      title: 'Strong Consistency',
+      description: 'Stable outputs across matches. Leverage this to execute planned strategies and focus on incremental improvements.',
+      category: 'consistency'
+    })
+  }
+
+  // Map-specific weakness (if data available)
+  const byMap = new Map<string, { matches: number; kills: number; wins: number }>()
+  for (const p of performances) {
+    const key = p.map || 'Unknown'
+    if (!byMap.has(key)) byMap.set(key, { matches: 0, kills: 0, wins: 0 })
+    const m = byMap.get(key)!
+    m.matches += 1
+    m.kills += p.kills || 0
+    if (p.placement === 1) m.wins += 1
+  }
+  if (byMap.size > 1) {
+    const mapsArr = Array.from(byMap.entries()).map(([name, v]) => ({ name, matches: v.matches, avgKills: v.kills / Math.max(v.matches, 1), winRate: v.matches ? (v.wins / v.matches) * 100 : 0 }))
+    const weakest = mapsArr.reduce((min, cur) => (cur.winRate < min.winRate ? cur : min), mapsArr[0])
+    if (weakest.matches !== performances.length) {
+      insights.push({
+        title: `Map Opportunity: ${weakest.name}`,
+        description: `Win rate is lower on ${weakest.name}. Consider targeted scrims and VOD review to improve rotations and timings on this map.`,
+        category: 'map'
+      })
+    }
+  }
+
+  return insights
 }

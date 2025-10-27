@@ -24,6 +24,7 @@ interface SmartSlotSelectorProps {
   value: string
   onValueChange: (value: string) => void
   required?: boolean
+  teamId?: string
 }
 
 const TIME_RANGES = [
@@ -36,8 +37,8 @@ const TIME_RANGES = [
   "9:00 PM - 11:00 PM",
 ]
 
-export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotSelectorProps) {
-  const { profile } = useAuth()
+export function SmartSlotSelector({ value, onValueChange, required, teamId }: SmartSlotSelectorProps) {
+  const { profile, getToken } = useAuth()
   const [slots, setSlots] = useState<Slot[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,42 +68,32 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
     if (isAdminOrManager) {
       fetchTeams()
     }
-  }, [profile, showArchived, filterMonth])
+  }, [profile, showArchived, filterMonth, teamId])
 
   const fetchSlots = async () => {
     try {
-      let query = supabase.from("slots")
-        .select("*, team:team_id(name)")
-        .order("date", { ascending: false })
-
-      // Role-based filtering
-      if (!shouldSeeAllData) {
-        if (userRole === "coach" || userRole === "player") {
-          query = query.eq("team_id", profile?.team_id!)
-        }
+      // Prefer API for consistent role filtering and response
+      const params = new URLSearchParams()
+      if (showArchived && filterMonth) {
+        params.set('view', 'archived')
+        params.set('month', format(filterMonth, 'yyyy-MM'))
+      } else {
+        params.set('view', 'current')
       }
-
-      // Date filtering based on role and archive view
-      if (isPlayer) {
-        // Players only see today's slots
-        const today = format(new Date(), 'yyyy-MM-dd')
-        query = query.eq("date", today)
-      } else if (isAdminOrManager) {
-        if (showArchived && filterMonth) {
-          // Show archived slots for selected month
-          const startDate = format(startOfMonth(filterMonth), 'yyyy-MM-dd')
-          const endDate = format(endOfMonth(filterMonth), 'yyyy-MM-dd')
-          query = query.gte("date", startDate).lte("date", endDate)
-        } else if (!showArchived) {
-          // Show only today's slots for current view
-          const today = format(new Date(), 'yyyy-MM-dd')
-          query = query.eq("date", today)
-        }
+      if (teamId && isAdminOrManager) {
+        params.set('team_id', teamId)
       }
-
-      const { data, error } = await query
-      if (error) throw error
-      setSlots(data || [])
+      const token = await getToken()
+      const res = await fetch(`/api/slots?${params.toString()}`, { 
+        headers: { 
+          'cache-control': 'no-cache',
+          'Authorization': `Bearer ${token}`
+        } 
+      })
+      if (!res.ok) throw new Error('Failed to fetch slots')
+      const data = await res.json()
+      const slotsData: any[] = Array.isArray(data) ? data : (data.slots || [])
+      setSlots(slotsData || [])
     } catch (error) {
       console.error('Error fetching slots:', error)
     } finally {
@@ -141,8 +132,8 @@ export function SmartSlotSelector({ value, onValueChange, required }: SmartSlotS
 
       if (error) throw error
 
-      // Add to slots list and select it
-      setSlots(prev => [data, ...prev])
+      // Only present the newly created slot as options and select it
+      setSlots([data])
       onValueChange(data.id)
       setShowQuickAdd(false)
       

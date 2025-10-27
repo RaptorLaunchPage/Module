@@ -7,11 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { OCRExtract } from "@/components/performance/ocr-extract"
 import { PerformanceDashboard } from "@/components/performance/performance-dashboard"
-import { PlayerPerformanceSubmit } from "@/components/performance/player-performance-submit"
-import { StreamlinedPerformanceSubmit } from "@/components/performance/streamlined-performance-submit"
-import { PerformanceReportSimple } from "@/components/performance/performance-report-simple"
+import { EnhancedPlayerPerformanceSubmit } from "@/components/performance/enhanced-player-performance-submit"
+import { ScrimAttendance } from "@/components/attendance/scrim-attendance"
 import { SendToDiscordButton } from "@/components/discord-portal/send-to-discord-button"
 import { 
   Target, 
@@ -25,7 +23,9 @@ import {
   Filter,
   BarChart3,
   RefreshCw,
-  Users
+  Users,
+  Trophy,
+  Calendar
 } from "lucide-react"
 import type { Database } from "@/lib/supabase"
 import { DashboardPermissions, type UserRole } from "@/lib/dashboard-permissions"
@@ -207,6 +207,7 @@ export default function PerformancePage() {
   const canUseOCR = performancePermissions.canCreate && ['admin', 'manager', 'coach'].includes(userRole)
   const canSubmitPerformance = userRole === 'player'
   const canStaffSubmit = ['admin', 'manager', 'coach'].includes(userRole)
+  const canViewAttendance = ['admin', 'manager', 'coach', 'player'].includes(userRole)
 
   // Auto-select team for players and reset player filter when team changes
   useEffect(() => {
@@ -395,7 +396,7 @@ export default function PerformancePage() {
   const requiresUsers = canViewDashboard || canStaffSubmit || canUseOCR
 
   // If user has no access to any tab, render nothing
-      if (!canViewDashboard && !canStaffSubmit && !canUseOCR && !canSubmitPerformance) {
+      if (!canViewDashboard && !canStaffSubmit && !canUseOCR && !canSubmitPerformance && !canViewAttendance) {
     return null
   }
 
@@ -489,16 +490,16 @@ export default function PerformancePage() {
             icon: BarChart3
           },
           {
-            value: "staff-submit",
+            value: "submit",
             label: "Submit Performance",
             icon: Plus,
-            hidden: !canStaffSubmit
+            hidden: !canSubmitPerformance && !canStaffSubmit
           },
           {
-            value: "submit",
-            label: "Player Submit",
-            icon: Gamepad2,
-            hidden: !canSubmitPerformance
+            value: "attendance",
+            label: "Match Attendance",
+            icon: Calendar,
+            hidden: !canViewAttendance
           }
         ].filter(tab => !tab.hidden)}
         defaultValue="dashboard"
@@ -792,21 +793,50 @@ export default function PerformancePage() {
           )}
         </TabsContent>
 
-        {canStaffSubmit && (
-          <TabsContent value="staff-submit">
-            <StreamlinedPerformanceSubmit onPerformanceAdded={fetchPerformances} />
+        {(canSubmitPerformance || canStaffSubmit) && (
+          <TabsContent value="submit">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="h-5 w-5" />
+                  Submit Performance Data
+                </CardTitle>
+                <CardDescription>
+                  {profile?.role === 'player' 
+                    ? 'Submit your match performance statistics'
+                    : 'Submit performance data for team members'
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {profile && (() => {
+                  try {
+                    return <EnhancedPlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />
+                  } catch (err) {
+                    return <div className="text-center py-8 text-red-500">An error occurred while loading the performance form. Please contact support.</div>
+                  }
+                })()}
+              </CardContent>
+            </Card>
           </TabsContent>
         )}
 
-        {canSubmitPerformance && (
-          <TabsContent value="submit">
-            {profile && (() => {
-              try {
-                return <PlayerPerformanceSubmit onPerformanceAdded={fetchPerformances} />
-              } catch (err) {
-                return <div className="text-center py-8 text-red-500">An error occurred while loading the performance form. Please contact support.</div>
-              }
-            })()}
+        {canViewAttendance && (
+          <TabsContent value="attendance">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Match Attendance Log
+                </CardTitle>
+                <CardDescription>
+                  View automatically generated attendance records from match performances
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrimAttendance />
+              </CardContent>
+            </Card>
           </TabsContent>
         )}
       </ResponsiveTabs>

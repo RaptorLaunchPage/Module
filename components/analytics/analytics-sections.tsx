@@ -312,6 +312,34 @@ export function PerformanceAnalyticsSection({
           </CardContent>
         </Card>
       )}
+
+      {/* Curated Insights */}
+      {Array.isArray(performanceData?.insights) && performanceData.insights.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Performance Insights
+            </CardTitle>
+            <CardDescription>Insights are generated from the current filters and timeframe</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {performanceData.insights.map((ins: any, idx: number) => (
+                <div key={idx} className="p-4 rounded-lg border" data-category={ins.category}>
+                  <div className="flex items-start gap-3">
+                    <TrendingUp className="h-5 w-5 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold">{ins.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">{ins.description}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
@@ -750,54 +778,32 @@ export function TrendAnalyticsSection({
       )}
 
       {/* Insights and Recommendations */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Performance Insights
-          </CardTitle>
-          <CardDescription>AI-powered insights based on your performance data</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-start gap-3">
-                <TrendingUp className="h-5 w-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h4 className="font-semibold text-blue-900 dark:text-blue-100">Performance Trending Upward</h4>
-                  <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                    Your recent performance shows consistent improvement in kill/damage ratio. Keep focusing on aggressive plays.
-                  </p>
+      {Array.isArray(trendData?.insights) && trendData.insights.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Performance Insights
+            </CardTitle>
+            <CardDescription>Insights are generated from the current filters and timeframe</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {trendData.insights.map((ins: any, idx: number) => (
+                <div key={idx} className="p-4 rounded-lg border" data-category={ins.category}>
+                  <div className="flex items-start gap-3">
+                    <TrendingUp className="h-5 w-5 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold">{ins.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">{ins.description}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-
-            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-              <div className="flex items-start gap-3">
-                <Target className="h-5 w-5 text-yellow-600 mt-0.5" />
-                <div>
-                  <h4 className="font-semibold text-yellow-900 dark:text-yellow-100">Focus Area: Survival Time</h4>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                    Your survival time could be improved. Consider playing more conservatively in early game phases.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-              <div className="flex items-start gap-3">
-                <Trophy className="h-5 w-5 text-green-600 mt-0.5" />
-                <div>
-                  <h4 className="font-semibold text-green-900 dark:text-green-100">Strength: Consistency</h4>
-                  <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                    Your performance shows high consistency across matches. This is a key strength for team strategy.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
